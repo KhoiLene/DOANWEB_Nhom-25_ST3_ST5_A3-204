@@ -1,0 +1,97 @@
+<!-- Footer Assets -->
+<th:block th:fragment="footer-assets">
+    <link rel="stylesheet" th:href="@{/css/footer.css}">
+</th:block>
+
+<!-- Site Footer Fragment -->
+<footer th:fragment="footer" class="site-footer">
+    <div class="container">
+        <div class="footer-top">
+            <!-- Info Column -->
+            <div class="footer-column">
+                <div class="footer-logo">
+                    <svg width="150" height="40" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <text x="0" y="28" font-family="'Montserrat', sans-serif" font-weight="700" font-size="24" fill="#ffffff">KL</text>
+                        <circle cx="120" cy="20" r="6" fill="#d2a45c"/>
+                        <path d="M125 15C127 10 133 10 135 15C137 20 133 28 125 28C117 28 113 20 115 15C117 10 123 10 125 15Z" fill="#ffffff" fill-opacity="0.3"/>
+                        <text x="110" y="32" font-family="'Plus Jakarta Sans', sans-serif" font-size="8" font-weight="600" fill="#faf5ec" letter-spacing="1">LABS</text>
+                    </svg>
+                </div>
+                <p class="footer-about">
+                    KL cung cấp giải pháp hóa chất và gia đình thiên nhiên, lành tính, an toàn cho cả mẹ bầu và trẻ nhỏ. Chúng tôi cam kết mang đến những sản phẩm chất lượng, được chiết xuất từ thảo mộc Việt Nam, giúp bạn chăm sóc sức khỏe và sắc đẹp một cách tự nhiên.
+                </p>
+                <div class="footer-socials">
+                    <a href="#" class="social-icon" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" class="social-icon" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#" class="social-icon" aria-label="Youtube"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="#" class="social-icon" aria-label="Tiktok"><i class="fa-brands fa-tiktok"></i></a>
+                </div>
+            </div>
+
+            <!-- Column 2 -->
+            <div class="footer-column">
+                <h4>Về chúng tôi</h4>
+                <ul class="footer-links" id="footerAboutMount">
+                    <!-- Render động từ upload_groups (display_location = 'footer_about') -->
+                </ul>
+            </div>
+
+            <!-- Column 3 -->
+            <div class="footer-column">
+                <h4>Hỗ trợ khách hàng</h4>
+                <ul class="footer-links" id="footerSupportMount">
+                    <!-- Render động từ upload_groups (display_location = 'footer_support') -->
+                </ul>
+            </div>
+
+            <!-- Column 4 -->
+            <div class="footer-column">
+                <h4>Thông tin liên hệ</h4>
+                <ul class="footer-contact">
+                    <li>
+                        <i class="fa-solid fa-location-dot"></i>
+                        <span>
+                            <strong>Văn phòng đại diện:</strong>
+                            Số 1 Võ Văn Ngân, phường Thử Đức, HCM
+                        </span>
+                    </li>
+                    <li>
+                        <i class="fa-solid fa-phone"></i>
+                        <span>
+                            <strong>Hotline miễn cước:</strong>
+                            1800.0000.00 (8h30 - 22h00)
+                        </span>
+                    </li>
+                    <li>
+                        <i class="fa-solid fa-envelope"></i>
+                        <span>
+                            <strong>Email liên hệ:</strong>
+                            khoile12102006@gmail.com
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Footer Bottom -->
+        <div class="footer-bottom">
+            <div class="copyright">
+                &copy; 2026 KL Lab. Tất cả các quyền được bảo lưu. Bản sao mô phỏng phục vụ tích hợp API.
+            </div>
+            <div class="footer-certs">
+                <a href="#" title="Đã đăng ký Bộ Công Thương" aria-label="Bộ Công Thương">
+                    <svg width="100" height="38" viewBox="0 0 100 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="100" height="38" rx="4" fill="#1b3a2f"/>
+                        <text x="50" y="16" font-family="sans-serif" font-size="8" fill="#ffffff" text-anchor="middle" font-weight="bold">ĐÃ ĐĂNG KÝ</text>
+                        <text x="50" y="28" font-family="sans-serif" font-size="9" fill="#00ff99" text-anchor="middle" font-weight="bold">BỘ CÔNG THƯƠNG</text>
+                    </svg>
+                </a>
+                <svg width="80" height="38" viewBox="0 0 80 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="80" height="38" rx="4" fill="#2d4039"/>
+                    <circle cx="16" cy="19" r="6" fill="#00ff99"/>
+                    <text x="48" y="22" font-family="sans-serif" font-size="9" fill="#ffffff" text-anchor="middle" font-weight="bold">SSL SECURE</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+</footer>

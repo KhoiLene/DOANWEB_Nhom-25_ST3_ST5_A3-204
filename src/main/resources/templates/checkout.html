@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thanh toán - Techtra</title>
+    <link rel="stylesheet" th:href="@{/css/thanh-toan/thanh-toan.css}" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+    <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <main class="checkout container">
+      <div class="checkout-head">
+        <h1>Thanh toán</h1>
+        <p class="checkout-sub">Hoàn tất đặt hàng theo 3 bước.</p>
+      </div>
+
+      <section class="stepper" aria-label="Các bước thanh toán">
+        <div class="step" data-step="1">
+          <div class="step-dot">1</div>
+          <div class="step-label">Thông tin</div>
+        </div>
+        <div class="step" data-step="2">
+          <div class="step-dot">2</div>
+          <div class="step-label">Thanh toán</div>
+        </div>
+        <div class="step" data-step="3">
+          <div class="step-dot">3</div>
+          <div class="step-label">Xác nhận</div>
+        </div>
+      </section>
+
+      <form th:action="@{/checkout/place-order}" method="post">
+        <section class="checkout-layout">
+          <section class="checkout-main">
+            <!-- Step 1 -->
+            <div class="step-panel" id="stepPanel1">
+              <h2 class="panel-title">Bước 1: Thông tin người nhận</h2>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="receiverName">Họ tên</label>
+                  <input id="receiverName" name="name" type="text" placeholder="Nhập họ tên" autocomplete="name" required />
+                </div>
+                <div class="field">
+                  <label for="receiverPhone">Số điện thoại</label>
+                  <input id="receiverPhone" name="phone" type="text" placeholder="Nhập số điện thoại" autocomplete="tel" required />
+                </div>
+                <div class="field field--full">
+                  <label for="receiverEmail">Email (tuỳ chọn)</label>
+                  <input id="receiverEmail" type="email" placeholder="Nhập email" autocomplete="email" />
+                </div>
+                <div class="field field--full">
+                  <label for="receiverAddressLine">Địa chỉ chi tiết</label>
+                  <input id="receiverAddressLine" name="address" type="text" placeholder="VD: 12 Nguyễn Trãi" autocomplete="street-address" required />
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn btn-primary" onclick="document.getElementById('stepPanel1').style.display='none'; document.getElementById('stepPanel2').style.display='block';">Tiếp tục</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step-panel" id="stepPanel2" style="display:none">
+              <h2 class="panel-title">Bước 2: Phương thức thanh toán & Voucher</h2>
+
+              <div class="pay-grid">
+                <div class="pay-card">
+                  <div class="radio-row">
+                    <label class="radio">
+                      <input type="radio" name="paymentMethod" value="COD" checked />
+                      <span>Thanh toán khi nhận (COD)</span>
+                    </label>
+                    <label class="radio">
+                      <input type="radio" name="paymentMethod" value="vnpay" />
+                      <span>Thanh toán qua VNPay (QR code)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="pay-card">
+                  <div class="voucher">
+                    <label for="voucherCode">Voucher (tuỳ chọn)</label>
+                    <div class="voucher-input">
+                      <input id="voucherCode" name="voucher" type="text" placeholder="Nhập mã voucher" />
+                      <button type="button" class="btn btn-secondary">Áp dụng</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('stepPanel2').style.display='none'; document.getElementById('stepPanel1').style.display='block';">Quay lại</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('stepPanel2').style.display='none'; document.getElementById('stepPanel3').style.display='block';">Tiếp tục</button>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step-panel" id="stepPanel3" style="display:none">
+              <h2 class="panel-title">Bước 3: Xác nhận đơn</h2>
+
+              <div class="confirm-grid">
+                <div class="confirm-card">
+                  <h3>Thông tin nhận hàng</h3>
+                  <div class="confirm-line"><span>Họ tên</span><strong id="confirmName">—</strong></div>
+                  <div class="confirm-line"><span>Điện thoại</span><strong id="confirmPhone">—</strong></div>
+                  <div class="confirm-line"><span>Email</span><strong id="confirmEmail">—</strong></div>
+                  <div class="confirm-line"><span>Địa chỉ</span><strong id="confirmAddress">—</strong></div>
+                </div>
+
+                <div class="confirm-card">
+                  <h3>Tóm tắt giá</h3>
+                  <div class="summary-line"><span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+                  <div class="summary-line"><span>Vận chuyển</span><strong th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+                  <div class="summary-line"><span>Giảm giá</span><strong >0 đ</strong></div>
+                  <div class="summary-total"><span>Tổng cộng</span><strong th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+                  <div class="summary-method"><span>Phương thức</span><strong id="sumPayment">—</strong></div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('stepPanel3').style.display='none'; document.getElementById('stepPanel2').style.display='block';">Quay lại</button>
+                <button type="submit" class="btn btn-primary">Đặt hàng</button>
+              </div>
+            </div>
+          </section>
+
+          <aside class="checkout-aside">
+            <div class="aside-card">
+              <h3 class="aside-title">Giỏ hàng</h3>
+              <div class="aside-items">
+                <div class="aside-item" th:each="item : ${cartItems}">
+                  <div class="item-info">
+                    <span th:text="${item.product.name}">Tên sản phẩm</span>
+                    <span class="item-qty" th:text="${'x' + item.quantity}">x1</span>
+                  </div>
+                  <span class="item-price" th:text="${#numbers.formatDecimal(item.product.price * item.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                </div>
+              </div>
+              <div class="aside-divider"></div>
+
+              <div class="aside-row"><span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+              <div class="aside-row"><span>Vận chuyển</span><strong th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+              <div class="aside-row"><span>Giảm giá</span><strong >0 đ</strong></div>
+              <div class="aside-total"><span>Tổng</span><strong th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+
+              <div class="aside-hint">
+                Miễn phí vận chuyển cho đơn từ 500.000đ (demo).
+              </div>
+            </div>
+
+            <div class="aside-card aside-history" >
+              <h3 class="aside-title">Lịch sử mua hàng</h3>
+              <div id="ordersMount" class="history-list">
+                <!-- Orders will be rendered here in a future task -->
+              </div>
+              <div id="ordersEmpty" class="muted" style="display:none">Chưa có đơn.</div>
+              <div class="aside-hint">
+                Đăng nhập để xem đầy đủ lịch sử.
+              </div>
+            </div>
+          </aside>
+        </section>
+      </form>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+</body>
+</html>

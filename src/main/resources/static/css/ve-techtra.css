@@ -1,0 +1,251 @@
+:root {
+  --tt-green: #1f7a4d;
+  --tt-green-light: #e8f5ee;
+  --tt-text: #1f2a24;
+  --tt-muted: #6b7a72;
+  --tt-border: #dfe8e3;
+  --tt-radius: 14px;
+  --tt-shadow: 0 4px 18px rgba(31, 122, 77, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--tt-text);
+  background: #fafcfb;
+  line-height: 1.6;
+}
+
+main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+}
+
+/* ===== Header ===== */
+.tt-header {
+  background: #fff;
+  border-bottom: 1px solid var(--tt-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.tt-header__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.tt-header__logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tt-green);
+  text-decoration: none;
+}
+
+.tt-header__logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--tt-green);
+  color: #fff;
+  font-size: 15px;
+}
+
+.tt-header__nav {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+}
+
+.tt-header__nav a {
+  color: var(--tt-text);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.tt-header__nav a:hover,
+.tt-header__nav a.is-active {
+  color: var(--tt-green);
+  border-bottom-color: var(--tt-green);
+}
+
+.tt-header__actions {
+  display: flex;
+  gap: 14px;
+}
+
+.tt-header__icon {
+  text-decoration: none;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.tt-header__burger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.tt-header__burger span {
+  width: 22px;
+  height: 2px;
+  background: var(--tt-text);
+}
+
+@media (max-width: 720px) {
+  .tt-header__nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    flex-direction: column;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--tt-border);
+  }
+
+  .tt-header__nav.is-open {
+    display: flex;
+  }
+
+  .tt-header__burger {
+    display: flex;
+  }
+
+  .tt-header__inner {
+    position: relative;
+  }
+}
+
+/* Phần giới thiệu đầu trang */
+.page-intro {
+  margin-bottom: 28px;
+}
+
+.page-intro__breadcrumbs {
+  font-size: 13px;
+  color: var(--tt-muted);
+  margin-bottom: 10px;
+}
+
+.page-intro__title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--tt-green);
+  margin: 0 0 8px;
+}
+
+.page-intro__subtitle {
+  font-size: 15px;
+  color: var(--tt-muted);
+  margin: 0;
+}
+
+/* Khối nội dung chính */
+.content-card {
+  background: #fff;
+  border: 1px solid var(--tt-border);
+  border-radius: var(--tt-radius);
+  box-shadow: var(--tt-shadow);
+  padding: 32px;
+  min-height: 200px;
+}
+
+.status {
+  color: var(--tt-muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* Nội dung "Về chúng tôi" render từ HTML động */
+.prose {
+  font-size: 16px;
+  color: var(--tt-text);
+}
+
+.prose img {
+  max-width: 100%;
+  border-radius: 10px;
+  margin: 12px 0;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  color: var(--tt-green);
+  line-height: 1.3;
+}
+
+.prose p {
+  margin: 0 0 14px;
+}
+
+.prose a {
+  color: var(--tt-green);
+  text-decoration: underline;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 22px;
+  margin-bottom: 14px;
+}
+
+/* Trạng thái chưa có nội dung */
+.empty {
+  text-align: center;
+  padding: 40px 16px;
+  background: var(--tt-green-light);
+  border-radius: 10px;
+}
+
+.empty__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--tt-green);
+  margin-bottom: 6px;
+}
+
+.empty__desc {
+  font-size: 14px;
+  color: var(--tt-muted);
+}
+
+/* [hidden] cần thắng CSS mặc định nếu có xung đột */
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  .page-intro__title {
+    font-size: 26px;
+  }
+
+  .content-card {
+    padding: 20px;
+  }
+}

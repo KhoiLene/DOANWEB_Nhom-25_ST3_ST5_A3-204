@@ -1,0 +1,315 @@
+/* ============================================================
+ * TECHTRA — Về Techtra (mới)
+ * Pattern: giống "Xem trước" trong AboutContentTab (admin).
+ * Chỉ render HTML thuần trong khung main giữa header + footer.
+ * ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+/* --- DESIGN TOKENS --- */
+:root {
+  --primary: #2563eb;
+  --primary-light: #dbeafe;
+  --primary-hover: #1d4ed8;
+
+  --bg-main: #ffffff;
+  --bg-secondary: #f6f8fb;
+  --bg-page: #eef2f9;
+
+  --text-primary: #1c2b40;
+  --text-secondary: #5a6b7d;
+  --text-light: #ffffff;
+
+  --border-color: #dbe4f0;
+  --danger: #d93838;
+
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', sans-serif;
+
+  --shadow-sm: 0 2px 8px rgba(37, 99, 235, 0.06);
+  --shadow-md: 0 8px 24px rgba(37, 99, 235, 0.08);
+
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --header-height: 72px;
+}
+
+/* --- RESET --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+a { color: inherit; text-decoration: none; transition: var(--transition); }
+img { max-width: 100%; height: auto; display: block; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+ul { list-style: none; }
+
+/* ============================================================
+ * MAIN — Khung trắng nằm giữa header fixed và footer
+ * Chỉ chứa article.prose render HTML thuần
+ * ============================================================ */
+/* main.about-page {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1240px;
+  margin: calc(var(--header-height) + 24px) auto 32px;
+  padding: 28px;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 768px) {
+  main.about-page {
+    margin-top: calc(var(--header-height) + 16px);
+    padding: 20px;
+    border-radius: var(--radius-md);
+  }
+} */
+
+main.about-page {
+  flex: 1 0 auto;
+  width: 100%;
+  margin: 0;
+  padding: 28px;
+  background-color: var(--bg-main);
+  /* Bỏ border, box-shadow, border-radius, max-width để tràn viền */
+}
+
+@media (max-width: 768px) {
+  main.about-page {
+    margin: 0;
+    padding: 20px;
+  }
+}
+/* ============================================================
+ * STATE MESSAGES
+ * ============================================================ */
+.state-message {
+  text-align: center;
+  padding: 60px 16px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+.state-message i { margin-right: 8px; color: var(--primary); }
+.state-message.error {
+  color: var(--danger);
+  background-color: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+/* ============================================================
+ * PROSE — Render HTML thuần (giống .up-editor-preview admin)
+ * ============================================================ */
+.about-content.prose,
+.prose {
+  font-size: 16px;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+.prose img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  margin: 14px 0;
+  box-shadow: var(--shadow-sm);
+}
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin: 24px 0 12px;
+}
+.prose h1 { font-size: 1.85rem; }
+.prose h2 { font-size: 1.5rem; }
+.prose h3 { font-size: 1.2rem; }
+.prose h4 { font-size: 1.05rem; }
+.prose p { margin: 0 0 14px; }
+.prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose a:hover { color: var(--primary-hover); }
+.prose ul,
+.prose ol {
+  padding-left: 22px;
+  margin-bottom: 14px;
+}
+.prose li { margin-bottom: 6px; }
+.prose blockquote {
+  border-left: 4px solid var(--primary);
+  background: var(--primary-light);
+  padding: 12px 16px;
+  margin: 14px 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-style: italic;
+}
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 14px;
+}
+.prose th,
+.prose td {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: left;
+}
+.prose th { background: var(--bg-secondary); font-weight: 600; }
+.prose pre,
+.prose code {
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+.prose pre { padding: 12px 14px; overflow-x: auto; }
+.prose code { padding: 2px 6px; }
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 20px 0;
+}
+.prose figure { margin: 14px 0; }
+.prose figcaption {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-style: italic;
+  margin-top: 6px;
+}
+
+/* ============================================================
+ * IFRAME (YouTube, Vimeo...) — responsive embed
+ * Đặt trong .prose, không bị tràn ra ngoài khung main
+ * ============================================================ */
+.prose iframe {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: none;
+  border-radius: var(--radius-md);
+  margin: 18px 0;
+  box-shadow: var(--shadow-sm);
+  display: block;
+}
+
+/* ============================================================
+ * ELEMENTOR — Hỗ trợ layout Elementor paste từ Word/Google Docs.
+ * Elementor dùng flex/grid với inline styles + class riêng.
+ * Khi paste vào .prose, các class .elementor-* không có CSS tương ứng
+ * → vỡ layout. CSS dưới đây khôi phục cơ bản.
+ * ========================================================= */
+.prose .elementor-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 0;
+  margin: 8px 0;
+}
+.prose .elementor-column {
+  flex: 1 1 0;
+  min-width: 240px;
+}
+.prose .elementor-widget {
+  margin-bottom: 16px;
+}
+.prose .elementor-widget-wrap {
+  padding: 8px 12px;
+}
+.prose .elementor-widget-image {
+  text-align: center;
+}
+.prose .elementor-widget-image img {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+  border-radius: var(--radius-md);
+}
+.prose .elementor-heading-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin: 0 0 12px;
+}
+.prose .elementor-widget-heading h1.elementor-heading-title { font-size: 2rem; }
+.prose .elementor-widget-heading h2.elementor-heading-title { font-size: 1.6rem; }
+.prose .elementor-widget-heading h3.elementor-heading-title { font-size: 1.3rem; }
+.prose .elementor-widget-text-editor {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+.prose .elementor-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-weight: 600;
+  transition: var(--transition);
+}
+.prose .elementor-button:hover {
+  background: var(--primary-hover);
+  color: white;
+}
+
+/* Giữ inline styles của Elementor (position, padding, margin, color...) */
+.prose [style] {
+  /* Mặc định tôn trọng inline style của element gốc */
+}
+
+/* ============================================================
+ * EMPTY STATE
+ * ============================================================ */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+.empty-state i {
+  font-size: 48px;
+  opacity: 0.5;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+.empty-state h3 {
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+.empty-state p { font-size: 14px; }
+
+/* ============================================================
+ * Helpers
+ * ============================================================ */
+[hidden] { display: none !important; }

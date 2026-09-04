@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tất cả sản phẩm | Techtra</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" th:href="@{/css/tat-ca-san-pham/tat-ca-san-pham.css}">
+  <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+  <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+</head>
+<body>
+  <div th:replace="~{fragments/header :: header}"></div>
+
+  <main class="all-wrapper">
+    <nav class="breadcrumb" id="breadcrumb">
+      <a th:href="@{/}">Trang chủ</a>
+      / <span style="color:#111827">Tất cả sản phẩm</span>
+    </nav>
+
+    <div class="all-layout">
+
+      <!-- SIDEBAR (desktop + drawer mobile) -->
+      <aside class="all-sidebar" id="sidebar">
+        <button class="sidebar-close" id="sidebarClose" type="button" aria-label="Đóng">
+          <i class="fas fa-times"></i>
+        </button>
+        <h3 class="sidebar-title"><i class="fas fa-filter"></i> Lọc theo nhóm</h3>
+
+        <label class="sidebar-option sidebar-option--all">
+          <a th:href="@{/products}" class="sidebar-option__label" style="text-decoration: none; color: inherit; display: block; width: 100%;">
+            <strong style="font-weight: bold;">Tất cả sản phẩm</strong>
+          </a>
+        </label>
+
+        <ul class="sidebar-tree" id="sidebarTree">
+            <li th:each="cat : ${categories}" class="sidebar-tree-item">
+                <a th:href="@{/products(categoryId=${cat.id})}" th:text="${cat.name}">Tên danh mục</a>
+            </li>
+        </ul>
+      </aside>
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <!-- MAIN CONTENT -->
+      <section class="all-main">
+
+        <div class="all-toolbar">
+          <button class="toolbar-filter-btn" id="filterBtn" type="button">
+            <i class="fas fa-sliders-h"></i> Lọc
+          </button>
+
+          <form th:action="@{/products}" method="GET" style="display: flex; align-items: center; gap: 15px; flex-grow: 1; justify-content: center;">
+            <div class="search-inline">
+              <i class="fas fa-search"></i>
+              <input type="text" name="keyword" th:value="${keyword}" placeholder="Tìm sản phẩm...">
+            </div>
+
+            <label class="sort-inline">Sắp xếp:
+              <select name="sort" th:value="${sort}">
+                <option value="newest" th:selected="${sort == 'newest'}">Mới nhất</option>
+                <option value="price_asc" th:selected="${sort == 'price_asc'}">Giá tăng dần</option>
+                <option value="price_desc" th:selected="${sort == 'price_desc'}">Giá giảm dần</option>
+                <option value="name" th:selected="${sort == 'name'}">Tên A-Z</option>
+              </select>
+            </label>
+            <button type="submit" class="btn-submit-search" style="display: none;">Tìm</button>
+          </form>
+
+          <div class="toolbar-count">
+            <span th:text="${products.size()}">0</span> sản phẩm
+          </div>
+        </div>
+
+        <div class="products-grid" id="productsGrid">
+            <div class="product-card" th:each="product : ${products}">
+                <a th:href="@{/product/{id}(id=${product.id})}" class="product-img-link">
+                    <img th:src="${product.imageUrl}" th:alt="${product.name}" class="product-img">
+                </a>
+                <div class="product-info">
+                    <span class="product-cat" th:text="${product.category?.name}">Danh mục</span>
+                    <h3 class="product-title" th:text="${product.name}">Tên sản phẩm</h3>
+                    <div class="product-price-group">
+                        <span class="price-final" th:text="${#numbers.formatDecimal(product.finalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                        <span class="price-old" th:text="${#numbers.formatDecimal(product.oldPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'" th:if="${product.oldPrice != null}">0 đ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="empty-state" id="emptyState" style="display:none;">
+          <i class="fas fa-box-open"></i>
+          <p>Không có sản phẩm nào phù hợp.</p>
+        </div>
+
+        <!-- PAGINATION -->
+        <nav class="pagination" id="pagination" aria-label="Phân trang"></nav>
+
+      </section>
+    </div>
+  </main>
+
+  <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

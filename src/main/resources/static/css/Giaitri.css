@@ -1,0 +1,36 @@
+/* giaitri.css — style riêng cho trang Giải trí (video)
+   Dùng chung biến màu --tt-* đã khai báo trong ve-techtra.css */
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.video-card {
+  border: 1px solid var(--tt-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--tt-shadow);
+}
+
+.video-card video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  display: block;
+}
+
+.video-card__title {
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tt-text);
+}
+
+@media (max-width: 600px) {
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+}

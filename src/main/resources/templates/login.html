@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Techtra Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/dang-nhap/auth.css}">
+    <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+    <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+</head>
+<body>
+  <div th:replace="~{fragments/header :: header}"></div>
+
+  <main class="auth-page">
+    <!-- Left: brand / visual -->
+    <aside class="auth-visual">
+        <div class="auth-visual__brand">
+            <span class="brand-mark"><i class="fa-solid fa-flask"></i></span>
+            <span>Techtra Shop</span>
+        </div>
+
+        <div class="auth-visual__content">
+            <span class="auth-visual__eyebrow">Chào mừng trở lại</span>
+            <h1 class="auth-visual__title">Đăng nhập để tiếp tục <span>hành trình xanh</span> của bạn</h1>
+            <p class="auth-visual__desc">
+                Khám phá hàng ngàn sản phẩm thiên nhiên, an toàn và lành tính —
+                cùng những ưu đãi độc quyền dành riêng cho thành viên Techtra.
+            </p>
+
+            <ul class="auth-visual__perks">
+                <li class="auth-perk"><i class="fa-solid fa-truck-fast"></i> Miễn phí vận chuyển cho đơn từ 299K</li>
+                <li class="auth-perk"><i class="fa-solid fa-gift"></i> Tích điểm đổi quà hấp dẫn mỗi đơn hàng</li>
+                <li class="auth-perk"><i class="fa-solid fa-shield-halved"></i> Cam kết chính hãng 100% — đổi trả dễ dàng</li>
+            </ul>
+        </div>
+
+        <div class="auth-visual__footer">
+            <i class="fa-solid fa-leaf"></i>
+            <span>Techtra — Vì một Việt Nam xanh, sạch, an lành.</span>
+        </div>
+    </aside>
+
+    <!-- Right: form -->
+    <section class="auth-form-wrap">
+        <form class="auth-form" th:action="@{/login-process}" method="post">
+            <a th:href="@{/}" class="auth-form__back">
+                <i class="fa-solid fa-arrow-left"></i> Quay lại trang chủ
+            </a>
+
+            <h2 class="auth-form__heading">Đăng nhập</h2>
+            <p class="auth-form__sub">
+                Chưa có tài khoản?
+                <a th:href="@{/register}">Đăng ký ngay</a>
+            </p>
+
+            <div th:if="${error}" class="auth-message" style="color: red; margin-bottom: 1rem;" role="alert" th:text="${error}"></div>
+
+            <div class="form-field">
+                <label class="form-field__label" for="username">Tên đăng nhập, Email hoặc SĐT</label>
+                <div class="form-field__input-wrap">
+                    <i class="fa-solid fa-user form-icon"></i>
+                    <input
+                        class="form-field__input"
+                        type="text"
+                        id="username"
+                        name="username"
+                        required
+                        autocomplete="username"
+                        placeholder="Nhập tên đăng nhập, email hoặc số điện thoại"
+                    >
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label class="form-field__label" for="password">Mật khẩu</label>
+                <div class="form-field__input-wrap">
+                    <i class="fa-solid fa-lock form-icon"></i>
+                    <input
+                        class="form-field__input"
+                        type="password"
+                        id="password"
+                        name="password"
+                        required
+                        autocomplete="current-password"
+                        placeholder="Nhập mật khẩu của bạn"
+                    >
+                    <button type="button" class="form-field__toggle" data-toggle="password" aria-label="Hiện mật khẩu">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label class="form-check">
+                    <input type="checkbox" id="remember" name="remember">
+                    <span>Ghi nhớ đăng nhập</span>
+                </label>
+                <a th:href="@{/forgot-password}" class="form-link">Quên mật khẩu?</a>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="loginSubmitBtn">
+                <span>Đăng nhập</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+
+            <p class="auth-form__sub" style="margin-top:24px;font-size:0.85rem;text-align:center;">
+                Bằng việc đăng nhập, bạn đồng ý với
+                <a href="#">Điều khoản dịch vụ</a> &amp;
+                <a href="#">Chính sách bảo mật</a> của Techtra.
+            </p>
+        </form>
+    </section>
+  </main>
+
+  <div th:replace="~{fragments/footer :: footer}"></div>
+
+</body>
+</html>

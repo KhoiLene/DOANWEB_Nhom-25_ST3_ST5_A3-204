@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tin tức & Đọc báo | Techtra</title>
+  <meta name="description" content="Tổng hợp tin tức công nghệ, khoa học, đời sống được Techtra tuyển chọn từ các báo uy tín.">
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Site styles -->
+  <link rel="stylesheet" th:href="@{/css/tin-tuc/tin-tuc.css}">
+  <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+  <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+</head>
+<body>
+  <div th:replace="~{fragments/header :: header}"></div>
+  <main class="tn-page">
+
+    <!-- ─── Hero / Tiêu đề trang ─── -->
+    <section class="tn-hero">
+      <div class="tn-hero-inner">
+        <p class="tn-eyebrow"><i class="fas fa-newspaper"></i> Đọc báo cùng Techtra</p>
+        <h1 class="tn-title">Tin tức &amp; Bài viết</h1>
+        <p class="tn-sub">Tổng hợp tin nóng từ VnExpress, Tuổi Trẻ, Dân trí, Thanh Niên… cập nhật mỗi ngày.</p>
+      </div>
+    </section>
+
+    <!-- ─── Thanh filter + search ─── -->
+    <section class="tn-toolbar">
+      <div class="tn-search">
+        <i class="fas fa-search"></i>
+        <form th:action="@{/news}" method="GET">
+            <input type="text" name="keyword" placeholder="Tìm bài theo tiêu đề hoặc tóm tắt...">
+            <button type="submit" style="display:none;"></button>
+        </form>
+      </div>
+      <div class="tn-sites" id="tnCategoryFilter">
+        <a th:href="@{/news}" class="tn-chip" th:classappend="${categoryId == null} ? 'active' : ''">Tất cả nhóm</a>
+        <a th:each="cat : ${categories}" th:href="@{/news(categoryId=${cat.id})}"
+           class="tn-chip" th:classappend="${categoryId == cat.id} ? 'active' : ''" th:text="${cat.name}">Danh mục</a>
+      </div>
+      <div class="tn-sites" id="tnSiteFilter">
+        <button class="tn-chip active" data-site="all">Mọi nguồn</button>
+      </div>
+    </section>
+
+    <!-- ─── Loading / error / empty ─── -->
+    <div th:if="${#lists.isEmpty(posts)}" class="tn-state tn-empty">
+      <i class="far fa-newspaper"></i>
+      <h3>Chưa có bài viết nào</h3>
+      <p>Hãy quay lại sau, hoặc admin thêm bài từ trang quản trị.</p>
+    </div>
+
+    <!-- ─── Lưới bài viết ─── -->
+    <section class="tn-grid">
+        <div class="tn-card" th:each="post : ${posts}">
+            <div class="tn-card-img">
+                <img th:src="${post.thumbnail}" th:alt="${post.title}">
+                <span class="tn-category-badge" th:text="${post.category?.name}">Danh mục</span>
+            </div>
+            <div class="tn-card-content">
+                <div class="tn-card-meta">
+                    <span class="tn-date" th:text="${#temporals.format(post.publishedAt, 'dd/MM/yyyy')}">01/01/2024</span>
+                    <span class="tn-site" th:text="${post.siteName}">Nguồn tin</span>
+                </div>
+                <h3 class="tn-card-title" th:text="${post.title}">Tiêu đề bài viết</h3>
+                <p class="tn-card-summary" th:text="${post.summary}">Tóm tắt nội dung bài viết...</p>
+                <a th:href="@{/news/{slug}(slug=${post.slug})}" class="tn-card-link">Đọc chi tiết <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ─── Phân trang đơn giản ─── -->
+    <nav class="tn-pager" id="tnPager" style="display:none;">
+      <button id="tnPrevBtn"><i class="fas fa-chevron-left"></i> Trước</button>
+      <span id="tnPageInfo">Trang 1</span>
+      <button id="tnNextBtn">Sau <i class="fas fa-chevron-right"></i></button>
+    </nav>
+
+  </main>
+
+  <!-- Footer rendered by Thymeleaf -->
+  <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

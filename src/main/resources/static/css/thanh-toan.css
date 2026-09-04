@@ -1,0 +1,251 @@
+:root{--bg:#0b1220;--card:#0f1a2f;--muted:#8ea0c2;--text:#eaf2ff;--primary:#6a11cb;--primary2:#2575fc;--border:rgba(255,255,255,.10)}
+body{background:linear-gradient(180deg,#0b1220,#070b14);color:var(--text);font-family:"Be Vietnam Pro",system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0}
+.container{width:min(1200px,92vw);margin:0 auto}
+.checkout{padding:26px 0 60px}
+
+/* Yêu cầu: toàn bộ trang thanh toán chữ luôn màu đen */
+.checkout,
+.checkout *{
+  color:#000 !important;
+}
+
+.checkout-head h1{margin:0;font-size:28px}
+.checkout-sub{margin:6px 0 18px;color:var(--muted)}
+.stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 18px}
+.step{border:1px solid var(--border);background:rgba(255,255,255,.03);border-radius:16px;padding:14px;display:flex;align-items:center;gap:12px}
+.step[data-active="true"]{background:linear-gradient(135deg,rgba(106,17,203,.25),rgba(37,117,252,.20));border-color:rgba(106,17,203,.35)}
+.step-dot{width:34px;height:34px;border-radius:12px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-weight:900}
+.step[data-active="true"] .step-dot{background:rgba(106,17,203,.25)}
+.step-label{font-weight:800}
+.checkout-layout{display:grid;grid-template-columns:1.65fr 1fr;gap:18px;align-items:start}
+.checkout-main{border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.02);padding:18px}
+.step-panel{min-height:240px}
+.panel-title{margin:0 0 14px;font-size:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:8px}
+.field--full{grid-column:1 / -1}
+label{color:#000000;font-weight:800;font-size:13px}
+
+/* Step 2 payment + voucher: đảm bảo chữ màu đen */
+.pay-card .radio span,
+.pay-card .voucher label,
+.pay-card .voucher-input button{
+  color:#000000 !important;
+}
+
+/* Input Step 1/checkout: chữ đen + nền trắng (theo yêu cầu) */
+.checkout-main input[type="text"],
+.checkout-main input[type="email"]{
+  padding:11px 12px;
+  border-radius:12px;
+  border:1px solid rgba(10,110,214,.35);
+  background:#ffffff;
+  color:#000000;
+}
+
+/* VN Region select - style theo yêu cầu */
+.region-field{position:relative}
+.checkout-main select{
+  background:#ffffff;color:#000000;border:1px solid rgba(10,110,214,.45) !important;
+  padding:10px 12px;border-radius:12px;
+  min-height:44px;
+  width:100%;
+}
+.checkout-main select:disabled{opacity:.65}
+
+.checkout-main select[size]{
+  padding:8px 0;
+}
+
+.checkout-main option{
+  background:#ffffff;
+  color:#000000;
+  font-weight:900;
+}
+
+/* khi hover/keyboard nav trong select đa dòng */
+.checkout-main select[size] option:hover{
+  background:rgba(37,117,252,.12);
+  color:#000000;
+}
+
+.checkout-main .region-search-input{
+  width:100%;
+  background:#ffffff;color:#000000;border:1px solid rgba(10,110,214,.35) !important;
+  border-radius:12px;
+  padding:11px 12px;
+  min-height:44px;
+}
+.region-suggest{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#ffffff;color:#000000;border:1px solid rgba(10,110,214,.45);z-index:50;max-height:260px;overflow:auto;display:none}
+.region-suggest.is-open{display:block}
+/* listbox-like */
+.region-suggest .region-suggest-item{padding:10px 12px;cursor:pointer;font-weight:900;border-bottom:1px solid rgba(10,110,214,.12)}
+.region-suggest .region-suggest-item:last-child{border-bottom:0}
+.region-suggest .region-suggest-item{user-select:none}
+.region-suggest .region-suggest-item:focus{outline:none}
+.region-suggest .region-suggest-item:hover{background:rgba(37,117,252,.10)}
+.region-suggest .region-suggest-item:hover{background:rgba(37,117,252,.12)}
+.region-suggest .region-suggest-item.is-active{background:rgba(37,117,252,.18)}
+.region-field input:disabled{opacity:.6}
+.form-actions{grid-column:1 / -1;display:flex;gap:12px;justify-content:flex-end;margin-top:12px}
+.btn{border:1px solid var(--border);background:transparent;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:800}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));border:0}
+.btn-secondary{background:rgba(255,255,255,.06)}
+.btn-ghost{background:transparent}
+.form-message{margin-top:10px;color:var(--muted);min-height:18px}
+.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pay-card{border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(255,255,255,.02);padding:14px}
+.radio-row{display:flex;flex-direction:column;gap:10px}
+.radio{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800}
+.radio input{width:18px;height:18px}
+.voucher label{display:block}
+.voucher-input{display:flex;gap:10px;margin-top:10px}
+.voucher-input input{flex:1}
+.confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.confirm-card{border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(255,255,255,.02);padding:14px}
+.confirm-card h3{margin:0 0 12px;font-size:15px}
+.confirm-line{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.confirm-line strong{max-width:65%;text-align:right;overflow:hidden;text-overflow:ellipsis}
+.summary-line{display:flex;justify-content:space-between;gap:12px;color:var(--muted);padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.12)}
+.summary-total{display:flex;justify-content:space-between;gap:12px;margin-top:12px}
+.summary-total strong{font-size:18px}
+.summary-method{display:flex;justify-content:space-between;gap:12px;color:var(--muted);margin-top:10px}
+.checkout-message{margin-top:12px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);color:#000000}
+.checkout-aside{display:flex;flex-direction:column;gap:18px}
+.aside-card{border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.02);padding:16px}
+.aside-title{margin:0 0 12px}
+.aside-items{display:flex;flex-direction:column;gap:10px}
+.aside-item{display:flex;gap:12px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px;background:rgba(255,255,255,.02)}
+.aside-item img{width:44px;height:44px;border-radius:12px;object-fit:cover;border:1px solid var(--border)}
+.aside-item strong{display:block}
+.aside-item span{color:var(--muted);font-size:13px}
+.aside-divider{height:1px;background:rgba(255,255,255,.08);margin:14px 0}
+.aside-row{display:flex;justify-content:space-between;gap:12px;color:var(--muted);padding:8px 0}
+.aside-total{display:flex;justify-content:space-between;gap:12px;margin-top:6px}
+.aside-total strong{font-size:18px}
+.aside-hint{margin-top:12px;color:var(--muted);font-size:13px}
+.history-list{display:flex;flex-direction:column;gap:10px}
+.muted{color:var(--muted)}
+@media (max-width:900px){.checkout-layout{grid-template-columns:1fr}.pay-grid,.confirm-grid{grid-template-columns:1fr}}
+
+/* ============================================================
+   MOBILE RESPONSIVE — chuẩn hóa 1024 / 768 / 480
+   Kế thừa global helper từ header.css.
+   ============================================================ */
+
+/* --- Tablet 1024 --- */
+@media (max-width: 1024px) {
+  .container { width: 94vw; }
+  .checkout { padding: 20px 0 40px; }
+  .checkout-head h1 { font-size: 24px; }
+  .step { padding: 12px; }
+}
+
+/* --- Mobile 768 --- */
+@media (max-width: 768px) {
+  .checkout { padding: 16px 0 24px; }
+  .container { width: 96vw; }
+  .checkout-head { margin-bottom: 8px; }
+  .checkout-head h1 { font-size: 20px; }
+  .checkout-sub { font-size: 13px; margin-bottom: 12px; }
+
+  /* Stepper: stack dọc, mỗi step 1 hàng ngang nhỏ */
+  .stepper {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .step { padding: 10px 12px; gap: 10px; border-radius: 12px; }
+  .step-dot { width: 28px; height: 28px; font-size: 13px; border-radius: 8px; }
+  .step-label { font-size: 13px; }
+
+  /* Layout 1 cột: form trên, summary dưới */
+  .checkout-layout { grid-template-columns: 1fr; gap: 14px; }
+  .checkout-main { padding: 14px; border-radius: 14px; }
+  .step-panel { min-height: 180px; }
+  .panel-title { font-size: 16px; margin-bottom: 12px; }
+
+  /* Form: stack tất cả về 1 cột (tránh label bị cắt) */
+  .form-grid { grid-template-columns: 1fr; gap: 10px; }
+  .field { gap: 6px; }
+  label { font-size: 12px; }
+  .form-actions {
+    grid-column: 1;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .form-actions .btn { width: 100%; }
+
+  /* Step 2 payment */
+  .pay-grid { grid-template-columns: 1fr; gap: 10px; }
+  .pay-card { padding: 12px; border-radius: 12px; }
+  .radio { font-size: 14px; gap: 8px; }
+  .radio input { width: 20px; height: 20px; }
+  .voucher-input { flex-direction: column; gap: 8px; }
+  .voucher-input input { width: 100%; }
+
+  /* Step 3 confirm */
+  .confirm-grid { grid-template-columns: 1fr; gap: 10px; }
+  .confirm-card { padding: 12px; border-radius: 12px; }
+  .confirm-card h3 { font-size: 14px; margin-bottom: 8px; }
+  .confirm-line { font-size: 13px; padding: 5px 0; }
+
+  /* Summary aside */
+  .checkout-aside { gap: 14px; }
+  .aside-card { padding: 14px; border-radius: 14px; }
+  .aside-title { font-size: 16px; }
+  .aside-item { padding: 8px; }
+  .aside-item img { width: 40px; height: 40px; }
+  .aside-item strong { font-size: 13px; }
+  .aside-item span { font-size: 12px; }
+  .aside-row { font-size: 13px; padding: 6px 0; }
+  .aside-total { margin-top: 4px; }
+  .aside-total strong { font-size: 16px; }
+  .aside-hint { font-size: 12px; }
+
+  /* Order detail summary lines */
+  .summary-line { font-size: 13px; padding: 6px 0; }
+  .summary-total { margin-top: 8px; }
+  .summary-total strong { font-size: 16px; }
+  .summary-method { font-size: 12px; margin-top: 8px; }
+
+  .checkout-message { padding: 10px; font-size: 13px; }
+}
+
+/* --- XS 480 --- */
+@media (max-width: 480px) {
+  .checkout-head h1 { font-size: 18px; }
+  .checkout-sub { font-size: 12px; }
+  .checkout-main { padding: 12px; }
+  .panel-title { font-size: 15px; }
+  .aside-card { padding: 12px; }
+  .history-list { gap: 8px; }
+}
+
+/* Bank transfer modal */
+.bank-modal{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center}
+.bank-modal__overlay{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.bank-modal__content{position:relative;background:#ffffff;color:#000000;border-radius:18px;padding:24px;width:min(460px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.35);z-index:1}
+.bank-modal__close{position:absolute;top:10px;right:14px;background:none;border:none;font-size:28px;color:#000000;cursor:pointer;line-height:1}
+.bank-modal__title{margin:0 0 8px;font-size:20px;color:#000000}
+.bank-modal__desc{margin:0 0 16px;color:#374151;font-size:14px}
+.bank-modal__info{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.bank-modal__row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f8fafc;border-radius:10px}
+.bank-modal__row span{font-size:13px;color:#4b5563}
+.bank-modal__row strong{font-size:14px;color:#000000}
+.bank-modal__timer{text-align:center;margin-bottom:16px;font-size:14px;color:#374151}
+.bank-modal__timer strong{color:#dc2626}
+.bank-modal__actions{display:flex;gap:10px;justify-content:flex-end}
+.bank-modal__message{margin-top:10px;font-size:13px;min-height:18px;color:#dc2626}
+.bank-modal__pay-options{margin:14px 0;padding:12px;background:#f3f4f6;border-radius:10px}
+.bank-modal__pay-options>p{margin:0 0 10px;font-size:13px;color:#374151}
+.bank-modal__qr{text-align:center}
+.bank-modal__qr .btn{background:linear-gradient(135deg,var(--primary),var(--primary2));border:0;color:#fff}
+#vnpayQrCode img,#vnpayQrCode canvas{margin:0 auto;display:block;max-width:200px}
+
+.bank-modal__content .btn{
+  color:#ffffff !important;
+}
+.bank-modal__content .btn-ghost{
+  background:#e5e7eb;color:#000000 !important;
+}

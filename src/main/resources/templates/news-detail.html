@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bài viết | Techtra</title>
+  <meta name="description" content="Đọc bài viết chi tiết — Techtra.">
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Site styles -->
+  <link rel="stylesheet" th:href="@{/css/tin-tuc/tin-tuc-chi-tiet.css}">
+  <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+  <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+</head>
+<body>
+  <div th:replace="~{fragments/header :: header}"></div>
+  <main class="td-page">
+
+    <!-- Back link + breadcrumb -->
+    <div class="td-back">
+      <a th:href="@{/news}"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+      <nav class="td-breadcrumb" id="tdBreadcrumb"></nav>
+    </div>
+
+    <!-- Bài viết (Rendered from Java) -->
+    <article class="td-article" th:if="${post != null}">
+      <header class="td-header">
+        <div class="td-meta-top">
+          <span class="td-type-badge" th:if="${post.postType == 'file'}" th:text="${post.postType}">FILE</span>
+          <span class="td-site" th:text="${post.siteName}">Nguồn tin</span>
+          <span class="td-date" th:text="${#temporals.format(post.publishedAt, 'dd/MM/yyyy')}">01/01/2024</span>
+        </div>
+        <h1 class="td-title" th:text="${post.title}">Tiêu đề bài viết</h1>
+        <p class="td-summary" th:text="${post.summary}">Tóm tắt nội dung bài viết</p>
+        <div class="td-byline" th:text="'Tác giả: ' + ${post.author?.name ?: 'Admin'}">Tác giả: Admin</div>
+      </header>
+
+      <figure class="td-hero" th:if="${post.thumbnail != null}">
+        <img th:src="${post.thumbnail}" th:alt="${post.title}">
+      </figure>
+
+      <!-- Khối hiển thị cho bài FILE -->
+      <div class="td-file-block" th:if="${post.postType == 'file'}">
+        <div class="td-file-icon"><i class="fas fa-file-pdf"></i></div>
+        <div class="td-file-meta">
+          <div class="td-file-name" th:text="${post.fileName}">Tên file</div>
+          <div class="td-file-size" th:text="${post.fileSize} + ' bytes'">0 bytes</div>
+        </div>
+        <a class="td-file-download" th:href="${post.fileUrl}" target="_blank" rel="noopener noreferrer">
+          <i class="fas fa-download"></i> Tải về
+        </a>
+      </div>
+
+      <div class="td-content" th:utext="${post.content}">Nội dung bài viết</div>
+
+      <footer class="td-footer">
+        <a th:if="${post.sourceUrl != null}" th:href="${post.sourceUrl}" class="td-source" target="_blank" rel="noopener noreferrer">
+          <i class="fas fa-external-link-alt"></i> Đọc bài gốc trên <span th:text="${post.siteName}">Nguồn</span>
+        </a>
+        <a class="td-back-btn" th:href="@{/news}">
+          <i class="fas fa-list"></i> Xem các bài khác
+        </a>
+      </footer>
+    </article>
+    <div th:unless="${post != null}" class="td-state td-error">
+        <i class="fas fa-exclamation-triangle"></i> Bài viết không tồn tại.
+    </div>
+
+    <!-- Liên quan -->
+    <section class="td-related" id="tdRelated" style="display:none;">
+      <h2 class="td-related-title"><i class="fas fa-newspaper"></i> Bài viết khác</h2>
+      <div class="td-related-grid" id="tdRelatedGrid"></div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

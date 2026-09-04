@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Khách hàng - Techtra</title>
+    <link rel="stylesheet" href="/components/khach-hang/khach-hang.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="header-placeholder"></div>
+
+    <main class="customer-page container">
+      <div class="customer-header">
+        <h1>Khách hàng</h1>
+        <p class="customer-subtitle">Thông tin hồ sơ, lịch sử mua hàng và chương trình khách thân thiết.</p>
+      </div>
+
+      <div class="customer-layout">
+        <section class="customer-left">
+          <div class="panel">
+            <div class="panel-title">
+              <i class="fa-regular fa-user"></i>
+              <h2>Hồ sơ</h2>
+            </div>
+
+            <p class="form-hint">
+              <i class="fa-solid fa-pen-to-square"></i>
+              Click vào ô bất kỳ để chỉnh sửa. Đổi số điện thoại hoặc email cần mã OTP.
+            </p>
+
+            <div class="account-actions">
+              <a class="btn btn-ghost" href="/components/quen-mk/index.html">
+                <i class="fa-solid fa-lock"></i> Đổi / đặt lại mật khẩu
+              </a>
+              <button type="button" id="logoutBtn" class="btn btn-ghost btn-danger">
+                <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+              </button>
+            </div>
+
+            <form id="profileForm" class="form-grid">
+              <div class="field">
+                <label for="customerName">Họ tên</label>
+                <div class="edit-row">
+                  <input id="customerName" type="text" placeholder="Nhập họ tên" readonly />
+                  <button type="button" class="btn-mini btn-edit" data-target="customerName">Đổi</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="customerPhone">Số điện thoại</label>
+                <div class="otp-row">
+                  <input id="customerPhone" type="text" placeholder="Nhập số điện thoại" readonly />
+                  <button type="button" id="sendPhoneOtpBtn" class="btn-mini" hidden>Gửi mã</button>
+                  <button type="button" class="btn-mini btn-edit" data-target="customerPhone">Đổi</button>
+                  <span id="phoneVerifiedBadge" class="otp-badge" hidden>✓ Đã xác thực</span>
+                </div>
+                <div class="otp-input-wrap" id="phoneOtpWrap" hidden>
+                  <input id="phoneOtpCode" maxlength="6" placeholder="Mã 6 số" inputmode="numeric" />
+                  <button type="button" id="verifyPhoneOtpBtn" class="btn-mini">Xác nhận</button>
+                  <small id="phoneOtpHint" class="otp-hint">Mã có hiệu lực 5 phút.</small>
+                </div>
+              </div>
+              <div class="field">
+                <label for="customerEmail">Email</label>
+                <div class="otp-row">
+                  <input id="customerEmail" type="email" placeholder="Nhập email" readonly />
+                  <button type="button" id="sendEmailOtpBtn" class="btn-mini" hidden>Gửi mã</button>
+                  <button type="button" class="btn-mini btn-edit" data-target="customerEmail">Đổi</button>
+                  <span id="emailVerifiedBadge" class="otp-badge" hidden>✓ Đã xác thực</span>
+                </div>
+                <div class="otp-input-wrap" id="emailOtpWrap" hidden>
+                  <input id="emailOtpCode" maxlength="6" placeholder="Mã 6 số" inputmode="numeric" />
+                  <button type="button" id="verifyEmailOtpBtn" class="btn-mini">Xác nhận</button>
+                  <small id="emailOtpHint" class="otp-hint">Mã có hiệu lực 5 phút.</small>
+                </div>
+              </div>
+              <div class="field field--full">
+                <label for="customerAddress">Địa chỉ</label>
+                <div class="edit-row">
+                  <input id="customerAddress" type="text" placeholder="Nhập địa chỉ" readonly />
+                  <button type="button" class="btn-mini btn-edit" data-target="customerAddress">Đổi</button>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Lưu thay đổi</button>
+              </div>
+
+              <div id="profileMessage" class="form-message" aria-live="polite"></div>
+            </form>
+          </div>
+        </section>
+
+        <section class="customer-right">
+          <div class="panel panel--stack">
+            <div class="panel-title">
+              <i class="fa-solid fa-receipt"></i>
+              <h2>Lịch sử mua hàng</h2>
+            </div>
+            <div id="ordersMount" class="history-list"></div>
+            <div class="muted" id="ordersEmpty" style="display:none">Chưa có đơn hàng.</div>
+          </div>
+
+          <div class="panel panel--stack">
+            <div class="panel-title">
+              <i class="fa-solid fa-crown"></i>
+              <h2>Khách thân thiết</h2>
+            </div>
+            <div class="loyalty-summary">
+              <div class="loyalty-row">
+                <span>Rank</span>
+                <strong id="loyaltyRank">—</strong>
+              </div>
+              <div class="loyalty-row">
+                <span>LTV</span>
+                <strong id="loyaltyLtv">0 đ</strong>
+              </div>
+              <div class="loyalty-row">
+                <span>Tổng đơn</span>
+                <strong id="loyaltyOrders">0</strong>
+              </div>
+            </div>
+
+            <div class="voucher-block">
+              <h3>Voucher</h3>
+              <div id="vouchersMount" class="voucher-list"></div>
+              <div class="muted" id="vouchersEmpty" style="display:none">Chưa có voucher.</div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="login-cta" id="loginCta" style="display:none">
+        <i class="fa-solid fa-circle-info"></i>
+        <p>Bạn cần đăng nhập để xem lịch sử và voucher.</p>
+        <a class="btn btn-primary" href="/components/dang-nhap/dangnhap.html">Đăng nhập</a>
+      </div>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+  </body>
+</html>

@@ -1,0 +1,112 @@
+package com.shopchain.service.impl;
+
+import com.shopchain.entity.Order;
+import com.shopchain.repository.OrderRepository;
+import com.shopchain.service.PaymentService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.*;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+@Service
+public class PaymentServiceImpl implements PaymentService {
+
+    @Value("${vnpay.vnp_url}")
+    private String vnpUrl;
+    @Value("${vnpay.return_url}")
+    private String returnUrl;
+    @Value("${vnpay.tmn_code}")
+    private String tmnCode;
+    @Value("${vnpay.hash_secret}")
+    private String hashSecret;
+
+    private final OrderRepository orderRepository;
+
+    public PaymentServiceImpl(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+    }
+
+    @Override
+    public String createVnPayPaymentUrl(Long orderId, Double amount) {
+        String vnp_TxnRef = String.valueOf(orderId);
+        String vnp_Amount = String.valueOf((long)(amount * 100)); // VNPay tính đơn vị đồng, nhân 100
+        String vnp_Command = "pay";
+        String vnp_CurrCode = "VND";
+        String vnp_Version = "2.1.0";
+        String vnp_OrderInfo = "Payment for Order ID: " + orderId;
+
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_TxnRef", vnp_TxnRef);
+        params.put("vnp_Amount", vnp_Amount);
+        params.put("vnp_Command", vnp_Command);
+        params.put("vnp_CurrCode", vnp_CurrCode);
+        params.put("vnp_Version", vnp_Version);
+        params.put("vnp_TmnCode", tmnCode);
+        params.put("vnp_OrderInfo", vnp_OrderInfo);
+        params.put("vnp_ReturnUrl", returnUrl);
+
+        // Sắp xếp tham số theo alphabet (yêu cầu của VNPay)
+        List<String> sortedKeys = new ArrayList<>(params.keySet());
+        Collections.sort(sortedKeys);
+
+        StringBuilder query = new StringBuilder();
+        for (String key : sortedKeys) {
+            if (query.length() > 0) query.append("&");
+            query.append(URLEncoder.encode(key, StandardCharsets.UTF_8))
+                 .append("=")
+                 .append(URLEncoder.encode(params.get(key), StandardCharsets.UTF_8));
+        }
+
+        String vnp_SecureHash = hmacSHA512(query.toString(), hashSecret);
+        return vnpUrl + "?" + query.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
+    }
+
+    @Override
+    public boolean verifyVnPayPayment(Map<String, String> params) {
+        String vnp_SecureHash = params.get("vnp_SecureHash");
+        if (vnp_SecureHash == null || vnp_SecureHash.isBlank()) {
+            return false;
+        }
+
+        Map<String, String> signedParams = new HashMap<>(params);
+        signedParams.remove("vnp_SecureHash");
+        signedParams.remove("vnp_SecureHashType");
+
+        List<String> sortedKeys = new ArrayList<>(signedParams.keySet());
+        Collections.sort(sortedKeys);
+
+        StringBuilder query = new StringBuilder();
+        for (String key : sortedKeys) {
+            if (query.length() > 0) query.append("&");
+            query.append(URLEncoder.encode(key, StandardCharsets.UTF_8))
+                 .append("=")
+                 .append(URLEncoder.encode(signedParams.get(key), StandardCharsets.UTF_8));
+        }
+
+        String checkHash = hmacSHA512(query.toString(), hashSecret);
+        return MessageDigest.isEqual(checkHash.getBytes(StandardCharsets.US_ASCII),
+                vnp_SecureHash.getBytes(StandardCharsets.US_ASCII));
+    }
+
+    private String hmacSHA512(String data, String key) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA512");
+            mac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
+            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append("0");
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to calculate VNPay HMAC", e);
+        }
+    }
+}

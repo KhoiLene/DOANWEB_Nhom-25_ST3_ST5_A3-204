@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: shop-chain-db
+    environment:
+      POSTGRES_DB: shop_chain_db
+      POSTGRES_USER: shop_user
+      POSTGRES_PASSWORD: shoppassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - web_db_data:/var/lib/postgresql/data
+
+volumes:
+  web_db_data:
+    external: true

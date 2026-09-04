@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giỏ hàng - Techtra</title>
+    <link rel="stylesheet" th:href="@{/css/gio-hang/gio-hang.css}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+    <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <main class="cart-page container">
+      <div class="cart-header">
+        <h1>Giỏ hàng</h1>
+        <p class="cart-subtitle">Kiểm tra sản phẩm trước khi thanh toán.</p>
+      </div>
+
+      <div class="cart-layout">
+        <section class="cart-items">
+          <div class="cart-table" th:if="${not #lists.isEmpty(cartItems)}">
+            <div class="cart-row cart-row--head">
+              <div class="col-product">Sản phẩm</div>
+              <div class="col-price">Giá</div>
+              <div class="col-qty">Số lượng</div>
+              <div class="col-total">Thành tiền</div>
+              <div class="col-action"> </div>
+            </div>
+            <div class="cart-rows">
+              <div class="cart-row" th:each="item : ${cartItems}">
+                <div class="col-product">
+                  <div class="product-info">
+                    <img th:src="${item.product.image}" th:alt="${item.product.name}" />
+                    <span th:text="${item.product.name}">Tên sản phẩm</span>
+                  </div>
+                </div>
+                <div class="col-price" th:text="${#numbers.formatDecimal(item.product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                <div class="col-qty">
+                  <span th:text="${item.quantity}">1</span>
+                </div>
+                <div class="col-total" th:text="${#numbers.formatDecimal(item.product.price * item.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                <div class="col-action">
+                  <form th:action="@{/cart/remove}" method="post">
+                    <input type="hidden" name="productId" th:value="${item.product.id}" />
+                    <button type="submit" class="btn-remove"><i class="fa-solid fa-trash"></i></button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cart-empty" th:if="${#lists.isEmpty(cartItems)}">
+            <div class="empty-icon"><i class="fa-regular fa-bag-shopping"></i></div>
+            <h3>Giỏ hàng đang trống</h3>
+            <p>Thêm sản phẩm để bắt đầu mua hàng.</p>
+            <a class="btn btn-primary" th:href="@{/}">Tiếp tục mua sắm</a>
+          </div>
+        </section>
+
+        <aside class="cart-summary">
+          <div class="summary-card">
+            <h2 class="summary-title">Tóm tắt đơn hàng</h2>
+
+            <div class="summary-line">
+              <span>Tạm tính</span>
+              <strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
+            </div>
+            <div class="summary-line">
+              <span>Vận chuyển</span>
+              <strong th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
+            </div>
+            <div class="summary-line summary-line--discount">
+              <span>Giảm giá</span>
+              <strong>0 đ</strong>
+            </div>
+            <div class="summary-total">
+              <span>Tổng cộng</span>
+              <strong th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
+            </div>
+
+            <div class="voucher-block">
+              <label for="voucherCode">Voucher</label>
+              <div class="voucher-input">
+                <input id="voucherCode" type="text" placeholder="Nhập mã voucher (tuỳ chọn)" />
+                <button id="applyVoucherBtn" class="btn btn-secondary" type="button">Áp dụng</button>
+              </div>
+              <div id="voucherMessage" class="voucher-message" aria-live="polite"></div>
+            </div>
+
+            <div class="summary-actions">
+              <a th:href="@{/checkout}" class="btn btn-primary" th:if="${not #lists.isEmpty(cartItems)}">Thanh toán</a>
+              <form th:action="@{/cart/clear}" method="post" style="display:inline">
+                <button type="submit" class="btn btn-ghost">Xoá giỏ</button>
+              </form>
+            </div>
+
+            <div class="summary-note">
+              <i class="fa-solid fa-truck-fast"></i>
+              <span>Miễn phí vận chuyển cho đơn từ 500.000đ (demo).</span>
+            </div>
+          </div>
+
+          <div class="history-card" style="display:none" id="ordersPreviewMount">
+            <h3>Lịch sử mua hàng</h3>
+            <div id="ordersPreviewList" class="history-list"></div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+  </body>
+</html>

@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16
+    container_name: shop-chain-db
+    restart: always
+    environment:
+      POSTGRES_DB: shop_chain_db
+      POSTGRES_USER: shop_user
+      POSTGRES_PASSWORD: shoppassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - shop-network
+
+  redis:
+    image: redis:alpine
+    container_name: shop-chain-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - shop-network
+
+networks:
+  shop-network:
+    driver: bridge
+
+volumes:
+  db_data:

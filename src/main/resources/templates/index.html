@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Meta Tags -->
+    <title>Techtra-Cung ứng dịch vụ hóa chất-Trang Chủ</title>
+    <meta name="description" content="Giao diện mẫu cao cấp lấy cảm hứng từ TECHTRA Lab. Chuyên cung cấp mỹ phẩm 100% thiên nhiên, lành tính và an toàn cho cả mẹ bầu. Thiết kế sẵn vị trí tích hợp API sản phẩm và hình ảnh.">
+    <meta name="keywords" content="mỹ phẩm thiên nhiên, cỏ mềm, cỏ mềm lab, mỹ phẩm thuần chay, son không chì, dầu gội thiên nhiên">
+    
+    <!-- Open Graph (Facebook / Zalo) -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Techtra-Cung ứng dịch vụ hóa chất-Trang Chủ">
+    <meta property="og:description" content="Trải nghiệm dòng sản phẩm chăm sóc da và tóc tự nhiên từ thảo mộc Việt Nam. An toàn tuyệt đối cho gia đình.">
+    <meta property="og:image" content="assets/og-image-placeholder.jpg">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/trang-chu/style.css}">
+    <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+    <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <!-- MAIN BODY -->
+    <main>
+
+        <!-- HERO BANNER (admin upload: ảnh + tiêu đề + CTA) -->
+        <section class="hero-banner" id="hero-banner-section" style="display:none;">
+            <div class="container">
+                <div class="hero-banner-inner" id="hero-banner-inner">
+                    <!-- Render từ config.hero (admin upload) -->
+                </div>
+            </div>
+        </section>
+
+        <!-- HERO BANNER SLIDER (API ready) -->
+        <section class="hero-slider" id="hero-slider-section">
+            <div class="slider-container" id="slider-container-el">
+                <!-- JavaScript will populate slide elements here from API -->
+                <!-- Showing premium Skeleton Slides while loading -->
+                <div class="slide active placeholder-slide">
+                    <div class="slide-bg"></div>
+                    <div class="container">
+                        <div class="slide-content">
+                            <div class="skeleton skeleton-text title" style="width: 150px; margin-bottom: 20px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%; height: 50px; margin-bottom: 20px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 80%; height: 30px; margin-bottom: 30px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 180px; height: 48px; border-radius: 9999px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrows -->
+            <button class="slider-arrow slider-arrow-prev" id="slider-prev-btn" aria-label="Slide trước">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button class="slider-arrow slider-arrow-next" id="slider-next-btn" aria-label="Slide sau">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+            <!-- Dots -->
+            <div class="slider-dots" id="slider-dots-container"></div>
+        </section>
+
+        <!-- BRAND CORE VALUES -->
+        <section class="brand-values">
+            <div class="container">
+                <div class="values-grid">
+                    <div class="value-card" th:each="value : ${brandValues}">
+                        <div class="value-icon"><i th:class="${value.icon}"></i></div>
+                        <h3 class="value-title" th:text="${value.title}">100% Thiên Nhiên</h3>
+                        <p class="value-desc" th:text="${value.description}">Nguyên liệu thuần thực vật tinh khiết từ vườn dược liệu Việt Nam</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDER GIỚI THIỆU (chạy chữ — slider_text từ product_groups) -->
+        <section class="slider-text-section" id="slider-text-section-el" style="display:none;">
+            <div class="slider-text-track" id="slider-text-track-el" aria-live="polite">
+                <!-- Render động: slider_text từ các nhóm CHA trong bảng product_groups -->
+            </div>
+        </section>
+
+        <!-- DYNAMIC PRODUCT CATEGORIES SECTION (rectangle cards, không tròn) -->
+        <!-- <section class="categories-section section-padding" id="categories-section-el">
+            <div class="container">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">Danh mục nổi bật</h2>
+                    <p class="section-subtitle">Khám phá các dòng sản phẩm thảo mộc an toàn và tự nhiên</p>
+                </div>
+
+                <div class="categories-grid" id="categories-container-el">
+                    -- Skeleton loading cards (rectangle) -->
+                    <!-- <div class="category-card skeleton-card">
+                        <div class="category-img-wrapper skeleton skeleton-rect"></div>
+                        <div class="category-info">
+                            <div class="skeleton skeleton-text" style="width: 60%; height: 20px; margin-bottom: 8px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 90%; height: 14px;"></div>
+                        </div>
+                    </div>
+                    <div class="category-card skeleton-card">
+                        <div class="category-img-wrapper skeleton skeleton-rect"></div>
+                        <div class="category-info">
+                            <div class="skeleton skeleton-text" style="width: 60%; height: 20px; margin-bottom: 8px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 90%; height: 14px;"></div>
+                        </div>
+                    </div>
+                    <div class="category-card skeleton-card">
+                        <div class="category-img-wrapper skeleton skeleton-rect"></div>
+                        <div class="category-info">
+                            <div class="skeleton skeleton-text" style="width: 60%; height: 20px; margin-bottom: 8px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 90%; height: 14px;"></div>
+                        </div>
+                    </div>
+                    <div class="category-card skeleton-card">
+                        <div class="category-img-wrapper skeleton skeleton-rect"></div>
+                        <div class="category-info">
+                            <div class="skeleton skeleton-text" style="width: 60%; height: 20px; margin-bottom: 8px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 90%; height: 14px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section> --> 
+        <!-- DYNAMIC PRODUCT CATEGORIES SECTION (khung tròn, giống value-card) -->
+        <section class="categories-section section-padding" id="categories-section-el">
+            <div class="container">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">Danh mục nổi bật</h2>
+                    <p class="section-subtitle">Khám phá các dòng sản phẩm thảo mộc an toàn và tự nhiên</p>
+                </div>
+
+                <div class="categories-grid" id="categories-container-el">
+                    <div class="category-card" th:each="cat : ${categories}">
+                        <div class="category-img-wrapper">
+                            <img th:src="${cat.imageUrl}" th:alt="${cat.name}" class="category-img">
+                        </div>
+                        <div class="category-info">
+                            <h3 class="category-name" th:text="${cat.name}">Tên danh mục</h3>
+                            <a th:href="@{/products(categoryId=${cat.id})}" class="category-link">Khám phá <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PHẦN GIỚI THIỆU PRODUCT GROUP (intro_title + intro_subtitle + intro_image_url) -->
+        <section class="intro-section section-padding" id="intro-section-el" style="display:none;">
+            <div class="container">
+                <div class="intro-list" id="intro-list-el">
+                    <!-- Render động từ product_groups: intro_title, intro_subtitle, intro_image_url -->
+                </div>
+            </div>
+        </section>
+
+        <!-- FLASH SALE SECTION (API ready) -->
+        <section class="container">
+            <div class="flash-sale" id="flash-sale-panel">
+                <div class="flash-sale-header">
+                    <div class="flash-sale-title-group">
+                        <h2 class="flash-sale-title">
+                            <i class="fa-solid fa-bolt"></i> Giờ Vàng Deal Xịn
+                        </h2>
+                        <!-- Countdown timer -->
+                        <div class="countdown" id="countdown-timer">
+                            <span class="countdown-label">Kết thúc sau</span>
+                            <div class="countdown-box" id="hours-box">00</div>
+                            <span class="countdown-divider">:</span>
+                            <div class="countdown-box" id="minutes-box">00</div>
+                            <span class="countdown-divider">:</span>
+                            <div class="countdown-box" id="seconds-box">00</div>
+                        </div>
+                    </div>
+                    <a href="#" class="btn btn-outline" style="padding: 8px 20px; font-size: 0.85rem;">Xem tất cả</a>
+                </div>
+
+                <div class="products-grid" id="flash-sale-products-container">
+                    <div class="product-card" th:each="product : ${flashSaleProducts}">
+                        <a th:href="@{/product/{id}(id=${product.id})}" class="product-img-link">
+                            <img th:src="${product.imageUrl}" th:alt="${product.name}" class="product-img">
+                        </a>
+                        <div class="product-info">
+                            <span class="product-cat" th:text="${product.category?.name}">Danh mục</span>
+                            <h3 class="product-title" th:text="${product.name}">Tên sản phẩm</h3>
+                            <div class="product-price-group">
+                                <span class="price-final" th:text="${#numbers.formatDecimal(product.finalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                                <span class="price-old" th:text="${#numbers.formatDecimal(product.oldPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'" th:if="${product.oldPrice != null}">0 đ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BEST SELLERS WITH CATEGORY TABS (API ready) -->
+        <section class="best-sellers-section section-padding" id="best-sellers-section-el">
+            <div class="container">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">Sản phẩm bán chạy nhất</h2>
+                    <p class="section-subtitle">Những sản phẩm được hàng triệu người Việt tin dùng</p>
+                </div>
+
+                <!-- Tabs navigation -->
+                <div class="tabs-nav" id="best-sellers-tabs-nav">
+                    <!-- Render động từ product_groups: group_name -->
+                </div>  
+
+                <!-- Grid containers for tabs -->
+                <!-- Standard skeleton layouts -->
+                <div class="tab-content active" id="best-sellers-grid-container">
+                    <div class="products-grid">
+                        <!-- Repeated skeletons -->
+                        <div class="product-card">
+                            <div class="product-img-link skeleton"><div class="skeleton-image"></div></div>
+                            <div class="product-info">
+                                <div class="skeleton skeleton-text" style="width: 40%; height: 14px;"></div>
+                                <div class="skeleton skeleton-text title"></div>
+                                <div class="skeleton skeleton-text price" style="margin-top: 10px;"></div>
+                            </div>
+                        </div>
+                        <div class="product-card">
+                            <div class="product-img-link skeleton"><div class="skeleton-image"></div></div>
+                            <div class="product-info">
+                                <div class="skeleton skeleton-text" style="width: 40%; height: 14px;"></div>
+                                <div class="skeleton skeleton-text title"></div>
+                                <div class="skeleton skeleton-text price" style="margin-top: 10px;"></div>
+                            </div>
+                        </div>
+                        <div class="product-card">
+                            <div class="product-img-link skeleton"><div class="skeleton-image"></div></div>
+                            <div class="product-info">
+                                <div class="skeleton skeleton-text" style="width: 40%; height: 14px;"></div>
+                                <div class="skeleton skeleton-text title"></div>
+                                <div class="skeleton skeleton-text price" style="margin-top: 10px;"></div>
+                            </div>
+                        </div>
+                        <div class="product-card">
+                            <div class="product-img-link skeleton"><div class="skeleton-image"></div></div>
+                            <div class="product-info">
+                                <div class="skeleton skeleton-text" style="width: 40%; height: 14px;"></div>
+                                <div class="skeleton skeleton-text title"></div>
+                                <div class="skeleton skeleton-text price" style="margin-top: 10px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROMOTIONAL BANNERS GRID (API ready) -->
+        <section class="container">
+            <div class="promo-banners-grid" id="promotional-banners-section">
+                <div class="promo-banner-card" th:each="banner : ${promoBanners}">
+                    <div class="promo-banner-img">
+                        <img th:src="${banner.imageUrl}" th:alt="${banner.title}" style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div class="promo-banner-content">
+                        <span class="promo-tag" th:text="${banner.tag}">Quà tặng ngọt ngào</span>
+                        <h3 class="promo-title" th:text="${banner.title}">Combo Quà Tặng Cho Nửa Yêu Thương</h3>
+                        <a th:href="${banner.ctaLink}" class="btn btn-primary" style="padding: 10px 24px; font-size: 0.85rem;" th:text="${banner.ctaText}">Mua ngay</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GREEN LIFE BLOG & CORNER (API ready) -->
+        <section class="blog-section section-padding" id="blog-posts-section">
+            <div class="container">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">Góc chia sẻ TECHTRA</h2>
+                    <p class="section-subtitle">Kinh nghiệm chăm sóc sắc đẹp tự nhiên, lối sống xanh và bảo vệ môi trường</p>
+                </div>
+
+                <div class="blog-grid" id="blog-container-el">
+                    <div class="blog-card" th:each="blog : ${blogPosts}">
+                        <div class="blog-img-link" style="aspect-ratio: 16/10;">
+                            <img th:src="${blog.imageUrl}" th:alt="${blog.title}" style="width:100%; height:100%; object-fit:cover;">
+                        </div>
+                        <div class="blog-content">
+                            <div class="blog-author" style="font-size:0.8rem; color:var(--primary); margin-bottom:8px;" th:text="${blog.author}">Admin</div>
+                            <div class="blog-title" style="font-weight:bold; margin-bottom:12px;" th:text="${blog.title}">Tiêu đề bài viết</div>
+                            <div class="blog-excerpt" style="font-size:0.9rem; margin-bottom:16px;" th:text="${blog.description}">Mô tả ngắn gọn về bài viết...</div>
+                            <a th:href="@{/news}" class="blog-read-more" style="font-size:0.85rem; font-weight:600; color:var(--primary);">Đọc thêm <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NEWSLETTER SUBSCRIPTION -->
+        <section class="newsletter-section">
+            <div class="container">
+                <div class="newsletter-content">
+                    <h2 class="newsletter-title">Nhận thông tin ưu đãi lành mạnh</h2>
+                    <p class="newsletter-desc">Đăng ký email để nhận thông tin về các dòng sản phẩm mới, bí quyết làm đẹp thảo dược và phiếu giảm giá 10% cho đơn hàng đầu tiên.</p>
+                    <form class="newsletter-form" id="newsletter-subscription-form">
+                        <input type="email" class="newsletter-input" id="newsletter-email-field" placeholder="Nhập địa chỉ email của bạn..." required>
+                        <button type="submit" class="btn btn-accent">Đăng Ký</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER (load từ Footer/footer.html) -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- MOBILE DRAWER MENU -->
+    <div class="mobile-menu-overlay" id="mobile-menu-overlay-el"></div>
+    <div class="mobile-menu-drawer" id="mobile-menu-drawer-el">
+        <div class="mobile-drawer-header">
+            <div class="logo">
+                <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <text x="0" y="28" font-family="'Montserrat', sans-serif" font-weight="700" font-size="24" fill="#2563eb">TECHTRA</text>
+                </svg>
+            </div>
+            <button class="mobile-drawer-close" id="mobile-drawer-close-btn" aria-label="Đóng menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="mobile-drawer-body">
+            <!-- Simple Mobile Search -->
+            <div style="padding: 0 20px 20px;">
+                <form th:action="@{/products}" method="GET" style="position: relative;">
+                    <input type="text" name="keyword" class="search-bar" placeholder="Tìm sản phẩm..." style="background-color: var(--bg-secondary); padding: 8px 40px 8px 16px;">
+                    <button type="submit" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--primary);">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <ul class="mobile-nav-list" id="mobile-navigation-menu">
+                <li><a th:href="@{/}" class="mobile-nav-link active">Trang chủ</a></li>
+                <li><a th:href="@{/products}" class="mobile-nav-link">Sản phẩm mới</a></li>
+                <li><a th:href="@{/products}" class="mobile-nav-link">Chăm sóc da</a></li>
+                <li><a th:href="@{/products}" class="mobile-nav-link">Chăm sóc tóc</a></li>
+                <li><a th:href="@{/products}" class="mobile-nav-link">Trang điểm</a></li>
+                <li><a th:href="@{/products}" class="mobile-nav-link">Chăm sóc cơ thể</a></li>
+                <li><a th:href="@{/products}" class="mobile-nav-link">Combo Quà tặng</a></li>
+                <li><a th:href="@{/about}" class="mobile-nav-link">Về TECHTRA</a></li>
+                <li><a href="#" class="mobile-nav-link">Hệ thống cửa hàng</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- MINI CART DRAWER -->
+    <div class="cart-drawer-overlay" id="cart-drawer-overlay-el"></div>
+    <div class="cart-drawer" id="cart-drawer-el">
+        <div class="cart-drawer-header">
+            <h3>Giỏ hàng của bạn (<span id="cart-drawer-count">0</span>)</h3>
+            <button class="cart-drawer-close" id="cart-drawer-close-btn" aria-label="Đóng giỏ hàng">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="cart-drawer-body" id="cart-drawer-items-container">
+            <!-- Will be populated dynamically by app.js -->
+            <!-- If empty, show this -->
+            <div class="cart-empty-message" id="cart-empty-msg">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-bag">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+                <p style="margin-top: 16px; font-weight: 500;">Giỏ hàng của bạn đang trống</p>
+                <p style="font-size: 0.85rem; margin-top: 6px;">Hãy thêm sản phẩm lành tính của TECHTRA nhé!</p>
+            </div>
+            
+            <!-- Items list wrapper (shown when items exist) -->
+            <div id="cart-items-wrapper" style="display: none;">
+                <!-- Cart items populate here -->
+            </div>
+        </div>
+        
+        <div class="cart-drawer-footer">
+            <div class="cart-total-row">
+                <span>Tổng tiền hàng:</span>
+                <span class="total-price" id="cart-drawer-total-price">0 đ</span>
+            </div>
+            <a th:href="@{/checkout}" class="btn btn-primary" style="display: block; text-align: center; text-decoration: none;" id="checkout-button-el">Tiến hành đặt hàng</a>
+            <p style="font-size: 0.78rem; text-align: center; color: var(--text-secondary); margin-top: 12px;">
+                Đơn hàng trên 249k sẽ được tự động miễn phí vận chuyển
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Logic Script -->
+    <!-- JS removed to use Java server-side rendering -->
+    <!-- Load header/footer partials (chạy trước app.js để DOM sẵn sàng) -->
+</body>
+</html>

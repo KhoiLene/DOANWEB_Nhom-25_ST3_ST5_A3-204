@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Về Techtra</title>
+    <link rel="stylesheet" th:href="@{/css/about/ve-techtra.css}">
+    <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+    <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <main>
+      <section class="page-intro" aria-label="Giới thiệu">
+        <div class="page-intro__breadcrumbs">Trang chủ / Về Techtra</div>
+        <h1 class="page-intro__title">Về Techtra</h1>
+        <p class="page-intro__subtitle">Câu chuyện thương hiệu — cam kết giá trị xanh, an toàn và hiệu quả.</p>
+      </section>
+
+      <section class="content-card" aria-label="Nội dung">
+        <div class="prose" th:utext="${aboutContent}">
+            Nội dung giới thiệu về Techtra sẽ hiển thị ở đây.
+        </div>
+      </section>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Giải trí — Techtra</title>
+<link rel="stylesheet" href="../../components/ve-techtra/ve-techtra.css">
+<link rel="stylesheet" href="Giaitri.css">
+</head>
+<body>
+
+<div id="header-placeholder"></div>
+
+<main>
+  <section class="page-intro" aria-label="Giới thiệu">
+    <div class="page-intro__breadcrumbs">Trang chủ / Giải trí</div>
+    <h1 class="page-intro__title">Giải trí</h1>
+    <p class="page-intro__subtitle">Video sự kiện, hoạt động và khoảnh khắc đáng nhớ cùng Techtra.</p>
+  </section>
+
+  <section class="content-card" aria-label="Video">
+    <div id="giaitri-status" class="status">Đang tải...</div>
+    <div id="video-grid" class="video-grid" hidden></div>
+
+    <div id="empty-state" class="empty" hidden>
+      <div class="empty__title">Chưa có video nào</div>
+      <div class="empty__desc">Vào trang admin để tải video lên.</div>
+    </div>
+  </section>
+</main>
+
+<div id="footer-placeholder"></div>
+
+<script src="include.js"></script>
+<script src="Giaitri.js"></script>
+<script src="../../components/header/partials.js"></script>
+</body>
+</html>

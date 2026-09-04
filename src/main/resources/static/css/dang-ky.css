@@ -1,0 +1,8 @@
+/* TECHTRA — Đăng ký
+ * Style riêng cho đăng ký (kế thừa auth.css nếu không override gì)
+ * Bổ sung các class riêng cho form đăng ký
+ */
+@import url('/components/dang-nhap/auth.css');
+
+/* Các custom class cho form đăng ký có thể thêm ở đây.
+   Nếu form đăng ký dùng chung 100% class với auth.css thì không cần viết thêm. */
