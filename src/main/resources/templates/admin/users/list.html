@@ -1,0 +1,54 @@
+<div th:fragment="list">
+    <div class="card">
+        <div class="card__header">
+            <h3 style="margin: 0;">Danh sách người dùng / khách hàng</h3>
+        </div>
+        <div class="card__body">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Họ tên</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Số điện thoại</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
+                        <th style="text-align: right;">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="u : ${users}">
+                        <td th:text="${u.id}">1</td>
+                        <td th:text="${u.fullName}">Nguyễn Văn A</td>
+                        <td th:text="${u.username}">user123</td>
+                        <td th:text="${u.email}">user@example.com</td>
+                        <td th:text="${u.phone}">0912345678</td>
+                        <td>
+                            <span class="btn" style="background: #e3f2fd; color: #1976d2; font-size: 0.7rem; padding: 4px 8px;" th:text="${u.role?.name}">ROLE_USER</span>
+                        </td>
+                        <td>
+                            <span th:if="${u.enabled}" class="btn" style="background: #e8f5e9; color: #2e7d32; font-size: 0.7rem; padding: 4px 8px;">Kích hoạt</span>
+                            <span th:unless="${u.enabled}" class="btn" style="background: #ffebee; color: #c62828; font-size: 0.7rem; padding: 4px 8px;">Khóa</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <a th:href="@{/admin/users/edit/{id}(id=${u.id})}" class="btn btn-outline" style="margin-right: 5px;">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+                            <a th:href="@{/admin/users/toggle-status/{id}(id=${u.id})}"
+                               class="btn"
+                               th:style="${u.enabled ? 'background: #fff3e0; color: #f57c00;' : 'background: #e8f5e9; color: #2e7d32;'}"
+                               title="Thay đổi trạng thái"
+                               style="margin-right: 5px;">
+                                <i class="fa-solid fa-power-off"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(users)}">
+                        <td colspan="8" style="text-align: center; color: #6c757d;">Không có người dùng nào.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

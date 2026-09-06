@@ -1,0 +1,52 @@
+<div th:fragment="list">
+    <div class="card">
+        <div class="card__header">
+            <h3 style="margin: 0;">Danh sách sản phẩm</h3>
+            <a th:href="@{/admin/products/new}" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i> Thêm mới
+            </a>
+        </div>
+        <div class="card__body">
+            <table class="admin-table">
+                <thead>
+                    <tr style="text-align: left;">
+                        <th>Ảnh</th>
+                        <th>Tên sản phẩm</th>
+                        <th>Danh mục</th>
+                        <th>Giá</th>
+                        <th>Trạng thái</th>
+                        <th style="text-align: right;">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="p : ${products}">
+                        <td>
+                            <img th:src="${p.imageUrl}" alt="Product" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                        </td>
+                        <td th:text="${p.name}">Sản phẩm A</td>
+                        <td th:text="${p.category?.name}">Danh mục</td>
+                        <td th:text="${#numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                        <td>
+                            <span th:if="${p.isActive}" class="btn" style="background: #e8f5e9; color: #2e7d32; font-size: 0.7rem; padding: 4px 8px;">Hoạt động</span>
+                            <span th:unless="${p.isActive}" class="btn" style="background: #ffebee; color: #c62828; font-size: 0.7rem; padding: 4px 8px;">Ngừng bán</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <a th:href="@{/admin/products/edit/{id}(id=${p.id})}" class="btn btn-outline" style="margin-right: 5px;">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+                            <a th:href="@{/admin/products/delete/{id}(id=${p.id})}"
+                               class="btn btn-danger"
+                               onclick="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')"
+                               style="margin-right: 5px;">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(products)}">
+                        <td colspan="6" style="text-align: center; color: #6c757d;">Không có sản phẩm nào.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

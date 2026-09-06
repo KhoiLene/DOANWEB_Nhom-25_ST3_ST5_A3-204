@@ -1,8 +1,7 @@
 package com.shopchain.service.impl;
 
-import com.shopchain.entity.Order;
-import com.shopchain.repository.OrderRepository;
 import com.shopchain.service.PaymentService;
+import com.shopchain.service.SystemSettingService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,19 +19,18 @@ public class PaymentServiceImpl implements PaymentService {
     private String vnpUrl;
     @Value("${vnpay.return_url}")
     private String returnUrl;
-    @Value("${vnpay.tmn_code}")
-    private String tmnCode;
-    @Value("${vnpay.hash_secret}")
-    private String hashSecret;
 
-    private final OrderRepository orderRepository;
+    private final SystemSettingService settingService;
 
-    public PaymentServiceImpl(OrderRepository orderRepository) {
-        this.orderRepository = orderRepository;
+    public PaymentServiceImpl(SystemSettingService settingService) {
+        this.settingService = settingService;
     }
 
     @Override
     public String createVnPayPaymentUrl(Long orderId, Double amount) {
+        String tmnCode = settingService.getSetting("vnpay.tmnCode", "");
+        String hashSecret = settingService.getSetting("vnpay.hashSecret", "");
+
         String vnp_TxnRef = String.valueOf(orderId);
         String vnp_Amount = String.valueOf((long)(amount * 100)); // VNPay tính đơn vị đồng, nhân 100
         String vnp_Command = "pay";
@@ -68,6 +66,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public boolean verifyVnPayPayment(Map<String, String> params) {
+        String hashSecret = settingService.getSetting("vnpay.hashSecret", "");
         String vnp_SecureHash = params.get("vnp_SecureHash");
         if (vnp_SecureHash == null || vnp_SecureHash.isBlank()) {
             return false;

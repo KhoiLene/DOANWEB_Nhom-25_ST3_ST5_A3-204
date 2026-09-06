@@ -1,0 +1,40 @@
+<div th:fragment="list">
+    <div class="card">
+        <div class="card__header">
+            <h3 style="margin: 0;">Danh sách đơn hàng</h3>
+        </div>
+        <div class="card__body">
+            <table class="admin-table">
+                <thead>
+                    <tr style="text-align: left;">
+                        <th>Mã Đơn</th>
+                        <th>Khách hàng</th>
+                        <th>Ngày đặt</th>
+                        <th>Tổng tiền</th>
+                        <th>Trạng thái</th>
+                        <th style="text-align: right;">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="o : ${orders}">
+                        <td th:text="'#' + ${o.id}">#1</td>
+                        <td th:text="${o.user?.username}">Khách hàng</td>
+                        <td th:text="${#temporals.format(o.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2024</td>
+                        <td th:text="${#numbers.formatDecimal(o.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                        <td>
+                            <span class="btn" style="background: #e3f2fd; color: #1976d2; font-size: 0.7rem; padding: 4px 8px;">Đang xử lý</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <a th:href="@{/admin/orders/detail/{id}(id=${o.id})}" class="btn btn-outline">
+                                <i class="fa-solid fa-eye"></i> Xem chi tiết
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(orders)}">
+                        <td colspan="6" style="text-align: center; color: #6c757d;">Không có đơn hàng nào.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

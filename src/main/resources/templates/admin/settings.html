@@ -1,0 +1,68 @@
+<div th:fragment="settings">
+    <div class="card">
+        <div class="card__header">
+            <h3 style="margin: 0;">Cấu hình hệ thống</h3>
+        </div>
+        <div class="card__body">
+            <form th:action="@{/admin/settings/save}" method="post">
+
+                <!-- SMTP Section -->
+                <h4 style="margin-bottom: 15px; color: var(--admin-accent); border-bottom: 2px solid var(--admin-accent); display: inline-block;">
+                    <i class="fa-solid fa-envelope"></i> Cấu hình Gmail SMTP
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
+                    <div class="form-group">
+                        <label class="form-label">SMTP Host</label>
+                        <input type="text" name="smtp.host" th:value="${settings['smtp.host']}" class="form-control" placeholder="smtp.gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">SMTP Port</label>
+                        <input type="text" name="smtp.port" th:value="${settings['smtp.port']}" class="form-control" placeholder="587">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email gửi</label>
+                        <input type="email" name="smtp.user" th:value="${settings['smtp.user']}" class="form-control" placeholder="example@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mật khẩu ứng dụng (App Password)</label>
+                        <input type="password" name="smtp.pass" th:value="${settings['smtp.pass']}" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Zalo Section -->
+                <h4 style="margin-bottom: 15px; color: var(--admin-accent); border-bottom: 2px solid var(--admin-accent); display: inline-block;">
+                    <i class="fa-brands fa-zalo"></i> Cấu hình Zalo OA
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
+                    <div class="form-group">
+                        <label class="form-label">Zalo Access Token</label>
+                        <input type="text" name="zalo.accessToken" th:value="${settings['zalo.accessToken']}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Zalo App ID</label>
+                        <input type="text" name="zalo.appId" th:value="${settings['zalo.appId']}" class="form-control">
+                    </div>
+                </div>
+
+                <!-- VNPay Section -->
+                <h4 style="margin-bottom: 15px; color: var(--admin-accent); border-bottom: 2px solid var(--admin-accent); display: inline-block;">
+                    <i class="fa-solid fa-credit-card"></i> Cấu hình VNPay
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
+                    <div class="form-group">
+                        <label class="form-label">vnp_TmnCode</label>
+                        <input type="text" name="vnpay.tmnCode" th:value="${settings['vnpay.tmnCode']}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">vnp_HashSecret</label>
+                        <input type="text" name="vnpay.hashSecret" th:value="${settings['vnpay.hashSecret']}" class="form-control">
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Lưu tất cả cấu hình</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

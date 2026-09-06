@@ -1,0 +1,75 @@
+<div th:fragment="detail">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <a th:href="@{/admin/orders}" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
+        </a>
+        <div class="btn-group" style="display: flex; gap: 10px;">
+            <form th:action="@{/admin/orders/update-status}" method="post">
+                <input type="hidden" name="orderId" th:value="${order.id}">
+                <select name="status" class="form-control" style="display: inline-block; width: auto; margin-right: 10px;">
+                    <option value="PENDING">Đang xử lý</option>
+                    <option value="SHIPPING">Đang giao hàng</option>
+                    <option value="DELIVERED">Đã giao hàng</option>
+                    <option value="CANCELLED">Đã hủy</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Cập nhật</button>
+            </form>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+        <div class="card">
+            <div class="card__header">
+                <h3 style="margin: 0;">Chi tiết sản phẩm</h3>
+            </div>
+            <div class="card__body">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Số lượng</th>
+                            <th>Giá</th>
+                            <th>Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item : ${order.orderItems}">
+                            <td th:text="${item.product?.name}">Sản phẩm A</td>
+                            <td th:text="${item.quantity}">1</td>
+                            <td th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                            <td th:text="${#numbers.formatDecimal(item.quantity * item.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card__header">
+                <h3 style="margin: 0;">Thông tin thanh toán</h3>
+            </div>
+            <div class="card__body">
+                <div style="margin-bottom: 15px;">
+                    <strong style="display: block; color: #6c757d; font-size: 0.8rem;">Khách hàng:</strong>
+                    <span th:text="${order.user?.fullName}">Nguyễn Văn A</span><br>
+                    <span th:text="${order.user?.email}">user@example.com</span>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="display: block; color: #6c757d; font-size: 0.8rem;">Địa chỉ giao hàng:</strong>
+                    <span th:text="${order.userAddress?.address}">Địa chỉ mặc định</span>
+                </div>
+                <hr style="border: 0; border-top: 1px solid var(--admin-border); margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold;">
+                    <span>Tổng cộng:</span>
+                    <span style="color: var(--admin-accent);" th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button class="btn btn-primary" style="width: 100%; justify-content: center;">
+                        <i class="fa-solid fa-qrcode">i</i> Tạo mã thanh toán VNPay
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,43 @@
+<div th:fragment="list">
+    <div class="card">
+        <div class="card__header">
+            <h3 style="margin: 0;">Danh sách danh mục</h3>
+            <a th:href="@{/admin/categories/new}" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i> Thêm mới
+            </a>
+        </div>
+        <div class="card__body">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên danh mục</th>
+                        <th>Mô tả</th>
+                        <th style="text-align: right;">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="cat : ${categories}">
+                        <td th:text="${cat.id}">1</td>
+                        <td th:text="${cat.name}">Danh mục A</td>
+                        <td th:text="${cat.description}">Mô tả danh mục</td>
+                        <td style="text-align: right;">
+                            <a th:href="@{/admin/categories/edit/{id}(id=${cat.id})}" class="btn btn-outline" style="margin-right: 5px;">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+                            <a th:href="@{/admin/categories/delete/{id}(id=${cat.id})}"
+                               class="btn btn-danger"
+                               onclick="return confirm('Bạn có chắc chắn muốn xóa danh mục này?')"
+                               style="margin-right: 5px;">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(categories)}">
+                        <td colspan="4" style="text-align: center; color: #6c757d;">Không có danh mục nào.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,64 @@
+<div th:fragment="form">
+    <div class="card">
+        <div class="card__header">
+            <h3 style="margin: 0;" th:text="${product.id == null ? 'Thêm sản phẩm mới' : 'Chỉnh sửa sản phẩm'}">Thêm mới</h3>
+        </div>
+        <div class="card__body">
+            <form th:action="@{/admin/products/save}" th:object="${product}" method="post" enctype="multipart/form-data">
+                <input type="hidden" th:field="*{id}">
+
+                <div class="form-group">
+                    <label class="form-label">Tên sản phẩm <span style="color: red;">*</span></label>
+                    <input type="text" th:field="*{name}" class="form-control" placeholder="Nhập tên sản phẩm..." required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Danh mục <span style="color: red;">*</span></label>
+                    <select th:field="*{category}" class="form-control" required>
+                        <option value="">-- Chọn danh mục --</option>
+                        <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"></option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Giá bán <span style="color: red;">*</span></label>
+                    <input type="number" step="0.01" th:field="*{price}" class="form-control" placeholder="Nhập giá sản phẩm..." required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Mô tả</label>
+                    <textarea th:field="*{description}" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết về sản phẩm..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Hình ảnh sản phẩm</label>
+                    <input type="file" name="imageFile" class="form-control" accept="image/*">
+                    <p style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">Hãy chọn một hình ảnh rõ nét cho sản phẩm.</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" th:field="*{isActive}"> Hoạt động
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" th:field="*{isFeatured}"> Sản phẩm nổi bật
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" th:field="*{isFlashSale}"> Flash Sale
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <a th:href="@{/admin/products}" class="btn btn-outline">Hủy bỏ</a>
+                    <button type="submit" class="btn btn-primary">Lưu sản phẩm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
