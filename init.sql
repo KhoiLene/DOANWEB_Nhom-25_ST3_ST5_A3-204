@@ -853,22 +853,11 @@ update orders
  where (customer_name is null or customer_phone is null or address is null)
    and (receiver_name is not null or receiver_phone is not null or receiver_address is not null);
 
-   create table if not exists categories (
+create table if not exists categories (
   id   serial primary key,
   name varchar(255) not null,
   slug varchar(255) unique not null
 );
 
-create table if not exists categories (
-  id   bigserial primary key,
-  name varchar(255) not null,
-  slug varchar(255) unique
-);
-
 alter table products
   add column if not exists category_id bigint references categories(id) on delete set null;
-  
-  ALTER TABLE products
-ADD COLUMN IF NOT EXISTS category_id BIGINT
-REFERENCES categories(id)
-ON DELETE SET NULL;

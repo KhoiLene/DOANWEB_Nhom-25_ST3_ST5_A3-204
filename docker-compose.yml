@@ -5,8 +5,8 @@ services:
     restart: always
     environment:
       POSTGRES_DB: shop_chain_db
-      POSTGRES_USER: shop_user
-      POSTGRES_PASSWORD: shoppassword
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secretpassword
     ports:
       - "5432:5432"
     volumes:
