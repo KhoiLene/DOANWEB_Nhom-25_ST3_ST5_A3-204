@@ -37,6 +37,7 @@ In Render's environment settings, add:
 - `GEMINI_API_KEY`: the Gemini API key from Google AI Studio.
 - `JWT_SECRET`: a unique random value of at least 32 bytes.
 - `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`: a unique admin login; use a password of at least 12 characters.
+- `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`: SMTP access for registration and password-reset OTPs. Render Free blocks outbound SMTP ports 25, 465, and 587, so use an email provider/port Render allows and verify email delivery before sharing registration. Without working mail delivery, customers cannot activate accounts or reset passwords.
 
 Enter these in the provider's private environment-variable editor. Do not put secret values in `render.yaml`, GitHub, screenshots, or chat messages. After the first deployment and successful admin login, retain the password securely; the bootstrap account is not recreated if the user already exists.
 

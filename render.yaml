@@ -18,6 +18,14 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
       - key: QDRANT_HOST
         sync: false
       - key: QDRANT_GRPC_PORT
