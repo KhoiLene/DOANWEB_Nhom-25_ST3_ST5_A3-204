@@ -212,6 +212,34 @@
     }
   }
 
+  async function showAllStoresOnMap() {
+    message.textContent = 'Đang tải danh sách chi nhánh…';
+    try {
+      const response = await fetch('/api/locations/all', { headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error('Không tải được danh sách chi nhánh.');
+      const stores = await response.json();
+      clearMarkers();
+      const bounds = [];
+      stores.forEach((store, index) => {
+        const position = addStoreMarker(store, index);
+        if (position) bounds.push(position);
+      });
+      if (stores.length) {
+        message.textContent = `Bản đồ đang hiển thị tất cả ${stores.length} chi nhánh. Tìm kiếm hoặc dùng GPS để lọc tối đa 5 điểm phù hợp.`;
+      } else {
+        message.textContent = 'Chưa có chi nhánh nào có tọa độ để hiển thị trên bản đồ.';
+      }
+      if (map && bounds.length === 1) map.easeTo({ center: bounds[0], zoom: 13 });
+      else if (map && bounds.length > 1) {
+        const extent = new maplibregl.LngLatBounds();
+        bounds.forEach(point => extent.extend(point));
+        map.fitBounds(extent, { padding: 48, maxZoom: 10, duration: 450 });
+      }
+    } catch (error) {
+      message.textContent = error.message || 'Không tải được danh sách chi nhánh.';
+    }
+  }
+
   async function fetchStores(url, origin) {
     message.textContent = 'Đang tìm cửa hàng…';
     try {
@@ -282,6 +310,7 @@
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
       map.once('load', () => {
         mapMessage.textContent = 'Bản đồ OpenFreeMap · dữ liệu © OpenMapTiles, © OpenStreetMap. Gợi ý địa chỉ từ Photon.';
+        showAllStoresOnMap();
       });
       map.on('error', () => {
         mapMessage.textContent = 'Bản đồ đang tải chậm. Danh sách chi nhánh và tìm kiếm vẫn sử dụng được.';

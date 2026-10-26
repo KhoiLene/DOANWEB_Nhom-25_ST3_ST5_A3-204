@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: techtra-beauty
+    runtime: docker
+    region: singapore
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: QDRANT_HOST
+        sync: false
+      - key: QDRANT_GRPC_PORT
+        value: "6334"
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: QDRANT_USE_TLS
+        value: "true"
+      - key: SPRING_DOCKER_COMPOSE_ENABLED
+        value: "false"
+      - key: SPRING_THYMELEAF_CACHE
+        value: "true"
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      - key: BOOTSTRAP_ADMIN_USERNAME
+        sync: false
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false

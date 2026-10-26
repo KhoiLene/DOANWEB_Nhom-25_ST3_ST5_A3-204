@@ -52,6 +52,15 @@ public class LocationController {
         }
     }
 
+    @GetMapping("/all")
+    public List<StoreResult> allActiveStores() {
+        return storeRepository.findAll().stream()
+                .filter(Store::isActive)
+                .filter(store -> store.getLatitude() != null && store.getLongitude() != null)
+                .map(store -> result(store, null))
+                .toList();
+    }
+
     @GetMapping("/nearest")
     public List<StoreResult> nearest(@RequestParam double latitude, @RequestParam double longitude,
                                      @RequestParam(defaultValue = "5") int limit) {
