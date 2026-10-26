@@ -8,10 +8,12 @@
     <link rel="stylesheet" th:href="@{/css/admin/style.css}">
     <link rel="stylesheet" th:href="@{/css/workspace.css}">
     <link rel="stylesheet" th:href="@{/css/assistant-widget.css}">
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <link rel="stylesheet" th:if="${activePage == 'stores'}" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script defer th:if="${activePage == 'stores'}" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script defer th:if="${activePage == 'stores'}" th:src="@{/js/nominatim-client.js}"></script>
     <script defer th:src="@{/js/assistant-widget.js}"></script>
+    <script defer th:src="@{/js/theme-toggle.js}"></script>
 </head>
 <body class="workspace-body">
     <div class="admin-wrapper">
@@ -94,6 +96,7 @@
                 <div class="admin-topbar__title" th:text="${title}">Dashboard</div>
 
                 <div class="admin-topbar__user">
+                    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Chuyển sang giao diện tối" title="Đổi giao diện"><span data-theme-icon aria-hidden="true">☾</span><span class="theme-toggle__label" data-theme-label>Giao diện tối</span></button>
                     <details class="admin-profile-menu">
                         <summary class="admin-topbar__user-info">
                             <span class="admin-topbar__user-name" th:text="${#authentication.name}">Admin User</span>

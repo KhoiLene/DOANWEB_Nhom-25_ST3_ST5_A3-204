@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/products")
@@ -29,8 +31,39 @@ public class ProductApiController {
         return ResponseEntity.ok(productPage.getContent());
     }
 
+    @GetMapping("/search/suggestions")
+    public ResponseEntity<List<ProductSuggestion>> suggestions(@RequestParam(required = false) String keyword) {
+        String query = keyword == null ? "" : keyword.trim();
+        if (query.length() < 2 || query.length() > 100) return ResponseEntity.ok(List.of());
+        Page<Product> page = productService.searchProducts(query, null, PageRequest.of(0, 6));
+        List<Product> matches = page.getContent();
+        if (matches.isEmpty()) {
+            String normalizedQuery = normalize(query);
+            matches = productService.searchProducts(null, null, PageRequest.of(0, 500)).getContent().stream()
+                    .filter(product -> normalize(product.getName()).contains(normalizedQuery)
+                            || normalize(product.getDescription()).contains(normalizedQuery)
+                            || normalize(product.getSku()).contains(normalizedQuery))
+                    .limit(6)
+                    .toList();
+        }
+        List<ProductSuggestion> suggestions = matches.stream()
+                .filter(Objects::nonNull)
+                .map(product -> new ProductSuggestion(product.getId(), product.getName(),
+                        product.getImageUrl(), product.getPrice()))
+                .toList();
+        return ResponseEntity.ok(suggestions);
+    }
+
+    private String normalize(String text) {
+        if (text == null) return "";
+        return java.text.Normalizer.normalize(text.toLowerCase(Locale.ROOT), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").replace('đ', 'd');
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Product> getDetail(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductDetail(id));
     }
+
+    public record ProductSuggestion(Long id, String name, String imageUrl, Double price) { }
 }

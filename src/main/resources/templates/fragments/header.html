@@ -2,7 +2,10 @@
 <th:block th:fragment="header-assets">
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/assistant-widget.css}">
+    <link rel="stylesheet" th:href="@{/css/theme.css}">
     <script defer th:src="@{/js/storefront.js}"></script>
+    <script defer th:src="@{/js/product-search.js}"></script>
+    <script defer th:src="@{/js/theme-toggle.js}"></script>
     <script defer th:src="@{/js/assistant-widget.js}"></script>
 </th:block>
 
@@ -11,10 +14,14 @@
 <header class="site-header">
     <div class="site-header__mobile">
         <a class="header-logo" th:href="@{/}" aria-label="Techtra Beauty"><span class="header-logo__text">TECHTRA <strong>BEAUTY</strong></span></a>
-        <form class="mobile-search" th:action="@{/products}" method="get" role="search">
-            <input type="search" name="keyword" placeholder="Tìm mỹ phẩm..." th:value="${keyword}" aria-label="Tìm sản phẩm">
-            <button type="submit" aria-label="Tìm"><i class="fa-solid fa-magnifying-glass"></i></button>
-        </form>
+        <div class="mobile-search-wrap">
+            <form class="mobile-search" th:action="@{/products}" method="get" role="search">
+                <input type="search" name="keyword" placeholder="Tìm mỹ phẩm..." th:value="${keyword}" aria-label="Tìm sản phẩm" autocomplete="off" aria-controls="mobileProductSuggestions" aria-expanded="false">
+                <button type="submit" aria-label="Tìm"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+            <div class="product-search-suggestions product-search-suggestions--mobile" id="mobileProductSuggestions" data-product-suggestions hidden role="listbox"></div>
+        </div>
+        <button class="theme-toggle theme-toggle--mobile" type="button" data-theme-toggle aria-label="Chuyển sang giao diện tối" title="Đổi giao diện"><span data-theme-icon aria-hidden="true">☾</span></button>
         <a class="mobile-account" th:href="@{/login}" sec:authorize="isAnonymous()" aria-label="Đăng nhập"><i class="fa-regular fa-user"></i></a>
         <details class="mobile-profile-menu" sec:authorize="isAuthenticated()">
             <summary class="mobile-account" aria-label="Hồ sơ và đăng xuất"><i class="fa-regular fa-user"></i></summary>
@@ -144,7 +151,7 @@
                             <div class="header-search__form">
                                 <form th:action="@{/products}" method="GET">
                                     <div class="header-search__field">
-                                        <input type="search" name="keyword" placeholder="Tìm sản phẩm..." autocomplete="off" th:value="${keyword}">
+                                        <input type="search" name="keyword" placeholder="Tìm sản phẩm..." autocomplete="off" th:value="${keyword}" aria-label="Tìm sản phẩm" aria-controls="desktopProductSuggestions" aria-expanded="false">
                                         <button class="header-search__button" aria-label="Tìm kiếm">
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 511.999 511.999" style="width: 15px;">
                                                 <path d="M225.773.616C101.283.616 0 101.622 0 225.773S101.284 450.93 225.773 450.93s225.774-101.006 225.774-225.157S350.263.616 225.773.616zm0 413.301c-104.084 0-188.761-84.406-188.761-188.145 0-103.745 84.677-188.145 188.761-188.145s188.761 84.4 188.761 188.145c.001 103.739-84.676 188.145-188.761 188.145z" fill="#2563eb" />
@@ -153,9 +160,11 @@
                                     </div>
                                 </form>
                             </div>
+                            <div class="product-search-suggestions product-search-suggestions--desktop" id="desktopProductSuggestions" data-product-suggestions hidden role="listbox"></div>
                         </div>
 
                         <div class="header-actions mobile--hidden header-custom">
+                            <button class="theme-toggle theme-toggle--storefront" type="button" data-theme-toggle aria-label="Chuyển sang giao diện tối" title="Đổi giao diện"><span data-theme-icon aria-hidden="true">☾</span><span class="theme-toggle__label" data-theme-label>Giao diện tối</span></button>
                             <a th:href="@{/stores}" class="text--primary header-actions__login header-custom_item">
                                 <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                                 <div class="header-custom_item__text">HỆ THỐNG<br>CỬA HÀNG</div>

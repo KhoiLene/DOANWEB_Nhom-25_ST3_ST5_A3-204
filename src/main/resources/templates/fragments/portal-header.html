@@ -1,17 +1,21 @@
 <th:block th:fragment="header(roleTitle, locationName)">
+<script defer th:src="@{/js/theme-toggle.js}"></script>
 <header class="portal-header">
     <div class="portal-header__inner">
         <a class="portal-brand" th:href="@{/}" aria-label="Techtra Beauty - trang chủ"><span>TECHTRA</span><strong>BEAUTY</strong></a>
         <div class="portal-context"><strong th:text="${roleTitle}">Cổng nhân viên</strong><span th:text="${locationName}">Khu vực làm việc</span></div>
-        <details class="portal-profile-menu">
-            <summary class="portal-header__link">Hồ sơ <span aria-hidden="true">⌄</span></summary>
-            <nav class="portal-profile-menu__panel" aria-label="Tài khoản">
-                <a class="portal-header__link" th:href="@{/}">Xem cửa hàng</a>
-                <a class="portal-header__link" th:href="${roleTitle == 'Nhân viên kho' ? '/warehouse/orders' : '/staff/pos'}">Về khu vực làm việc</a>
-                <a class="portal-header__link" th:href="@{/messages}">Tin nhắn nội bộ</a>
-                <form class="portal-logout" th:action="@{/logout-process}" method="post"><button class="portal-header__link" type="submit">Đăng xuất</button></form>
-            </nav>
-        </details>
+        <div class="portal-header__actions">
+            <button class="theme-toggle" type="button" data-theme-toggle aria-label="Chuyển sang giao diện tối" title="Đổi giao diện"><span data-theme-icon aria-hidden="true">☾</span><span class="theme-toggle__label" data-theme-label>Giao diện tối</span></button>
+            <details class="portal-profile-menu">
+                <summary class="portal-header__link">Hồ sơ <span aria-hidden="true">⌄</span></summary>
+                <nav class="portal-profile-menu__panel" aria-label="Tài khoản">
+                    <a class="portal-header__link" th:href="@{/}">Xem cửa hàng</a>
+                    <a class="portal-header__link" th:href="${roleTitle == 'Nhân viên kho' ? '/warehouse/orders' : '/staff/pos'}">Về khu vực làm việc</a>
+                    <a class="portal-header__link" th:href="@{/messages}">Tin nhắn nội bộ</a>
+                    <form class="portal-logout" th:action="@{/logout-process}" method="post"><button class="portal-header__link" type="submit">Đăng xuất</button></form>
+                </nav>
+            </details>
+        </div>
     </div>
 </header>
 <div th:replace="~{fragments/assistant-widget :: widget}"></div>

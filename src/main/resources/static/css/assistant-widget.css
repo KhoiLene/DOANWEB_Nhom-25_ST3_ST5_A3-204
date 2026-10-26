@@ -22,4 +22,13 @@
 .assistant-widget__form button:disabled,.assistant-widget__form textarea:disabled { opacity:.55; cursor:not-allowed; }
 .assistant-widget__footnote { margin:0; padding:0 14px 10px; color:#94a3b8; font-size:.7rem; }
 @media(max-width:600px) { .assistant-widget { right:12px; bottom:12px; } .assistant-widget__panel { right:-4px; bottom:58px; height:min(560px,calc(100vh - 86px)); } }
+html[data-theme="dark"] .assistant-widget__panel { background:#162235; border-color:#30415a; }
+html[data-theme="dark"] .assistant-widget__header { color:#e7edf6; background:#1c2b40; border-color:#30415a; }
+html[data-theme="dark"] .assistant-widget__header p,
+html[data-theme="dark"] .assistant-widget__notice,
+html[data-theme="dark"] .assistant-widget__footnote { color:#aebbd0; }
+html[data-theme="dark"] .assistant-widget__close { color:#bdc8d8; }
+html[data-theme="dark"] .assistant-widget__message--assistant { color:#e7edf6; background:#243651; }
+html[data-theme="dark"] .assistant-widget__form { border-color:#30415a; }
+html[data-theme="dark"] .assistant-widget__form textarea { color:#e7edf6; background:#101b2b; border-color:#40536e; }
 @media print { .assistant-widget { display:none!important; } }
