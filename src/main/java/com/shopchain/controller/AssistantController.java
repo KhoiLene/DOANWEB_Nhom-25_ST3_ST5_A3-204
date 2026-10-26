@@ -36,9 +36,9 @@ public class AssistantController {
     }
 
     private String resolveRole(Authentication authentication) {
-        if (authentication == null || authentication.getAuthorities() == null) {
-            throw new org.springframework.security.access.AccessDeniedException("Yêu cầu đăng nhập.");
-        }
+        // Anonymous storefront visitors receive only the public customer assistant corpus.
+        if (authentication == null) return "customer";
+        if (authentication.getAuthorities() == null) return "customer";
         List<String> roles = authentication.getAuthorities().stream().map(authority -> authority.getAuthority()).toList();
         if (roles.contains("ROLE_ADMIN")) return "admin";
         if (roles.contains("ROLE_WAREHOUSE")) return "warehouse";

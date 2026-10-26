@@ -107,21 +107,34 @@ public class GeminiApiClient {
     }
 
     private Map<?, ?> post(String path, String model, Map<String, Object> body) {
-        try {
-            Map<?, ?> result = restClient.post().uri(path, model)
-                    .header("x-goog-api-key", apiKey)
-                    .body(body)
-                    .retrieve()
-                    .body(Map.class);
-            if (result == null) throw new GeminiApiException("Gemini trả về phản hồi rỗng.");
-            return result;
-        } catch (RestClientResponseException exception) {
-            HttpStatusCode status = exception.getStatusCode();
-            if (status.value() == 429) throw new GeminiApiException("Gemini đã chạm hạn mức miễn phí. Vui lòng thử lại sau.");
-            throw new GeminiApiException("Gemini trả lỗi HTTP " + status.value() + ".");
-        } catch (RestClientException exception) {
-            throw new GeminiApiException("Không kết nối được tới Gemini API.");
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                Map<?, ?> result = restClient.post().uri(path, model)
+                        .header("x-goog-api-key", apiKey)
+                        .body(body)
+                        .retrieve()
+                        .body(Map.class);
+                if (result == null) throw new GeminiApiException("Gemini trả về phản hồi rỗng.");
+                return result;
+            } catch (RestClientResponseException exception) {
+                HttpStatusCode status = exception.getStatusCode();
+                if (status.value() == 503 && attempt < 2) {
+                    try {
+                        Thread.sleep(500L << attempt);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw new GeminiApiException("Yêu cầu Gemini bị gián đoạn. Vui lòng thử lại.");
+                    }
+                    continue;
+                }
+                if (status.value() == 429) throw new GeminiApiException("Gemini đã chạm hạn mức miễn phí. Vui lòng thử lại sau.");
+                if (status.value() == 503) throw new GeminiApiException("Gemini đang quá tải tạm thời. Vui lòng thử lại sau ít phút.");
+                throw new GeminiApiException("Gemini trả lỗi HTTP " + status.value() + ".");
+            } catch (RestClientException exception) {
+                throw new GeminiApiException("Không kết nối được tới Gemini API.");
+            }
         }
+        throw new GeminiApiException("Gemini đang quá tải tạm thời. Vui lòng thử lại sau ít phút.");
     }
 
     private void requireConfigured() {
