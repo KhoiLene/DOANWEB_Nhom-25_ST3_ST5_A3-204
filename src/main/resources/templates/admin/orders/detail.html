@@ -7,10 +7,12 @@
             <form th:action="@{/admin/orders/update-status}" method="post">
                 <input type="hidden" name="orderId" th:value="${order.id}">
                 <select name="status" class="form-control" style="display: inline-block; width: auto; margin-right: 10px;">
-                    <option value="PENDING">Đang xử lý</option>
-                    <option value="SHIPPING">Đang giao hàng</option>
-                    <option value="DELIVERED">Đã giao hàng</option>
-                    <option value="CANCELLED">Đã hủy</option>
+                    <option value="PENDING" th:selected="${order.status == 'PENDING'}">Chờ xử lý</option>
+                    <option value="PROCESSING" th:selected="${order.status == 'PROCESSING'}">Đang chuẩn bị</option>
+                    <option value="CONFIRMED" th:selected="${order.status == 'CONFIRMED'}">Đã xác nhận</option>
+                    <option value="SHIPPING" th:selected="${order.status == 'SHIPPING'}">Đang giao hàng</option>
+                    <option value="DELIVERED" th:selected="${order.status == 'DELIVERED'}">Đã giao hàng</option>
+                    <option value="CANCELLED" th:selected="${order.status == 'CANCELLED'}">Đã hủy</option>
                 </select>
                 <button type="submit" class="btn btn-primary">Cập nhật</button>
             </form>
@@ -51,12 +53,13 @@
             <div class="card__body">
                 <div style="margin-bottom: 15px;">
                     <strong style="display: block; color: #6c757d; font-size: 0.8rem;">Khách hàng:</strong>
-                    <span th:text="${order.user?.fullName}">Nguyễn Văn A</span><br>
-                    <span th:text="${order.user?.email}">user@example.com</span>
+                    <span th:text="${order.customerName ?: order.user?.fullName ?: order.user?.username}">Nguyễn Văn A</span><br>
+                    <span th:text="${order.customerPhone ?: order.user?.email}">user@example.com</span>
                 </div>
                 <div style="margin-bottom: 15px;">
                     <strong style="display: block; color: #6c757d; font-size: 0.8rem;">Địa chỉ giao hàng:</strong>
-                    <span th:text="${order.userAddress?.address}">Địa chỉ mặc định</span>
+                    <span th:text="${order.deliveryAddress ?: '—'}">Địa chỉ</span><br>
+                    <span th:text="${order.deliveryCity ?: ''}"></span>
                 </div>
                 <hr style="border: 0; border-top: 1px solid var(--admin-border); margin: 20px 0;">
                 <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold;">

@@ -1,0 +1,30 @@
+<div th:fragment="stores">
+    <div class="card">
+        <div class="card__header"><h3 th:text="${store.id == null ? 'Thêm chi nhánh' : 'Chỉnh sửa chi nhánh'}">Chi nhánh</h3></div>
+        <div class="card__body">
+            <form th:action="@{/admin/locations/stores/save}" th:object="${store}" method="post">
+                <input type="hidden" th:field="*{id}">
+                <div class="form-group"><label class="form-label">Tên chi nhánh</label><input class="form-control" th:field="*{name}" required></div>
+                <div class="form-group"><label class="form-label">Địa chỉ</label><input class="form-control" th:field="*{address}" required></div>
+                <div class="form-group"><label class="form-label">Phường / quận</label><input class="form-control" th:field="*{district}"></div>
+                <div class="form-group"><label class="form-label">Tỉnh / thành phố</label><input class="form-control" th:field="*{city}"></div>
+                <div class="form-group"><label class="form-label">Điện thoại</label><input class="form-control" th:field="*{phone}"></div>
+                <div class="form-group"><label class="form-label">Vĩ độ</label><input class="form-control" type="number" step="any" th:field="*{latitude}"></div>
+                <div class="form-group"><label class="form-label">Kinh độ</label><input class="form-control" type="number" step="any" th:field="*{longitude}"></div>
+                <div class="form-group"><label><input type="checkbox" th:field="*{pickupEnabled}"> Cho phép nhận hàng tại đây</label></div>
+                <div class="form-group"><label><input type="checkbox" th:field="*{active}"> Đang hoạt động</label></div>
+                <button class="btn btn-primary" type="submit">Lưu chi nhánh</button>
+            </form>
+        </div>
+    </div>
+    <div class="card"><div class="card__body"><table class="admin-table">
+        <thead><tr><th>Chi nhánh</th><th>Địa chỉ</th><th>Tọa độ</th><th>Nhận hàng</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody><tr th:each="item : ${stores}">
+            <td th:text="${item.name}">Techtra</td><td th:text="${item.address}">Địa chỉ</td>
+            <td th:text="${item.latitude != null ? item.latitude + ', ' + item.longitude : 'Chưa có tọa độ'}"></td>
+            <td th:text="${item.pickupEnabled ? 'Có' : 'Không'}"></td><td th:text="${item.active ? 'Đang hoạt động' : 'Tạm ngưng'}"></td>
+            <td><a class="btn btn-outline" th:href="@{/admin/locations/stores(editId=${item.id})}">Sửa</a>
+                <form th:action="@{/admin/locations/stores/{id}/toggle(id=${item.id})}" method="post" style="display:inline"><button class="btn btn-outline" type="submit">Bật/tắt</button></form></td>
+        </tr><tr th:if="${#lists.isEmpty(stores)}"><td colspan="6">Chưa có chi nhánh. Thêm chi nhánh kèm tọa độ để bật tìm cửa hàng gần nhất.</td></tr></tbody>
+    </table></div></div>
+</div>

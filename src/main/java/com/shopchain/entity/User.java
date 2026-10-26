@@ -36,4 +36,8 @@ public class User {
     @ManyToOne
     @JoinColumn(name = "store_id")
     private Store store; // NULL if System Admin, assigned if Vendor/Staff
+
+    @ManyToOne
+    @JoinColumn(name = "warehouse_id")
+    private Warehouse warehouse;
 }

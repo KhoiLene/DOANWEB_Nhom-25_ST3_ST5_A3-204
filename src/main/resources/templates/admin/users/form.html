@@ -25,6 +25,24 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">Cửa hàng phụ trách (chỉ dành cho nhân viên cửa hàng)</label>
+                    <select name="storeId" class="form-control">
+                        <option value="">-- Chọn cửa hàng --</option>
+                        <option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name}"
+                                th:selected="${user.store?.id == store.id}"></option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Kho phụ trách (chỉ dành cho nhân viên kho)</label>
+                    <select name="warehouseId" class="form-control">
+                        <option value="">-- Chọn kho --</option>
+                        <option th:each="warehouse : ${warehouses}" th:value="${warehouse.id}" th:text="${warehouse.name}"
+                                th:selected="${user.warehouse?.id == warehouse.id}"></option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">
                         <input type="checkbox" name="enabled" th:checked="${user.enabled}"> Tài khoản đang hoạt động
                     </label>

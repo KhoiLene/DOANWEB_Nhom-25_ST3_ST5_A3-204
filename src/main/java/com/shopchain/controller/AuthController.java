@@ -1,6 +1,8 @@
 package com.shopchain.controller;
 
 import com.shopchain.service.AuthService;
+import com.shopchain.dto.AuthRequest;
+import com.shopchain.dto.AuthResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +16,15 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+        try {
+            return ResponseEntity.ok(authService.login(request.getUsername(), request.getPassword()));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("error", "Tên đăng nhập hoặc mật khẩu không đúng."));
+        }
     }
 
     @PostMapping("/send-otp")

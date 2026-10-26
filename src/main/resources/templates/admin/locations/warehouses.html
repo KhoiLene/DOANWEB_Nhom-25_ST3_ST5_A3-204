@@ -1,0 +1,27 @@
+<div th:fragment="warehouses">
+    <div class="card">
+        <div class="card__header"><h3 th:text="${warehouse.id == null ? 'Thêm kho' : 'Chỉnh sửa kho'}">Kho</h3></div>
+        <div class="card__body">
+            <form th:action="@{/admin/locations/warehouses/save}" th:object="${warehouse}" method="post">
+                <input type="hidden" th:field="*{id}">
+                <div class="form-group"><label class="form-label">Tên kho</label><input class="form-control" th:field="*{name}" required></div>
+                <div class="form-group"><label class="form-label">Địa chỉ</label><input class="form-control" th:field="*{address}" required></div>
+                <div class="form-group"><label class="form-label">Điện thoại</label><input class="form-control" th:field="*{phone}"></div>
+                <div class="form-group"><label class="form-label">Vĩ độ</label><input class="form-control" type="number" step="any" th:field="*{latitude}"></div>
+                <div class="form-group"><label class="form-label">Kinh độ</label><input class="form-control" type="number" step="any" th:field="*{longitude}"></div>
+                <div class="form-group"><label><input type="checkbox" th:field="*{active}"> Đang hoạt động</label></div>
+                <button class="btn btn-primary" type="submit">Lưu kho</button>
+            </form>
+        </div>
+    </div>
+    <div class="card"><div class="card__body"><table class="admin-table">
+        <thead><tr><th>Kho</th><th>Địa chỉ</th><th>Tọa độ</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody><tr th:each="item : ${warehouses}">
+            <td th:text="${item.name}">Kho trung tâm</td><td th:text="${item.address}">Địa chỉ</td>
+            <td th:text="${item.latitude != null ? item.latitude + ', ' + item.longitude : 'Chưa có tọa độ'}"></td>
+            <td th:text="${item.active ? 'Đang hoạt động' : 'Tạm ngưng'}"></td>
+            <td><a class="btn btn-outline" th:href="@{/admin/locations/warehouses(editId=${item.id})}">Sửa</a>
+                <form th:action="@{/admin/locations/warehouses/{id}/toggle(id=${item.id})}" method="post" style="display:inline"><button class="btn btn-outline" type="submit">Bật/tắt</button></form></td>
+        </tr><tr th:if="${#lists.isEmpty(warehouses)}"><td colspan="5">Chưa có kho. Hãy tạo ít nhất một kho rồi phân công nhân viên.</td></tr></tbody>
+    </table></div></div>
+</div>

@@ -99,7 +99,9 @@ public class AuthServiceImpl implements AuthService {
         );
 
         String jwt = tokenProvider.generateToken(authentication);
-        User user = userRepository.findByUsername(username).orElseThrow();
+        User user = userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username))
+                .orElseThrow();
 
         return AuthResponse.builder()
                 .accessToken(jwt)

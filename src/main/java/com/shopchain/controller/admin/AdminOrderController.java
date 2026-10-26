@@ -2,6 +2,8 @@ package com.shopchain.controller.admin;
 
 import com.shopchain.entity.Order;
 import com.shopchain.repository.OrderRepository;
+import com.shopchain.service.OrderService;
+import com.shopchain.service.InvoiceService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -13,9 +15,13 @@ import java.util.List;
 public class AdminOrderController {
 
     private final OrderRepository orderRepository;
+    private final OrderService orderService;
+    private final InvoiceService invoiceService;
 
-    public AdminOrderController(OrderRepository orderRepository) {
+    public AdminOrderController(OrderRepository orderRepository, OrderService orderService, InvoiceService invoiceService) {
         this.orderRepository = orderRepository;
+        this.orderService = orderService;
+        this.invoiceService = invoiceService;
     }
 
     @GetMapping
@@ -44,10 +50,15 @@ public class AdminOrderController {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        // In a real system, you would have an OrderStatus enum
-        // order.setStatus(status);
-
-        orderRepository.save(order);
+        if (!List.of("PENDING", "CONFIRMED", "PROCESSING", "SHIPPING", "DELIVERED", "CANCELLED").contains(status))
+            throw new IllegalArgumentException("Trạng thái không hợp lệ.");
+        orderService.updateOrderStatus(orderId, status);
+        order = orderRepository.findById(orderId).orElseThrow();
+        if ("DELIVERED".equals(status) && "COD".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("PAID");
+        if ("DELIVERED".equals(status) && "PAID".equals(order.getPaymentStatus())) {
+            orderRepository.save(order);
+            invoiceService.issueForPaidOrder(orderId);
+        }
         return "redirect:/admin/orders";
     }
 }

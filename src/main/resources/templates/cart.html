@@ -38,7 +38,7 @@
               <div class="cart-row" th:each="item : ${cartItems}">
                 <div class="col-product">
                   <div class="product-info">
-                    <img th:src="${item.product.image}" th:alt="${item.product.name}" />
+                    <img th:src="${item.product.imageUrl}" th:alt="${item.product.name}" />
                     <span th:text="${item.product.name}">Tên sản phẩm</span>
                   </div>
                 </div>

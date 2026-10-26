@@ -63,8 +63,11 @@
                 </div>
                 <div class="field field--full">
                   <label for="receiverAddressLine">Địa chỉ chi tiết</label>
-                  <input id="receiverAddressLine" name="address" type="text" placeholder="VD: 12 Nguyễn Trãi" autocomplete="street-address" required />
+                  <input id="receiverAddressLine" name="address" type="text" placeholder="VD: 12 Nguyễn Trãi" autocomplete="street-address" />
                 </div>
+                <div class="field"><label for="deliveryCity">Tỉnh / thành phố nhận hàng</label><input id="deliveryCity" name="deliveryCity" type="text" placeholder="VD: Thành phố Hồ Chí Minh" required /></div>
+                <div class="field"><label for="storeId">Chọn chi nhánh</label><select id="storeId" name="storeId" required><option value="">Chọn chi nhánh gần bạn</option><option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name + ' · ' + (store.district ?: '') + ' ' + (store.city ?: '')}">Chi nhánh</option></select><button type="button" class="btn btn-secondary" id="locateStores">Dùng vị trí hiện tại để sắp xếp chi nhánh gần nhất</button><small id="locationMessage"></small></div>
+                <div class="field field--full"><label>Cách nhận hàng</label><label><input type="radio" name="fulfillmentType" value="DELIVERY" checked> Giao đến địa chỉ</label> <label><input type="radio" name="fulfillmentType" value="PICKUP"> Nhận tại chi nhánh</label><p class="muted">Nếu địa chỉ giao khác tỉnh/thành phố chi nhánh, hệ thống sẽ chuyển xử lý tồn kho qua kho trung tâm.</p></div>
                 <div class="form-actions">
                   <button type="button" class="btn btn-primary" onclick="document.getElementById('stepPanel1').style.display='none'; document.getElementById('stepPanel2').style.display='block';">Tiếp tục</button>
                 </div>
@@ -178,4 +181,9 @@
     <div th:replace="~{fragments/footer :: footer}"></div>
 
 </body>
+<script>
+const pickupRadios=document.querySelectorAll('input[name="fulfillmentType"]'),addressInput=document.getElementById('receiverAddressLine');
+function updateAddress(){const pickup=document.querySelector('input[name="fulfillmentType"]:checked').value==='PICKUP';addressInput.required=!pickup;addressInput.placeholder=pickup?'Không cần nhập nếu nhận tại cửa hàng':'VD: 12 Nguyễn Trãi'}pickupRadios.forEach(r=>r.addEventListener('change',updateAddress));updateAddress();
+document.getElementById('locateStores').addEventListener('click',()=>{const msg=document.getElementById('locationMessage');if(!navigator.geolocation){msg.textContent='Trình duyệt không hỗ trợ định vị.';return}msg.textContent='Đang lấy vị trí…';navigator.geolocation.getCurrentPosition(async p=>{const q=new URLSearchParams({latitude:p.coords.latitude,longitude:p.coords.longitude});const stores=await fetch('/api/locations/nearest?'+q).then(r=>r.json());const select=document.getElementById('storeId');for(const s of stores){const option=[...select.options].find(o=>o.value===String(s.id));if(option)select.append(option)}if(stores.length){select.value=String(stores[0].id);msg.textContent='Đã chọn chi nhánh gần nhất: '+stores[0].name+' ('+stores[0].distanceKm.toFixed(1)+' km).'}else msg.textContent='Chưa có chi nhánh có tọa độ. Hãy chọn chi nhánh trong danh sách.'},()=>{msg.textContent='Không lấy được vị trí. Bạn có thể tự chọn chi nhánh trong danh sách.'})});
+</script>
 </html>

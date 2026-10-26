@@ -19,8 +19,12 @@ public class ProductInventory {
     private Product product;
 
     @ManyToOne
-    @JoinColumn(name = "store_id", nullable = false)
+    @JoinColumn(name = "store_id")
     private Store store;
+
+    @ManyToOne
+    @JoinColumn(name = "warehouse_id")
+    private Warehouse warehouse;
 
     @Column(nullable = false)
     private Double price;

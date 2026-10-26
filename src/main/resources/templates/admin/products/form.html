@@ -14,9 +14,10 @@
 
                 <div class="form-group">
                     <label class="form-label">Danh mục <span style="color: red;">*</span></label>
-                    <select th:field="*{category}" class="form-control" required>
+                    <select name="categoryId" class="form-control" required>
                         <option value="">-- Chọn danh mục --</option>
-                        <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"></option>
+                        <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"
+                                th:selected="${product.category != null and product.category.id == cat.id}"></option>
                     </select>
                 </div>
 

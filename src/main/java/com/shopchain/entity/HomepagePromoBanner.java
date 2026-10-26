@@ -25,6 +25,9 @@ public class HomepagePromoBanner {
     @Column(nullable = false)
     private String title;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(name = "cta_text")
     private String ctaText;
 

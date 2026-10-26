@@ -36,6 +36,16 @@ public class Order {
     private String paymentMethod; // COD, VNPAY, MOMO
     private String paymentStatus; // UNPAID, PAID
 
+    private String fulfillmentType; // PICKUP, STORE_SHIP, WAREHOUSE_SHIP
+    private String customerName;
+    private String customerPhone;
+    private String deliveryAddress;
+    private String deliveryCity;
+
+    @ManyToOne
+    @JoinColumn(name = "warehouse_id")
+    private Warehouse fulfillmentWarehouse;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> orderItems = new ArrayList<>();
 }

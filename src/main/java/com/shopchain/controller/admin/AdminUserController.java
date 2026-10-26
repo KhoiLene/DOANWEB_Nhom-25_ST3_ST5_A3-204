@@ -4,6 +4,8 @@ import com.shopchain.entity.Role;
 import com.shopchain.entity.User;
 import com.shopchain.repository.RoleRepository;
 import com.shopchain.repository.UserRepository;
+import com.shopchain.repository.StoreRepository;
+import com.shopchain.repository.WarehouseRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -16,10 +18,15 @@ public class AdminUserController {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final StoreRepository storeRepository;
+    private final WarehouseRepository warehouseRepository;
 
-    public AdminUserController(UserRepository userRepository, RoleRepository roleRepository) {
+    public AdminUserController(UserRepository userRepository, RoleRepository roleRepository,
+                                StoreRepository storeRepository, WarehouseRepository warehouseRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.storeRepository = storeRepository;
+        this.warehouseRepository = warehouseRepository;
     }
 
     @GetMapping
@@ -39,6 +46,8 @@ public class AdminUserController {
 
         model.addAttribute("user", user);
         model.addAttribute("roles", roleRepository.findAll());
+        model.addAttribute("stores", storeRepository.findAll());
+        model.addAttribute("warehouses", warehouseRepository.findAll());
         model.addAttribute("title", "Chỉnh sửa người dùng");
         model.addAttribute("activePage", "users");
         model.addAttribute("content", "admin/users/form");
@@ -46,7 +55,9 @@ public class AdminUserController {
     }
 
     @PostMapping("/save")
-    public String saveUser(@ModelAttribute User user, @RequestParam Long roleId) {
+    public String saveUser(@ModelAttribute User user, @RequestParam Long roleId,
+                           @RequestParam(required = false) Long storeId,
+                           @RequestParam(required = false) Long warehouseId) {
         User existingUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -57,12 +68,21 @@ public class AdminUserController {
         existingUser.setEnabled(user.isEnabled());
         existingUser.setFullName(user.getFullName());
         existingUser.setPhone(user.getPhone());
+        existingUser.setStore(null);
+        existingUser.setWarehouse(null);
+
+        switch (role.getName()) {
+            case "ROLE_STORE_STAFF" -> existingUser.setStore(storeRepository.findById(storeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Hãy gán nhân viên cho một cửa hàng.")));
+            case "ROLE_WAREHOUSE" -> existingUser.setWarehouse(warehouseRepository.findById(warehouseId)
+                    .orElseThrow(() -> new IllegalArgumentException("Hãy gán nhân viên cho một kho.")));
+        }
 
         userRepository.save(existingUser);
         return "redirect:/admin/users";
     }
 
-    @GetMapping("/toggle-status/{id}")
+    @PostMapping("/toggle-status/{id}")
     public String toggleStatus(@PathVariable Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));

@@ -19,4 +19,18 @@ public class Store {
 
     private String address;
     private String phone;
+
+    private String city;
+    private String district;
+
+    private Double latitude;
+    private Double longitude;
+
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
+
+    @Builder.Default
+    @Column(name = "pickup_enabled", nullable = false)
+    private boolean pickupEnabled = true;
 }

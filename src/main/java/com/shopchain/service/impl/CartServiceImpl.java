@@ -22,8 +22,9 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public Cart addToCart(Long userId, Long productId, Integer quantity) {
+        requirePositive(quantity);
         User user = userRepository.findById(userId).orElseThrow();
-        Cart cart = cartRepository.findByUserId(user).orElseGet(() -> {
+        Cart cart = cartRepository.findByUser(user).orElseGet(() -> {
             Cart newCart = Cart.builder().user(user).build();
             return cartRepository.save(newCart);
         });
@@ -50,8 +51,9 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public Cart updateQuantity(Long userId, Long productId, Integer quantity) {
+        requirePositive(quantity);
         User user = userRepository.findById(userId).orElseThrow();
-        Cart cart = cartRepository.findByUserId(user).orElseThrow();
+        Cart cart = cartRepository.findByUser(user).orElseThrow();
 
         cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(productId))
@@ -65,7 +67,7 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public void removeFromCart(Long userId, Long productId) {
         User user = userRepository.findById(userId).orElseThrow();
-        Cart cart = cartRepository.findByUserId(user).orElseThrow();
+        Cart cart = cartRepository.findByUser(user).orElseThrow();
         cart.getItems().removeIf(item -> item.getProduct().getId().equals(productId));
         cartRepository.save(cart);
     }
@@ -73,15 +75,21 @@ public class CartServiceImpl implements CartService {
     @Override
     public Cart getCart(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
-        return cartRepository.findByUserId(user).orElse(Cart.builder().user(user).build());
+        return cartRepository.findByUser(user).orElse(Cart.builder().user(user).build());
     }
 
     @Override
     @Transactional
     public void clearCart(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
-        Cart cart = cartRepository.findByUserId(user).orElseThrow();
+        Cart cart = cartRepository.findByUser(user).orElseThrow();
         cart.getItems().clear();
         cartRepository.save(cart);
+    }
+
+    private void requirePositive(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("Số lượng phải lớn hơn 0.");
+        }
     }
 }

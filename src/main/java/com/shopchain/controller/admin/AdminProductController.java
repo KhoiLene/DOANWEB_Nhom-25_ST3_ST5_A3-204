@@ -44,8 +44,11 @@ public class AdminProductController {
 
     @PostMapping("/save")
     public String saveProduct(@ModelAttribute Product product,
+                              @RequestParam Long categoryId,
                               @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
                               Model model) {
+        product.setCategory(categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại: " + categoryId)));
         // In a real scenario, you'd upload imageFile to Cloudinary here
         // and set product.setImageUrl(uploadedUrl);
 

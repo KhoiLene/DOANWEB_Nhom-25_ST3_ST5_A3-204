@@ -42,9 +42,24 @@
                     </a>
                 </li>
                 <li class="admin-sidebar__item">
+                    <a th:href="@{/admin/invoices}" class="admin-sidebar__link" th:classappend="${activePage == 'invoices' ? 'active' : ''}">
+                        <i class="fa-solid fa-receipt"></i><span>Biên nhận</span>
+                    </a>
+                </li>
+                <li class="admin-sidebar__item">
                     <a th:href="@{/admin/users}" class="admin-sidebar__link" th:classappend="${activePage == 'users' ? 'active' : ''}">
                         <i class="fa-solid fa-users"></i>
                         <span>Người dùng</span>
+                    </a>
+                </li>
+                <li class="admin-sidebar__item">
+                    <a th:href="@{/admin/locations/stores}" class="admin-sidebar__link" th:classappend="${activePage == 'stores' ? 'active' : ''}">
+                        <i class="fa-solid fa-shop"></i><span>Chi nhánh</span>
+                    </a>
+                </li>
+                <li class="admin-sidebar__item">
+                    <a th:href="@{/admin/locations/warehouses}" class="admin-sidebar__link" th:classappend="${activePage == 'warehouses' ? 'active' : ''}">
+                        <i class="fa-solid fa-warehouse"></i><span>Kho</span>
                     </a>
                 </li>
                 <li class="admin-sidebar__item">

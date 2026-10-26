@@ -8,6 +8,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletRequest;
+import com.shopchain.repository.UserRepository;
+import java.time.Duration;
 import java.util.List;
 
 @Controller
@@ -23,11 +29,17 @@ public class WebController {
     private final HomepageBlogRepository homepageBlogRepository;
     private final CategoryRepository categoryRepository;
     private final ReviewService reviewService;
+    private final UserRepository userRepository;
+    private final StoreRepository storeRepository;
+    private final OrderService orderService;
+    private final SalesInvoiceRepository salesInvoiceRepository;
 
     public WebController(ProductService productService, NewsService newsService, AboutService aboutService,
                          CartService cartService, AuthService authService, HomepageValueRepository homepageValueRepository,
                          HomepagePromoBannerRepository promoBannerRepository, HomepageBlogRepository homepageBlogRepository,
-                         CategoryRepository categoryRepository, ReviewService reviewService) {
+                         CategoryRepository categoryRepository, ReviewService reviewService,
+                         UserRepository userRepository, StoreRepository storeRepository, OrderService orderService,
+                         SalesInvoiceRepository salesInvoiceRepository) {
         this.productService = productService;
         this.newsService = newsService;
         this.aboutService = aboutService;
@@ -38,10 +50,11 @@ public class WebController {
         this.homepageBlogRepository = homepageBlogRepository;
         this.categoryRepository = categoryRepository;
         this.reviewService = reviewService;
+        this.userRepository = userRepository;
+        this.storeRepository = storeRepository;
+        this.orderService = orderService;
+        this.salesInvoiceRepository = salesInvoiceRepository;
     }
-
-    // Mock userId for demo purposes until Auth is wired
-    private final Long MOCK_USER_ID = 1L;
 
     @GetMapping("/")
     public String index(Model model) {
@@ -116,10 +129,12 @@ public class WebController {
     }
 
     @GetMapping("/cart")
-    public String cart(Model model) {
-        Cart cart = cartService.getCart(MOCK_USER_ID);
+    public String cart(Model model, Authentication authentication) {
+        Long userId = currentUserId(authentication);
+        Cart cart = cartService.getCart(userId);
         model.addAttribute("cart", cart);
         model.addAttribute("cartItems", cart.getItems());
+        model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
 
         double subtotal = cart.getItems().stream()
                 .mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity())
@@ -133,20 +148,20 @@ public class WebController {
     }
 
     @PostMapping("/cart/remove")
-    public String removeFromCart(@RequestParam Long productId) {
-        cartService.removeFromCart(MOCK_USER_ID, productId);
+    public String removeFromCart(@RequestParam Long productId, Authentication authentication) {
+        cartService.removeFromCart(currentUserId(authentication), productId);
         return "redirect:/cart";
     }
 
     @PostMapping("/cart/clear")
-    public String clearCart() {
-        cartService.clearCart(MOCK_USER_ID);
+    public String clearCart(Authentication authentication) {
+        cartService.clearCart(currentUserId(authentication));
         return "redirect:/cart";
     }
 
     @GetMapping("/checkout")
-    public String checkout(Model model) {
-        Cart cart = cartService.getCart(MOCK_USER_ID);
+    public String checkout(Model model, Authentication authentication) {
+        Cart cart = cartService.getCart(currentUserId(authentication));
         model.addAttribute("cart", cart);
         model.addAttribute("cartItems", cart.getItems());
 
@@ -162,14 +177,47 @@ public class WebController {
     }
 
     @PostMapping("/checkout/place-order")
-    public String placeOrder(@RequestParam String name, @RequestParam String phone, @RequestParam String address) {
-        cartService.clearCart(MOCK_USER_ID);
-        return "redirect:/order-success";
+    public String placeOrder(@RequestParam String name, @RequestParam String phone, @RequestParam String address,
+                             @RequestParam String deliveryCity, @RequestParam Long storeId,
+                             @RequestParam String fulfillmentType, @RequestParam String paymentMethod,
+                             Authentication authentication, Model model) {
+        try {
+            Order order = orderService.placeOnlineOrder(currentUserId(authentication), storeId, name, phone,
+                    address, deliveryCity, fulfillmentType, paymentMethod);
+            return "redirect:/order-success?orderId=" + order.getId();
+        } catch (RuntimeException ex) {
+            Cart cart = cartService.getCart(currentUserId(authentication));
+            model.addAttribute("cart", cart);
+            model.addAttribute("cartItems", cart.getItems());
+            model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
+            double subtotal = cart.getItems().stream().mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity()).sum();
+            model.addAttribute("subtotal", subtotal);
+            model.addAttribute("shipping", subtotal >= 500000 ? 0 : 30000);
+            model.addAttribute("total", subtotal + (subtotal >= 500000 ? 0 : 30000));
+            model.addAttribute("checkoutError", ex.getMessage());
+            return "checkout";
+        }
     }
 
     @GetMapping("/order-success")
     public String orderSuccess() {
         return "order-success";
+    }
+
+    @GetMapping("/my/invoices")
+    public String myInvoices(Model model, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        model.addAttribute("invoices", salesInvoiceRepository.findByOrderUserIdOrderByIssuedAtDesc(user.getId()));
+        return "my-invoices";
+    }
+
+    @GetMapping("/my/invoices/{invoiceId}")
+    public String myInvoice(@PathVariable Long invoiceId, Model model, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        SalesInvoice invoice = salesInvoiceRepository.findById(invoiceId).orElseThrow();
+        if (!invoice.getOrder().getUser().getId().equals(user.getId())) throw new IllegalArgumentException("Biên nhận không thuộc tài khoản này.");
+        model.addAttribute("invoice", invoice);
+        return "my-invoice";
     }
 
     @GetMapping("/login")
@@ -178,10 +226,25 @@ public class WebController {
     }
 
     @PostMapping("/login-process")
-    public String loginProcess(@RequestParam String username, @RequestParam String password, Model model) {
+    public String loginProcess(@RequestParam String username, @RequestParam String password,
+                               Model model, HttpServletRequest request,
+                               jakarta.servlet.http.HttpServletResponse response) {
         try {
-            authService.login(username, password);
-            return "redirect:/profile";
+            AuthResponse authResponse = authService.login(username, password);
+            ResponseCookie cookie = ResponseCookie.from("access_token", authResponse.getAccessToken())
+                    .httpOnly(true)
+                    .secure(request.isSecure())
+                    .sameSite("Strict")
+                    .path("/")
+                    .maxAge(Duration.ofHours(24))
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+            return switch (authResponse.getRole()) {
+                case "ROLE_ADMIN" -> "redirect:/admin/dashboard";
+                case "ROLE_WAREHOUSE" -> "redirect:/warehouse/inventory";
+                case "ROLE_STORE_STAFF" -> "redirect:/staff/orders";
+                default -> "redirect:/profile";
+            };
         } catch (Exception e) {
             model.addAttribute("error", "Invalid username or password");
             return "login";
@@ -239,6 +302,20 @@ public class WebController {
     @GetMapping("/entertainment")
     public String entertainment() {
         return "entertainment";
+    }
+
+    @PostMapping("/logout-process")
+    public String logout(jakarta.servlet.http.HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("access_token", "")
+                .httpOnly(true).path("/").sameSite("Strict").maxAge(Duration.ZERO).build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        return "redirect:/";
+    }
+
+    private Long currentUserId(Authentication authentication) {
+        return userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản đang đăng nhập."))
+                .getId();
     }
 }
 /*
@@ -302,12 +379,6 @@ public class WebController {
         model.addAttribute("total", subtotal + (subtotal >= 500000 ? 0 : 30000));
 
         return "checkout";
-    }
-
-    @PostMapping("/checkout/place-order")
-    public String placeOrder(@RequestParam String name, @RequestParam String phone, @RequestParam String address) {
-        cartService.clearCart(MOCK_USER_ID);
-        return "redirect:/order-success";
     }
 
     @GetMapping("/order-success")

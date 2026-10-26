@@ -50,9 +50,12 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/products/**", "/api/cart/**", "/css/**", "/js/**", "/images/**", "/img/**", "/", "/products", "/product/**", "/news", "/news/**", "/about", "/login", "/login-process", "/register", "/register-process", "/forgot-password", "/forgot-password-process", "/order-success").permitAll()
+                .requestMatchers("/api/auth/**", "/api/products/**", "/api/locations/**", "/api/payment/vnpay-return", "/css/**", "/js/**", "/images/**", "/img/**", "/", "/products", "/product/**", "/news", "/news/**", "/about", "/stores", "/login", "/login-process", "/register", "/register-process", "/forgot-password", "/forgot-password-process", "/order-success").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/warehouse/**", "/api/warehouse/**").hasAnyRole("WAREHOUSE", "ADMIN")
+                .requestMatchers("/staff/**", "/api/staff/**").hasAnyRole("STORE_STAFF", "ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/cart/**", "/cart", "/cart/**", "/checkout", "/checkout/**", "/profile", "/my/invoices/**", "/api/orders/**").hasRole("USER")
                 .requestMatchers("/api/vendor/**").hasAnyRole("VENDOR", "ADMIN")
                 .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
                 .anyRequest().authenticated()

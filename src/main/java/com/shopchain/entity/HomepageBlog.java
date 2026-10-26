@@ -20,6 +20,9 @@ public class HomepageBlog {
     @Column(nullable = false)
     private String title;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     private String description;
 
     private String author;

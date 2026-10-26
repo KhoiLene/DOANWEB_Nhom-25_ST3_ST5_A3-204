@@ -35,13 +35,13 @@
                             <a th:href="@{/admin/users/edit/{id}(id=${u.id})}" class="btn btn-outline" style="margin-right: 5px;">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </a>
-                            <a th:href="@{/admin/users/toggle-status/{id}(id=${u.id})}"
-                               class="btn"
-                               th:style="${u.enabled ? 'background: #fff3e0; color: #f57c00;' : 'background: #e8f5e9; color: #2e7d32;'}"
-                               title="Thay đổi trạng thái"
-                               style="margin-right: 5px;">
-                                <i class="fa-solid fa-power-off"></i>
-                            </a>
+                            <form th:action="@{/admin/users/toggle-status/{id}(id=${u.id})}" method="post" style="display:inline;">
+                                <button type="submit" class="btn"
+                                        th:style="${u.enabled ? 'background: #fff3e0; color: #f57c00;' : 'background: #e8f5e9; color: #2e7d32;'}"
+                                        title="Thay đổi trạng thái" style="margin-right: 5px;">
+                                    <i class="fa-solid fa-power-off"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(users)}">

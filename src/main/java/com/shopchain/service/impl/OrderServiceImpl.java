@@ -23,16 +23,72 @@ public class OrderServiceImpl implements OrderService {
     private final StoreRepository storeRepository;
     private final ProductInventoryRepository inventoryRepository;
     private final NotificationService notificationService;
+    private final WarehouseRepository warehouseRepository;
 
     public OrderServiceImpl(OrderRepository orderRepository, CartRepository cartRepository,
                             UserRepository userRepository, StoreRepository storeRepository,
-                            ProductInventoryRepository inventoryRepository, NotificationService notificationService) {
+                            ProductInventoryRepository inventoryRepository, NotificationService notificationService,
+                            WarehouseRepository warehouseRepository) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.storeRepository = storeRepository;
         this.inventoryRepository = inventoryRepository;
         this.notificationService = notificationService;
+        this.warehouseRepository = warehouseRepository;
+    }
+
+    @Override
+    @Transactional
+    public Order placeOnlineOrder(Long userId, Long storeId, String name, String phone, String address,
+                                  String deliveryCity, String fulfillmentType, String paymentMethod) {
+        User user = userRepository.findById(userId).orElseThrow();
+        Store store = storeRepository.findById(storeId).orElseThrow();
+        if (!store.isActive() || !store.isPickupEnabled()) throw new IllegalArgumentException("Chi nhánh này không nhận đơn.");
+        Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new IllegalArgumentException("Giỏ hàng đang trống."));
+        if (cart.getItems().isEmpty()) throw new IllegalArgumentException("Giỏ hàng đang trống.");
+        boolean pickup = "PICKUP".equals(fulfillmentType);
+        if (!pickup && !"DELIVERY".equals(fulfillmentType)) throw new IllegalArgumentException("Vui lòng chọn cách nhận hàng.");
+        if (!List.of("COD", "vnpay", "VNPAY").contains(paymentMethod)) throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
+        boolean remote = !pickup && deliveryCity != null && store.getCity() != null
+                && !normalize(deliveryCity).equals(normalize(store.getCity()));
+        Warehouse warehouse = null;
+        if (remote) warehouse = warehouseRepository.findByActiveTrue().stream().findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Đơn khác tỉnh cần có kho đang hoạt động. Vui lòng liên hệ cửa hàng."));
+
+        Order order = Order.builder().user(user).store(store).orderDate(java.time.LocalDateTime.now())
+                .status("PENDING").paymentMethod(paymentMethod).paymentStatus("UNPAID")
+                .customerName(name.trim()).customerPhone(phone.trim()).deliveryAddress(address == null ? "" : address.trim())
+                .deliveryCity(deliveryCity == null ? "" : deliveryCity.trim())
+                .fulfillmentType(pickup ? "PICKUP" : (remote ? "WAREHOUSE_SHIP" : "STORE_SHIP"))
+                .fulfillmentWarehouse(warehouse).totalAmount(0d).build();
+        double total = 0;
+        for (CartItem item : cart.getItems()) {
+            ProductInventory inventory = warehouse == null
+                    ? inventoryRepository.findForUpdateByProductIdAndStoreId(item.getProduct().getId(), storeId)
+                        .orElseThrow(() -> new IllegalArgumentException("Sản phẩm " + item.getProduct().getName() + " chưa có tại chi nhánh."))
+                    : inventoryRepository.findForUpdateByProductIdAndWarehouseId(item.getProduct().getId(), warehouse.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Sản phẩm " + item.getProduct().getName() + " chưa có tại kho."));
+            if (inventory.getStockQuantity() < item.getQuantity())
+                throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm " + item.getProduct().getName());
+            inventory.setStockQuantity(inventory.getStockQuantity() - item.getQuantity());
+            total += inventory.getPrice() * item.getQuantity();
+            order.getOrderItems().add(OrderItem.builder().order(order).product(item.getProduct())
+                    .quantity(item.getQuantity()).price(inventory.getPrice()).build());
+        }
+        order.setTotalAmount(total);
+        Order saved = orderRepository.save(order);
+        notificationService.sendNotificationToStore(storeId, NotificationRequest.builder()
+                .message("Đơn trực tuyến #" + saved.getId() + " mới được tạo")
+                .type("ORDER_NEW").orderId(saved.getId()).build());
+        cart.getItems().clear();
+        cartRepository.save(cart);
+        return saved;
+    }
+
+    private String normalize(String value) {
+        return java.text.Normalizer.normalize(value.trim(), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toLowerCase(java.util.Locale.ROOT);
     }
 
     @Override
@@ -40,7 +96,7 @@ public class OrderServiceImpl implements OrderService {
     public Order placeOrder(Long userId, Long storeId, Long addressId, String paymentMethod) {
         User user = userRepository.findById(userId).orElseThrow();
         Store store = storeRepository.findById(storeId).orElseThrow();
-        Cart cart = cartRepository.findByUserId(user).orElseThrow(() -> new RuntimeException("Cart is empty"));
+        Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Cart is empty"));
 
         for (CartItem item : cart.getItems()) {
             ProductInventory inv = inventoryRepository.findByProductIdAndStoreId(item.getProduct().getId(), storeId)
@@ -97,6 +153,17 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Order updateOrderStatus(Long orderId, String status) {
         Order order = orderRepository.findById(orderId).orElseThrow();
+        if ("CANCELLED".equals(status) && !"CANCELLED".equals(order.getStatus())) {
+            for (OrderItem item : order.getOrderItems()) {
+                ProductInventory inventory = order.getFulfillmentWarehouse() == null
+                        ? inventoryRepository.findForUpdateByProductIdAndStoreId(item.getProduct().getId(), order.getStore().getId()).orElse(null)
+                        : inventoryRepository.findForUpdateByProductIdAndWarehouseId(item.getProduct().getId(), order.getFulfillmentWarehouse().getId()).orElse(null);
+                if (inventory != null) {
+                    inventory.setStockQuantity(inventory.getStockQuantity() + item.getQuantity());
+                    inventoryRepository.save(inventory);
+                }
+            }
+        }
         order.setStatus(status);
         Order savedOrder = orderRepository.save(order);
 
