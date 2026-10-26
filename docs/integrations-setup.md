@@ -1,4 +1,4 @@
-# Bản đồ miễn phí và chatbot RAG cục bộ
+# Bản đồ miễn phí và kế hoạch chatbot Gemini RAG
 
 ## Bản đồ chi nhánh
 
@@ -10,32 +10,22 @@ Môi trường demo tự thêm 9 điểm thử nghiệm ở các thành phố l�
 
 Nominatim công cộng là dịch vụ cộng đồng: ứng dụng giới hạn tối đa một request mỗi giây cho mỗi tiến trình backend và cho mỗi tab trình duyệt, không autocomplete và chỉ tra một địa chỉ mỗi lần. Dịch vụ có thể giới hạn hoặc từ chối traffic; phù hợp cho demo/lưu lượng thấp. OpenStreetMap tile server cũng có chính sách sử dụng và không đảm bảo SLA. Khi vận hành sản phẩm thật với nhiều người dùng, nên tự host geocoder/tiles hoặc chọn nhà cung cấp có SLA. Xem [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/) và [OpenStreetMap Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/).
 
-## Chatbot role scoped RAG
+## Chatbot Gemini RAG theo role
 
-RAG chạy miễn phí trong ứng dụng:
+Phần này là kế hoạch chuyển đổi, chưa phải hướng dẫn bật Gemini trong code hiện tại. Mục tiêu là dùng Gemini API cho cả chat và embedding; không tiếp tục hướng Ollama/Qwen/BGE-M3.
 
-- Bốn kho tri thức riêng cho `customer`, `store-staff`, `warehouse` và `admin` được lưu trong PostgreSQL.
-- Khi khởi động lần đầu, ứng dụng nạp tài liệu mẫu trong `src/main/resources/assistant-knowledge/`.
-- Admin tạo, nhập tệp `.md`/`.txt`, chỉnh sửa, bật/tắt hoặc xóa nguồn tại `/admin/assistant-knowledge`.
-- Backend xác định role từ phiên đăng nhập và quyền đã xác thực, rồi truy xuất đúng nguồn đang bật cho role đó. Role không được nhận từ payload trình duyệt.
-- Nếu Ollama chưa chạy, bot vẫn phản hồi bằng các trích đoạn khớp từ tài liệu role đó. Khi Ollama cài mô hình, bot tổng hợp câu trả lời từ chính những đoạn đã truy xuất.
-- Nội dung câu hỏi và tài liệu RAG không gửi tới OpenAI hay dịch vụ AI bên ngoài.
+- PostgreSQL tiếp tục giữ nguồn tri thức cho `customer`, `store-staff`, `warehouse`, `admin`.
+- Dự kiến dùng Gemini 3.1 Flash-Lite để sinh câu trả lời, Gemini Embedding 2 để vector hóa, Qdrant local để lưu/search vector và hỗ trợ quả cầu láng giềng embedding.
+- Spring Security lấy role ở backend; Qdrant filter role và trạng thái active là bắt buộc, sau đó backend kiểm tra lại nguồn trong PostgreSQL.
+- Google hiện ghi Gemini 3.1 Flash-Lite và Embedding 2 có Free Tier. Free Tier cũng ghi rằng nội dung được dùng để cải thiện sản phẩm; chỉ gửi tài liệu công khai/đã làm sạch, không gửi PII, dữ liệu đơn hàng hoặc bí mật chưa được duyệt. Quota miễn phí thay đổi theo project/model, cần kiểm tra trong AI Studio.
+- API key sẽ được lưu ở biến môi trường backend `GEMINI_API_KEY`, không ghi trong mã nguồn hoặc trình duyệt. Khi Gemini thiếu key, lỗi hoặc hết quota, bot sẽ báo rõ và không gọi lại model cũ.
 
-### Không cần cài thêm gì để dùng fallback RAG
+### Lộ trình
 
-Chạy app như hiện tại. Sau khi đăng nhập bằng một trong bốn role, widget trợ lý sẽ xuất hiện. Khi chưa có nguồn tri thức hoạt động cho role, admin thêm hoặc bật nguồn trong trang quản lý RAG.
+1. Xác nhận Spring AI tương thích Boot 4.1.1 và thử Gemini Embedding 2 với dimension cố định.
+2. Thêm Gemini chat/embedding starters, Qdrant local và trạng thái index theo model/hash vào quản lý nguồn tri thức.
+3. Index lại tài liệu PostgreSQL bằng Gemini Embedding 2; truy vấn vector giới hạn role và active.
+4. Nối widget với Gemini 3.1 Flash-Lite, thêm nguồn dẫn, giới hạn ngữ cảnh và kiểm thử role/quota/privacy.
+5. Hoàn thành kiểm thử rồi gỡ toàn bộ Ollama/Qwen/BGE-M3 và cấu hình liên quan khỏi ứng dụng.
 
-### Bật câu trả lời sinh bởi mô hình local (tùy chọn)
-
-1. Cài Ollama từ [ollama.com/download](https://ollama.com/download).
-2. Mở PowerShell và tải mô hình nhỏ đa ngôn ngữ:
-
-   ```powershell
-   ollama pull qwen2.5:1.5b
-   ```
-
-3. Đảm bảo Ollama đang chạy ở `http://localhost:11434`, rồi khởi động lại Spring. Đây là địa chỉ và endpoint mặc định Ollama.
-
-Project mặc định dùng `qwen2.5:1.5b`. Có thể đổi `OLLAMA_BASE_URL` hoặc `OLLAMA_MODEL` trong môi trường tiến trình Spring. Mô hình Qwen2.5 1.5B khoảng 986 MB và hỗ trợ tiếng Việt; model page liệt kê các biến thể và giấy phép của dòng model. [Ollama Chat API](https://docs.ollama.com/api/chat) · [Qwen2.5 model library](https://ollama.com/library/qwen2.5).
-
-Ollama chạy trên máy của bạn; tốc độ và lượng RAM phụ thuộc cấu hình máy. Nếu Ollama không có hoặc chưa tải model, backend tự dùng phản hồi trích đoạn để chatbot không bị tắt.
+Chi tiết kiến trúc, bảo mật, dữ liệu free tier, đồ thị embedding và tiêu chí cắt chuyển nằm ở [kế hoạch Gemini RAG](graph-rag-integration-plan.md). Xem thêm [Spring AI Google GenAI chat](https://docs.spring.io/spring-ai/reference/api/chat/google-genai-chat.html), [Spring AI Google GenAI embeddings](https://docs.spring.io/spring-ai/reference/api/embeddings/google-genai-embeddings-text.html), [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing), [Gemini Embedding 2](https://ai.google.dev/gemini-api/docs/embeddings) và [Gemini rate limits](https://ai.google.dev/gemini-api/docs/rate-limits).
