@@ -6,6 +6,8 @@ Project không cần Google Maps API key hoặc tài khoản billing. Bản đ�
 
 GPS dùng `navigator.geolocation`, chỉ được hỏi quyền sau khi người dùng nhấn nút. Vị trí GPS không được lưu vào database. Kết quả chi nhánh vẫn do API nội bộ tính khoảng cách và giới hạn tối đa 5 gợi ý.
 
+Môi trường demo tự thêm 9 điểm thử nghiệm ở các thành phố lớn và tồn kho mẫu cho các sản phẩm demo. Tên và địa chỉ đều ghi rõ là vị trí mô phỏng; cần thay bằng chi nhánh thật và tồn kho đã xác nhận trước khi đưa dữ liệu này lên môi trường vận hành.
+
 Nominatim công cộng là dịch vụ cộng đồng: ứng dụng giới hạn tối đa một request mỗi giây cho mỗi tiến trình backend và cho mỗi tab trình duyệt, không autocomplete và chỉ tra một địa chỉ mỗi lần. Dịch vụ có thể giới hạn hoặc từ chối traffic; phù hợp cho demo/lưu lượng thấp. OpenStreetMap tile server cũng có chính sách sử dụng và không đảm bảo SLA. Khi vận hành sản phẩm thật với nhiều người dùng, nên tự host geocoder/tiles hoặc chọn nhà cung cấp có SLA. Xem [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/) và [OpenStreetMap Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/).
 
 ## Chatbot role scoped RAG

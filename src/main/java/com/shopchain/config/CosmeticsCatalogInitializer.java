@@ -11,6 +11,7 @@ import com.shopchain.repository.HomepagePromoBannerRepository;
 import com.shopchain.repository.HomepageBlogRepository;
 import com.shopchain.repository.ProductRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 
 @Component
+@Order(10)
 public class CosmeticsCatalogInitializer implements CommandLineRunner {
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
