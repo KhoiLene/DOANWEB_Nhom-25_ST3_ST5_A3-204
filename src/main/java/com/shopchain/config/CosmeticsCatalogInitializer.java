@@ -141,7 +141,13 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
                 new CategorySeed("Trang điểm", "Các món trang điểm cơ bản cho vẻ ngoài tự nhiên.",
                         "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=85"),
                 new CategorySeed("Chăm sóc tóc & cơ thể", "Sản phẩm làm sạch và dưỡng tóc, da cơ thể.",
-                        "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=900&q=85")
+                        "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=900&q=85"),
+                new CategorySeed("Chăm sóc tóc", "Dầu gội, dầu xả và sản phẩm dưỡng tóc theo nhu cầu.",
+                        "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=900&q=85"),
+                new CategorySeed("Chăm sóc cơ thể", "Sản phẩm làm sạch và dưỡng ẩm cơ thể hằng ngày.",
+                        "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=900&q=85"),
+                new CategorySeed("Dưỡng môi", "Son dưỡng và sản phẩm chăm sóc môi cơ bản.",
+                        "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=900&q=85")
         );
     }
 
@@ -158,7 +164,21 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
                 new ProductSeed("Phấn má hồng đào", "Phấn má mịn, tán nhẹ để tạo sắc hồng tự nhiên.", 269000, "Trang điểm", false, false, "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=85"),
                 new ProductSeed("Dầu gội bưởi dịu nhẹ", "Làm sạch tóc và da đầu, hương bưởi tươi mát.", 259000, "Chăm sóc tóc & cơ thể", true, false, "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=900&q=85"),
                 new ProductSeed("Dầu xả dưỡng tóc mềm mượt", "Dầu xả giúp tóc dễ chải và mềm mại sau khi gội.", 249000, "Chăm sóc tóc & cơ thể", false, false, "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=900&q=85"),
-                new ProductSeed("Sữa dưỡng thể hương hoa nhẹ", "Dưỡng ẩm cơ thể với mùi hương nhẹ nhàng dùng mỗi ngày.", 279000, "Chăm sóc tóc & cơ thể", true, false, "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=900&q=85")
+                new ProductSeed("Sữa dưỡng thể hương hoa nhẹ", "Dưỡng ẩm cơ thể với mùi hương nhẹ nhàng dùng mỗi ngày.", 279000, "Chăm sóc tóc & cơ thể", true, false, "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Gel dưỡng ẩm trà xanh", "Gel dưỡng ẩm mỏng nhẹ cho chu trình chăm sóc da hằng ngày. Thoa theo hướng dẫn trên nhãn.", 289000, "Chăm sóc da", true, false, "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Nước tẩy trang dịu nhẹ", "Sản phẩm làm sạch lớp trang điểm và bụi bẩn; làm theo hướng dẫn của nhà sản xuất.", 229000, "Chăm sóc da", true, false, "https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Kem dưỡng ẩm ban đêm", "Kem dưỡng dùng buổi tối để bổ sung bước dưỡng ẩm sau khi làm sạch.", 389000, "Chăm sóc da", true, false, "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Sữa rửa mặt tạo bọt dịu nhẹ", "Sữa rửa mặt dùng theo nhu cầu làm sạch hằng ngày; tránh chà xát mạnh.", 199000, "Chăm sóc da", false, false, "https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Mặt nạ giấy cấp ẩm", "Mặt nạ giấy là bước chăm sóc bổ sung, sử dụng theo thời gian hướng dẫn trên bao bì.", 59000, "Chăm sóc da", false, true, "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Son dưỡng môi không màu", "Son dưỡng không màu dùng khi môi khô; thoa lại theo nhu cầu và hướng dẫn trên nhãn.", 99000, "Dưỡng môi", true, false, "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Mặt nạ ngủ môi", "Sản phẩm chăm sóc môi dùng buổi tối theo hướng dẫn trên nhãn.", 179000, "Dưỡng môi", false, false, "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Son dưỡng có màu hồng đào", "Son dưỡng có màu nhẹ cho nhu cầu chăm sóc và trang điểm môi hằng ngày.", 149000, "Dưỡng môi", true, false, "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Dầu gội làm sạch dịu nhẹ", "Dầu gội cơ bản cho bước làm sạch tóc và da đầu; điều chỉnh tần suất theo nhu cầu.", 239000, "Chăm sóc tóc", true, false, "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Mặt nạ ủ tóc mềm mượt", "Sản phẩm dưỡng tóc bổ sung sau khi gội; dùng đúng lượng và thời gian ghi trên nhãn.", 299000, "Chăm sóc tóc", false, false, "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Tinh dầu dưỡng tóc", "Sản phẩm dưỡng tóc dùng ở thân hoặc ngọn tóc theo hướng dẫn của nhà sản xuất.", 319000, "Chăm sóc tóc", true, false, "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Sữa tắm hương cam dịu nhẹ", "Sản phẩm làm sạch cơ thể dùng khi tắm; đọc kỹ hướng dẫn và lưu ý trên nhãn.", 189000, "Chăm sóc cơ thể", true, false, "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Kem dưỡng da tay", "Kem dưỡng dùng cho da tay khi có cảm giác khô; thoa lại theo nhu cầu.", 119000, "Chăm sóc cơ thể", false, false, "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=900&q=85"),
+                new ProductSeed("Tẩy tế bào chết cơ thể", "Sản phẩm chăm sóc cơ thể bổ sung; dùng nhẹ nhàng và theo đúng tần suất trên nhãn.", 219000, "Chăm sóc cơ thể", false, false, "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=900&q=85")
         );
     }
 

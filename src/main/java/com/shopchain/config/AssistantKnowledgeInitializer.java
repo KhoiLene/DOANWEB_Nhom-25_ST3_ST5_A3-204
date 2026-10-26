@@ -19,6 +19,7 @@ public class AssistantKnowledgeInitializer implements CommandLineRunner {
             "admin", "admin.md");
     private static final List<KnowledgeSeed> ROLE_GUIDES = List.of(
             new KnowledgeSeed("customer", "Cẩm nang làm đẹp cơ bản cho khách hàng mới", "customer-beauty-guide.md"),
+            new KnowledgeSeed("customer", "Danh mục mỹ phẩm và gợi ý chọn sản phẩm", "customer-product-guide.md"),
             new KnowledgeSeed("store-staff", "Cẩm nang thao tác nhân viên cửa hàng", "store-staff-guide.md"),
             new KnowledgeSeed("warehouse", "Cẩm nang thao tác nhân viên kho", "warehouse-guide.md"),
             new KnowledgeSeed("admin", "Cẩm nang thao tác admin", "admin-guide.md"));

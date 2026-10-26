@@ -5,8 +5,8 @@
     <title>Hệ thống cửa hàng | Techtra Beauty</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <link rel="stylesheet" th:href="@{/css/store-locator.css}">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
     <script defer th:src="@{/js/nominatim-client.js}"></script>
     <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
 </head>
@@ -30,10 +30,10 @@
         </section>
         <div class="store-locator__map-wrap">
             <div id="storeMap" class="store-locator__map" role="region" aria-label="Bản đồ chi nhánh"></div>
-            <p class="store-locator__map-note" id="mapMessage">Bản đồ dùng dữ liệu OpenStreetMap. Tìm địa chỉ chỉ gửi yêu cầu khi bạn bấm nút tìm.</p>
+            <p class="store-locator__map-note" id="mapMessage">Bản đồ OpenFreeMap miễn phí, dữ liệu OpenStreetMap. Tìm địa chỉ chỉ gửi yêu cầu khi bạn bấm nút tìm.</p>
         </div>
     </div>
 </main>
 <div th:replace="~{fragments/footer :: footer}"></div>
-<script defer th:src="@{/js/store-locator.js}"></script>
+<script type="module" th:src="@{/js/store-locator.js}"></script>
 </body></html>

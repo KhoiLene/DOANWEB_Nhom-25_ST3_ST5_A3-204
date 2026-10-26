@@ -6,14 +6,42 @@
   const message = document.getElementById('locationMessage');
   const mapMessage = document.getElementById('mapMessage');
   let map;
-  let storeMarkers;
+  let maplibregl;
+  let storeMarkers = [];
   let originMarker;
 
   const preferredStore = () => { try { return localStorage.getItem('preferredStoreId'); } catch (_) { return null; } };
 
   function clearMarkers() {
-    if (storeMarkers) storeMarkers.clearLayers();
+    storeMarkers.forEach(marker => marker?.remove());
+    storeMarkers = [];
     if (originMarker) { originMarker.remove(); originMarker = null; }
+  }
+
+  function createMarker(label, className) {
+    const marker = document.createElement('span');
+    marker.className = className;
+    marker.setAttribute('aria-hidden', 'true');
+    const text = document.createElement('span');
+    text.textContent = label;
+    marker.append(text);
+    return marker;
+  }
+
+  function addStoreMarker(store, index) {
+    if (!map || !Number.isFinite(store.latitude) || !Number.isFinite(store.longitude)) return null;
+    const popup = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = store.name || 'Chi nhánh';
+    const address = document.createElement('p');
+    address.textContent = [store.address, store.district, store.city].filter(Boolean).join(', ');
+    popup.append(title, address);
+    const marker = new maplibregl.Marker({ element: createMarker(String(index + 1), 'store-map-marker') })
+      .setLngLat([store.longitude, store.latitude])
+      .setPopup(new maplibregl.Popup({ offset: 22, closeButton: false }).setDOMContent(popup))
+      .addTo(map);
+    storeMarkers[index] = marker;
+    return [store.longitude, store.latitude];
   }
 
   function showStores(stores, origin) {
@@ -33,13 +61,14 @@
       : `Đang hiển thị ${stores.length} chi nhánh khớp tìm kiếm.`;
     const bounds = [];
     if (origin && map) {
-      originMarker = L.circleMarker([origin.lat, origin.lng], {
-        radius: 8, color: '#fff', weight: 2, fillColor: '#2563eb', fillOpacity: 1
-      }).addTo(map).bindPopup('Vị trí tìm kiếm');
-      bounds.push([origin.lat, origin.lng]);
+      originMarker = new maplibregl.Marker({ element: createMarker('Bạn', 'store-map-marker store-map-marker--origin') })
+        .setLngLat([origin.lng, origin.lat])
+        .setPopup(new maplibregl.Popup({ offset: 22, closeButton: false }).setText('Vị trí tìm kiếm'))
+        .addTo(map);
+      bounds.push([origin.lng, origin.lat]);
     }
 
-    stores.forEach((store, index) => {
+    stores.slice(0, 5).forEach((store, index) => {
       const card = document.createElement('article');
       card.className = 'store-locator__card';
       const heading = document.createElement('h3');
@@ -73,29 +102,25 @@
         });
         message.textContent = `Đã lưu ${store.name} làm chi nhánh nhận hàng ưu tiên. Bạn có thể tiếp tục mua sắm.`;
       });
+      card.addEventListener('click', event => {
+        if (event.target === select || event.target.closest('a')) return;
+        storeMarkers[index]?.togglePopup();
+      });
       card.append(select);
       results.append(card);
 
-      if (map && Number.isFinite(store.latitude) && Number.isFinite(store.longitude)) {
-        const position = [store.latitude, store.longitude];
-        const marker = L.marker(position, { title: store.name })
-          .bindPopup(`<strong>${escapeHtml(store.name || '')}</strong><br>${escapeHtml(store.address || '')}`)
-          .addTo(storeMarkers);
-        marker.bindTooltip(String(index + 1), { permanent: true, direction: 'top', offset: [0, -8] });
-        bounds.push(position);
-      }
+      const position = addStoreMarker(store, index);
+      if (position) bounds.push(position);
     });
 
     if (map && bounds.length) {
-      if (bounds.length === 1) map.setView(bounds[0], 14);
-      else map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      if (bounds.length === 1) map.easeTo({ center: bounds[0], zoom: 13 });
+      else {
+        const extent = new maplibregl.LngLatBounds();
+        bounds.forEach(point => extent.extend(point));
+        map.fitBounds(extent, { padding: 48, maxZoom: 13, duration: 450 });
+      }
     }
-  }
-
-  function escapeHtml(value) {
-    return value.replace(/[&<>"']/g, character => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    })[character]);
   }
 
   async function fetchStores(url, origin) {
@@ -115,10 +140,6 @@
   function byCoordinates(latitude, longitude) {
     const params = new URLSearchParams({ latitude, longitude, limit: '5' });
     return fetchStores(`/api/locations/nearest?${params}`, { lat: latitude, lng: longitude });
-  }
-
-  async function geocodeAddress(query) {
-    return window.geocodeWithNominatim(query);
   }
 
   document.getElementById('locateMe').addEventListener('click', () => {
@@ -141,7 +162,7 @@
     if (!query) return;
     message.textContent = 'Đang xác định địa chỉ với OpenStreetMap…';
     try {
-      const result = await geocodeAddress(query);
+      const result = await window.geocodeWithNominatim(query);
       if (result.displayName) input.value = result.displayName;
       await byCoordinates(result.latitude, result.longitude);
     } catch (error) {
@@ -154,18 +175,28 @@
     }
   });
 
-  function initMap() {
-    if (!window.L) {
-      mapMessage.textContent = 'Không tải được thư viện bản đồ. Danh sách chi nhánh vẫn dùng được.';
-      return;
+  async function initMap() {
+    try {
+      maplibregl = await import('https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.mjs');
+      map = new maplibregl.Map({
+        container: 'storeMap',
+        style: 'https://tiles.openfreemap.org/styles/positron',
+        center: [107.5, 16.0],
+        zoom: 4,
+        attributionControl: true,
+        cooperativeGestures: true,
+        fadeDuration: 0
+      });
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
+      map.once('load', () => {
+        mapMessage.textContent = 'Bản đồ OpenFreeMap · dữ liệu © OpenMapTiles, © OpenStreetMap.';
+      });
+      map.on('error', () => {
+        mapMessage.textContent = 'Bản đồ đang tải chậm. Danh sách chi nhánh và tìm kiếm vẫn sử dụng được.';
+      });
+    } catch (_) {
+      mapMessage.textContent = 'Không tải được bản đồ. Danh sách chi nhánh và tìm kiếm vẫn dùng được.';
     }
-    map = L.map('storeMap', { scrollWheelZoom: false }).setView([16.0, 107.5], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
-    storeMarkers = L.layerGroup().addTo(map);
-    mapMessage.textContent = 'Bản đồ OpenStreetMap. Chọn kết quả để xem ghim chi nhánh gần nhất.';
   }
 
   initMap();

@@ -12,17 +12,31 @@
     const history = [];
     let ready = false;
 
-    function addMessage(role, text, sources = []) {
+    function formatAnswer(text) {
+      const raw = String(text || '');
+      const sourceStart = raw.search(/(?:^|\r?\n)\s*(?:[-*•]\s*)?(?:nguồn(?: tham khảo)?|tài liệu tham khảo|references?)\s*:/im);
+      const answer = sourceStart < 0 ? raw : raw.slice(0, sourceStart);
+      const lines = answer.split(/\r?\n/).map(line => line
+        .replace(/^\s*#{1,6}\s*/, '')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/_(.*?)_/g, '$1')
+        .trim())
+        .filter(Boolean);
+
+      return lines.map(line => {
+        const cleanLine = line.replace(/^(?:[-*•]|\d+[.)])\s+/, '').trim();
+        return cleanLine.startsWith('→') ? cleanLine : `→ ${cleanLine}`;
+      }).join('\n');
+    }
+
+    function addMessage(role, text) {
       const item = document.createElement('article');
       item.className = `assistant-widget__message assistant-widget__message--${role}`;
       const content = document.createElement('p');
-      content.textContent = text;
+      content.textContent = role === 'assistant' ? formatAnswer(text) : text;
       item.append(content);
-      if (sources.length) {
-        const sourceLine = document.createElement('small');
-        sourceLine.textContent = `Nguồn: ${sources.join(', ')}`;
-        item.append(sourceLine);
-      }
       messages.append(item);
       messages.scrollTop = messages.scrollHeight;
       return item;
@@ -88,7 +102,7 @@
         }
         if (!response.ok) throw new Error(result.error || 'Trợ lý đang gặp sự cố.');
         loadingMessage.remove();
-        addMessage('assistant', result.answer, result.sources || []);
+        addMessage('assistant', result.answer);
         history.push({ role: 'user', content: text }, { role: 'assistant', content: result.answer });
         if (history.length > 10) history.splice(0, history.length - 10);
         notice.textContent = 'Bạn có thể hỏi tiếp.';
