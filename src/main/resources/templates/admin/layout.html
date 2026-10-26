@@ -81,12 +81,6 @@
                 </li>
             </ul>
 
-            <div class="admin-sidebar__footer">
-                <a th:href="@{/}" class="admin-sidebar__link">
-                    <i class="fa-solid fa-arrow-left"></i>
-                    <span>Quay lại cửa hàng</span>
-                </a>
-            </div>
         </aside>
 
         <!-- Main Area -->
@@ -95,12 +89,16 @@
                 <div class="admin-topbar__title" th:text="${title}">Dashboard</div>
 
                 <div class="admin-topbar__user">
-                    <div class="admin-topbar__user-info">
-                        <span class="admin-topbar__user-name" th:text="${#authentication.name}">Admin User</span>
-                        <span class="admin-topbar__user-role">Quản trị viên</span>
-                    </div>
-                    <a class="btn btn-outline" th:href="@{/}">Cửa hàng</a>
-                    <form th:action="@{/logout-process}" method="post"><button class="btn btn-primary" type="submit">Đăng xuất</button></form>
+                    <details class="admin-profile-menu">
+                        <summary class="admin-topbar__user-info">
+                            <span class="admin-topbar__user-name" th:text="${#authentication.name}">Admin User</span>
+                            <span class="admin-topbar__user-role">Quản trị viên · Hồ sơ ⌄</span>
+                        </summary>
+                        <div class="admin-profile-menu__panel">
+                            <a class="btn btn-outline" th:href="@{/}">Xem cửa hàng</a>
+                            <form th:action="@{/logout-process}" method="post"><button class="btn btn-primary" type="submit">Đăng xuất</button></form>
+                        </div>
+                    </details>
                 </div>
             </header>
 

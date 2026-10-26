@@ -7,6 +7,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -16,6 +17,11 @@ public class AssistantKnowledgeInitializer implements CommandLineRunner {
             "store-staff", "store-staff.md",
             "warehouse", "warehouse.md",
             "admin", "admin.md");
+    private static final List<KnowledgeSeed> ROLE_GUIDES = List.of(
+            new KnowledgeSeed("customer", "Cẩm nang làm đẹp cơ bản cho khách hàng mới", "customer-beauty-guide.md"),
+            new KnowledgeSeed("store-staff", "Cẩm nang thao tác nhân viên cửa hàng", "store-staff-guide.md"),
+            new KnowledgeSeed("warehouse", "Cẩm nang thao tác nhân viên kho", "warehouse-guide.md"),
+            new KnowledgeSeed("admin", "Cẩm nang thao tác admin", "admin-guide.md"));
 
     private final AssistantKnowledgeSourceRepository repository;
 
@@ -38,5 +44,20 @@ public class AssistantKnowledgeInitializer implements CommandLineRunner {
                     .active(true)
                     .build());
         }
+        for (KnowledgeSeed seed : ROLE_GUIDES) {
+            if (repository.existsByRoleKeyAndTitle(seed.roleKey(), seed.title())) continue;
+            String content;
+            try (var input = new ClassPathResource("assistant-knowledge/" + seed.fileName()).getInputStream()) {
+                content = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            }
+            repository.save(AssistantKnowledgeSource.builder()
+                    .roleKey(seed.roleKey())
+                    .title(seed.title())
+                    .content(content)
+                    .active(true)
+                    .build());
+        }
     }
+
+    private record KnowledgeSeed(String roleKey, String title, String fileName) { }
 }

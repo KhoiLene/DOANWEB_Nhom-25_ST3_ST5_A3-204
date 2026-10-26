@@ -1,0 +1,28 @@
+<div th:fragment="detail">
+  <style>
+    .invoice-export { max-width: 840px; margin: 0 auto; padding: 32px; background: #fff; border: 1px solid #dbe4f0; border-radius: 14px; }
+    .invoice-export__head { display: flex; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 2px solid #d2a45c; }
+    .invoice-export table { width: 100%; margin: 22px 0; border-collapse: collapse; }
+    .invoice-export th, .invoice-export td { padding: 10px 7px; border-bottom: 1px solid #dbe4f0; text-align: left; }
+    .invoice-export .num { text-align: right; }
+    .invoice-export__total { text-align: right; font-size: 1.2rem; font-weight: 700; color: #2563eb; }
+    .invoice-export__actions { display: flex; justify-content: center; gap: 10px; margin-top: 22px; }
+    @media print { .admin-sidebar, .admin-topbar, .invoice-export__actions { display: none !important; } .admin-main { margin: 0 !important; } .admin-content { padding: 0 !important; } .invoice-export { max-width: none; border: 0; border-radius: 0; } }
+  </style>
+  <article class="invoice-export">
+    <header class="invoice-export__head">
+      <div><strong>TECHTRA BEAUTY</strong><h1>Biên nhận bán hàng</h1><span th:text="${invoice.order.store.name}">Chi nhánh</span></div>
+      <div class="num"><strong th:text="${invoice.invoiceNumber}">Mã biên nhận</strong><p th:text="${#temporals.format(invoice.issuedAt,'dd/MM/yyyy HH:mm')}">Ngày phát hành</p></div>
+    </header>
+    <p>Khách hàng: <span th:text="${invoice.customerName ?: 'Khách lẻ'}">Khách lẻ</span></p>
+    <p>Số điện thoại: <span th:text="${invoice.customerPhone ?: '—'}">—</span></p>
+    <table><thead><tr><th>Sản phẩm</th><th>Mã SKU</th><th class="num">Số lượng</th><th class="num">Đơn giá</th><th class="num">Thành tiền</th></tr></thead>
+      <tbody><tr th:each="line : ${invoice.lines}"><td th:text="${line.productName}">Sản phẩm</td><td th:text="${line.sku ?: '—'}">—</td><td class="num" th:text="${line.quantity}">1</td><td class="num" th:text="${#numbers.formatDecimal(line.unitPrice,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</td><td class="num" th:text="${#numbers.formatDecimal(line.lineTotal,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</td></tr></tbody>
+    </table>
+    <p class="num">Tạm tính: <span th:text="${#numbers.formatDecimal(invoice.subtotal,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</span></p>
+    <p class="num">Thuế: <span th:text="${#numbers.formatDecimal(invoice.taxAmount,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</span></p>
+    <p class="invoice-export__total">Tổng đã thanh toán: <span th:text="${#numbers.formatDecimal(invoice.totalAmount,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</span></p>
+    <p>Phương thức thanh toán: <span th:text="${invoice.paymentMethod}">—</span></p>
+    <div class="invoice-export__actions"><button type="button" class="btn btn-primary" onclick="window.print()">Tải / in PDF</button><a class="btn btn-outline" th:href="@{/admin/invoices}">Quay lại danh sách</a></div>
+  </article>
+</div>

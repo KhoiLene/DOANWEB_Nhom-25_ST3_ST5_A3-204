@@ -75,10 +75,6 @@
       </section>
     </div>
 
-    <section class="account-footer-actions">
-      <div><strong>Thông tin tài khoản</strong><span th:text="${(customer.fullName ?: customer.username) + ' · ' + customer.phone}">Tên · số điện thoại</span></div>
-      <form th:action="@{/logout-process}" method="post"><button type="submit" class="account-logout">Đăng xuất</button></form>
-    </section>
   </main>
   <div th:replace="~{fragments/footer :: footer}"></div>
 </body>

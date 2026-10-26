@@ -16,7 +16,17 @@
             <button type="submit" aria-label="Tìm"><i class="fa-solid fa-magnifying-glass"></i></button>
         </form>
         <a class="mobile-account" th:href="@{/login}" sec:authorize="isAnonymous()" aria-label="Đăng nhập"><i class="fa-regular fa-user"></i></a>
-        <a class="mobile-account" th:href="@{/profile}" sec:authorize="isAuthenticated()" aria-label="Tài khoản"><i class="fa-regular fa-user"></i></a>
+        <details class="mobile-profile-menu" sec:authorize="isAuthenticated()">
+            <summary class="mobile-account" aria-label="Hồ sơ và đăng xuất"><i class="fa-regular fa-user"></i></summary>
+            <div class="mobile-profile-menu__panel">
+                <a th:href="@{/profile}" sec:authorize="hasRole('USER')">Hồ sơ của tôi</a>
+                <a th:href="@{/my/invoices}" sec:authorize="hasRole('USER')">Biên nhận của tôi</a>
+                <a th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMIN')">Về quản trị</a>
+                <a th:href="@{/warehouse/orders}" sec:authorize="hasRole('WAREHOUSE')">Về khu vực kho</a>
+                <a th:href="@{/staff/pos}" sec:authorize="hasRole('STORE_STAFF')">Về khu vực cửa hàng</a>
+                <form th:action="@{/logout-process}" method="post"><button type="submit">Đăng xuất</button></form>
+            </div>
+        </details>
         <a class="mobile-cart" th:href="@{/cart}" aria-label="Giỏ hàng"><i class="fa-solid fa-bag-shopping"></i><span class="header-cart__count" data-cart-badge>0</span></a>
     </div>
     <nav class="mobile-store-nav" aria-label="Điều hướng chính">
@@ -24,9 +34,6 @@
         <a th:href="@{/products(sale=true)}">Ưu đãi</a>
         <a th:href="@{/stores}">Cửa hàng</a>
         <a th:href="@{/news}">Góc làm đẹp</a>
-        <a th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMIN')">Về quản trị</a>
-        <a th:href="@{/warehouse/orders}" sec:authorize="hasRole('WAREHOUSE')">Về khu vực kho</a>
-        <a th:href="@{/staff/pos}" sec:authorize="hasRole('STORE_STAFF')">Về khu vực cửa hàng</a>
     </nav>
     <div class="bg-header">
         <!-- DESKTOP HEADER (Visible on screens > 992px) -->
@@ -143,9 +150,6 @@
                         </div>
 
                         <div class="header-actions mobile--hidden header-custom">
-                            <a th:href="@{/admin/dashboard}" class="text--primary header-actions__login header-custom_item" sec:authorize="hasRole('ADMIN')">Về quản trị</a>
-                            <a th:href="@{/warehouse/orders}" class="text--primary header-actions__login header-custom_item" sec:authorize="hasRole('WAREHOUSE')">Về khu vực kho</a>
-                            <a th:href="@{/staff/pos}" class="text--primary header-actions__login header-custom_item" sec:authorize="hasRole('STORE_STAFF')">Về cửa hàng</a>
                             <a th:href="@{/stores}" class="text--primary header-actions__login header-custom_item">
                                 <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                                 <div class="header-custom_item__text">HỆ THỐNG<br>CỬA HÀNG</div>
@@ -159,10 +163,21 @@
                                 </a>
                             </div>
 
-                            <a class="header-actions__login header-custom_item header-customer-link" th:href="@{/profile}" sec:authorize="isAuthenticated()" aria-label="Tài khoản khách hàng">
-                                <i class="fa-regular fa-user" aria-hidden="true"></i>
-                                <span class="header-custom_item__text" sec:authentication="name">Tài khoản</span>
-                            </a>
+                            <details class="header-profile-menu" sec:authorize="isAuthenticated()">
+                                <summary class="header-actions__login header-custom_item header-customer-link" aria-label="Hồ sơ và đăng xuất">
+                                    <i class="fa-regular fa-user" aria-hidden="true"></i>
+                                    <span class="header-custom_item__text" sec:authentication="name">Hồ sơ</span>
+                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                </summary>
+                                <div class="header-profile-menu__panel">
+                                    <a th:href="@{/profile}" sec:authorize="hasRole('USER')">Hồ sơ của tôi</a>
+                                    <a th:href="@{/my/invoices}" sec:authorize="hasRole('USER')">Biên nhận của tôi</a>
+                                    <a th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMIN')">Về quản trị</a>
+                                    <a th:href="@{/warehouse/orders}" sec:authorize="hasRole('WAREHOUSE')">Về khu vực kho</a>
+                                    <a th:href="@{/staff/pos}" sec:authorize="hasRole('STORE_STAFF')">Về khu vực cửa hàng</a>
+                                    <form th:action="@{/logout-process}" method="post"><button type="submit">Đăng xuất</button></form>
+                                </div>
+                            </details>
 
                             <div class="header-cart header-custom_item" id="headerMiniCart">
                                 <a th:href="@{/cart}" class="icon-cart" aria-label="Giỏ hàng">

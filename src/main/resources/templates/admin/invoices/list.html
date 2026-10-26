@@ -1,1 +1,14 @@
-<div th:fragment="list"><div class="card"><div class="card__header"><h3>Biên nhận bán hàng</h3></div><div class="card__body"><table class="admin-table"><thead><tr><th>Mã</th><th>Khách hàng</th><th>Đơn hàng</th><th>Chi nhánh</th><th>Thanh toán</th><th>Ngày phát hành</th><th>Tổng</th><th>Loại</th></tr></thead><tbody><tr th:each="invoice : ${invoices}"><td th:text="${invoice.invoiceNumber}">POS-1</td><td th:text="${invoice.customerName ?: 'Khách lẻ'}">Khách</td><td th:text="${invoice.order.id}">1</td><td th:text="${invoice.order.store.name}">Chi nhánh</td><td th:text="${invoice.paymentMethod}">CASH</td><td th:text="${#temporals.format(invoice.issuedAt,'dd/MM/yyyy HH:mm')}">Ngày</td><td th:text="${#numbers.formatDecimal(invoice.totalAmount,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</td><td th:text="${invoice.invoiceNumber.startsWith('POS-') ? 'Tại quầy' : 'Trực tuyến'}">Loại</td></tr><tr th:if="${#lists.isEmpty(invoices)}"><td colspan="8">Chưa có biên nhận.</td></tr></tbody></table></div></div></div>
+<div th:fragment="list">
+  <div class="card">
+    <div class="card__header"><h3>Biên nhận bán hàng</h3></div>
+    <div class="card__body"><table class="admin-table">
+      <thead><tr><th>Mã</th><th>Khách hàng</th><th>Đơn hàng</th><th>Chi nhánh</th><th>Thanh toán</th><th>Ngày phát hành</th><th>Tổng</th><th>Loại</th><th></th></tr></thead>
+      <tbody>
+        <tr th:each="invoice : ${invoices}">
+          <td th:text="${invoice.invoiceNumber}">POS-1</td><td th:text="${invoice.customerName ?: 'Khách lẻ'}">Khách</td><td th:text="${invoice.order.id}">1</td><td th:text="${invoice.order.store.name}">Chi nhánh</td><td th:text="${invoice.paymentMethod}">CASH</td><td th:text="${#temporals.format(invoice.issuedAt,'dd/MM/yyyy HH:mm')}">Ngày</td><td th:text="${#numbers.formatDecimal(invoice.totalAmount,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</td><td th:text="${invoice.invoiceNumber.startsWith('POS-') ? 'Tại quầy' : 'Trực tuyến'}">Loại</td><td><a th:href="@{/admin/invoices/{id}(id=${invoice.id})}">Xem / tải PDF</a></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(invoices)}"><td colspan="9">Chưa có biên nhận.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>

@@ -34,7 +34,7 @@
             <td th:text="${#temporals.format(invoice.issuedAt,'dd/MM/yyyy HH:mm')}">Ngày</td>
             <td th:text="${invoice.order.store.name}">Chi nhánh</td>
             <td th:text="${#numbers.formatDecimal(invoice.totalAmount,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</td>
-            <td><a th:href="@{/my/invoices/{id}(id=${invoice.id})}">Xem / in</a></td>
+            <td><a th:href="@{/my/invoices/{id}(id=${invoice.id})}">Xem / tải PDF</a></td>
           </tr>
           <tr th:if="${#lists.isEmpty(invoices)}"><td colspan="5" class="account-empty">Chưa có biên nhận đã phát hành. Biên nhận trực tuyến được phát hành sau khi đơn hàng thanh toán thành công.</td></tr>
         </tbody>

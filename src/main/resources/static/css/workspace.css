@@ -112,3 +112,14 @@ body.workspace-body {
   .workspace-body .workspace-form-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .workspace-body .workspace-form-grid__wide { grid-column: span 2; }
 }
+
+.portal-profile-menu, .admin-profile-menu { position: relative; }
+.portal-profile-menu > summary, .admin-profile-menu > summary { list-style: none; cursor: pointer; }
+.portal-profile-menu > summary::-webkit-details-marker, .admin-profile-menu > summary::-webkit-details-marker { display: none; }
+.portal-profile-menu__panel, .admin-profile-menu__panel { position: absolute; z-index: 1200; top: calc(100% + 8px); right: 0; display: grid; gap: 4px; min-width: 190px; padding: 8px; border: 1px solid #dbe4f0; border-radius: 12px; background: #fff; box-shadow: 0 12px 32px #17304d26; }
+.portal-profile-menu:not([open]) .portal-profile-menu__panel, .admin-profile-menu:not([open]) .admin-profile-menu__panel { display: none; }
+.portal-profile-menu__panel .portal-header__link { display: block; width: 100%; border: 0; background: transparent; text-align: left; text-decoration: none; }
+.portal-profile-menu__panel .portal-logout { margin: 0; padding-top: 4px; border-top: 1px solid #e2e8f0; }
+.admin-profile-menu__panel form { margin: 0; }
+.admin-profile-menu__panel .btn { width: 100%; text-align: left; }
+@media print { .portal-profile-menu, .admin-profile-menu { display: none !important; } }
