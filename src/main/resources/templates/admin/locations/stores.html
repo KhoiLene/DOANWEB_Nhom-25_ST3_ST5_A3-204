@@ -11,10 +11,10 @@
                 <div class="form-group"><label class="form-label">Điện thoại</label><input class="form-control" th:field="*{phone}"></div>
                 <div class="form-group"><label class="form-label">Vĩ độ</label><input class="form-control" type="number" step="any" th:field="*{latitude}"></div>
                 <div class="form-group"><label class="form-label">Kinh độ</label><input class="form-control" type="number" step="any" th:field="*{longitude}"></div>
-                <div class="form-group branch-map-tools" id="branchMapTools" th:attr="data-google-maps-key=${googleMapsBrowserKey}">
+                <div class="form-group branch-map-tools" id="branchMapTools">
                     <label class="form-label" for="branchMap">Chọn vị trí trên bản đồ</label>
                     <button class="btn btn-outline" type="button" id="geocodeBranchAddress">Định vị theo địa chỉ</button>
-                    <p id="branchMapMessage" role="status" aria-live="polite">Có thể nhập tọa độ trực tiếp nếu chưa cấu hình bản đồ.</p>
+                    <p id="branchMapMessage" role="status" aria-live="polite">Bản đồ OpenStreetMap không cần API key. Chọn ghim hoặc định vị theo địa chỉ.</p>
                     <div class="branch-map" id="branchMap" role="region" aria-label="Bản đồ chọn vị trí chi nhánh"></div>
                 </div>
                 <div class="form-group"><label><input type="checkbox" th:field="*{pickupEnabled}"> Cho phép nhận hàng tại đây</label></div>

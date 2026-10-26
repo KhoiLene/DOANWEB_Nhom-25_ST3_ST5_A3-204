@@ -121,7 +121,7 @@ spring.mail.password=your-app-password
 
 > Nếu không điền, các tính năng trên sẽ không hoạt động nhưng **project vẫn chạy bình thường**.
 
-Các khóa tích hợp nên được đặt bằng biến môi trường và không lưu trong repo. Hướng dẫn Google Maps và chatbot RAG theo từng role, gồm lệnh thiết lập PowerShell, nằm tại [`docs/integrations-setup.md`](docs/integrations-setup.md).
+Bản đồ chi nhánh dùng Leaflet/OpenStreetMap, chatbot dùng RAG cục bộ trong PostgreSQL; không cần thẻ thanh toán hay API key. Hướng dẫn bật Ollama tùy chọn và các giới hạn dịch vụ bản đồ công cộng nằm tại [`docs/integrations-setup.md`](docs/integrations-setup.md).
 
 ---
 

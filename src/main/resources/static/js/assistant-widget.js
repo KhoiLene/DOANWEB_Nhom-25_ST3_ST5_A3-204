@@ -51,8 +51,8 @@
         document.getElementById('assistantName').textContent = context.name || 'Trợ lý Techtra';
         document.getElementById('assistantDescription').textContent = context.description || '';
         notice.textContent = context.ready
-          ? 'Xin chào! Hãy hỏi mình về công việc hoặc chức năng trong website.'
-          : 'Trợ lý chưa được cấu hình đầy đủ. Vui lòng liên hệ quản trị viên.';
+          ? `RAG cục bộ đã bật với ${context.sourceCount || 0} nguồn cho role này. ${context.generationMode || 'Câu trả lời dựa trên tài liệu được phép.'}`
+          : 'Role này chưa có nguồn tri thức đang bật. Vui lòng liên hệ quản trị viên.';
         ready = Boolean(context.ready);
         question.disabled = !ready;
         send.disabled = !ready;

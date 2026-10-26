@@ -5,11 +5,14 @@
     <title>Hệ thống cửa hàng | Techtra Beauty</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <link rel="stylesheet" th:href="@{/css/store-locator.css}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script defer th:src="@{/js/nominatim-client.js}"></script>
     <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
 </head>
 <body>
 <div th:replace="~{fragments/header :: header}"></div>
-<main class="store-locator container section-padding" id="store-locator" th:attr="data-google-maps-key=${googleMapsBrowserKey}">
+<main class="store-locator container section-padding" id="store-locator">
     <div class="store-locator__heading">
         <div><span class="store-locator__eyebrow">TECHTRA BEAUTY</span><h1>Tìm cửa hàng gần bạn</h1>
             <p>Dùng vị trí hiện tại hoặc nhập địa chỉ để xem tối đa 5 chi nhánh phù hợp.</p></div>
@@ -27,7 +30,7 @@
         </section>
         <div class="store-locator__map-wrap">
             <div id="storeMap" class="store-locator__map" role="region" aria-label="Bản đồ chi nhánh"></div>
-            <p class="store-locator__map-note" id="mapMessage"></p>
+            <p class="store-locator__map-note" id="mapMessage">Bản đồ dùng dữ liệu OpenStreetMap. Tìm địa chỉ chỉ gửi yêu cầu khi bạn bấm nút tìm.</p>
         </div>
     </div>
 </main>

@@ -5,7 +5,6 @@ import com.shopchain.entity.Warehouse;
 import com.shopchain.repository.StoreRepository;
 import com.shopchain.repository.WarehouseRepository;
 import org.springframework.stereotype.Controller;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,8 +13,6 @@ import org.springframework.web.bind.annotation.*;
 public class AdminLocationController {
     private final StoreRepository storeRepository;
     private final WarehouseRepository warehouseRepository;
-    @Value("${maps.google.browser-key:}")
-    private String googleMapsBrowserKey;
 
     public AdminLocationController(StoreRepository storeRepository, WarehouseRepository warehouseRepository) {
         this.storeRepository = storeRepository;
@@ -28,7 +25,6 @@ public class AdminLocationController {
         model.addAttribute("store", editId == null ? Store.builder().active(true).pickupEnabled(true).build()
                 : storeRepository.findById(editId).orElseThrow());
         model.addAttribute("title", "Quản lý cửa hàng");
-        model.addAttribute("googleMapsBrowserKey", googleMapsBrowserKey);
         model.addAttribute("activePage", "stores");
         model.addAttribute("content", "admin/locations/stores");
         return "admin/layout";

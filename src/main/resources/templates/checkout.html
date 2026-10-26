@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Thanh toán - Techtra</title>
     <link rel="stylesheet" th:href="@{/css/thanh-toan.css}" />
+    <script defer th:src="@{/js/nominatim-client.js}"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -43,7 +44,7 @@
       </section>
 
       <p class="checkout-error" th:if="${checkoutError}" th:text="${checkoutError}" role="alert">Không thể đặt hàng.</p>
-      <form id="checkoutForm" th:action="@{/checkout/place-order}" method="post" novalidate th:attr="data-google-maps-key=${googleMapsBrowserKey}">
+      <form id="checkoutForm" th:action="@{/checkout/place-order}" method="post" novalidate>
         <input type="hidden" id="deliveryLatitude" name="deliveryLatitude">
         <input type="hidden" id="deliveryLongitude" name="deliveryLongitude">
         <section class="checkout-layout">
@@ -69,7 +70,7 @@
                   <input id="receiverAddressLine" name="address" type="text" placeholder="VD: 12 Nguyễn Trãi" autocomplete="street-address" />
                 </div>
                 <div class="field"><label for="deliveryCity">Tỉnh / thành phố nhận hàng</label><input id="deliveryCity" name="deliveryCity" type="text" placeholder="VD: Thành phố Hồ Chí Minh" /></div>
-                <div class="field"><label for="storeId">Chọn chi nhánh</label><select id="storeId" name="storeId" required><option value="">Chọn chi nhánh gần bạn</option><option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name + ' · ' + (store.district ?: '') + ' ' + (store.city ?: '')}">Chi nhánh</option></select><button type="button" class="btn btn-secondary" id="locateStores">Dùng vị trí hiện tại để sắp xếp chi nhánh gần nhất</button><button type="button" class="btn btn-secondary" id="locateByDeliveryAddress">Tìm theo địa chỉ giao hàng</button><a th:href="@{/stores}" class="checkout-store-search">Tìm chi nhánh theo địa chỉ trên bản đồ</a><small id="locationMessage"></small><small>Địa chỉ chỉ được gửi tới Google Maps khi bạn bấm tìm theo địa chỉ.</small></div>
+                <div class="field"><label for="storeId">Chọn chi nhánh</label><select id="storeId" name="storeId" required><option value="">Chọn chi nhánh gần bạn</option><option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name + ' · ' + (store.district ?: '') + ' ' + (store.city ?: '')}">Chi nhánh</option></select><button type="button" class="btn btn-secondary" id="locateStores">Dùng vị trí hiện tại để sắp xếp chi nhánh gần nhất</button><button type="button" class="btn btn-secondary" id="locateByDeliveryAddress">Tìm theo địa chỉ giao hàng</button><a th:href="@{/stores}" class="checkout-store-search">Tìm chi nhánh theo địa chỉ trên bản đồ</a><small id="locationMessage"></small><small>Địa chỉ chỉ gửi tới OpenStreetMap Nominatim khi bạn bấm tìm theo địa chỉ.</small></div>
                 <div class="field field--full"><label>Cách nhận hàng</label><label><input type="radio" name="fulfillmentType" value="DELIVERY" checked> Giao đến địa chỉ</label> <label><input type="radio" name="fulfillmentType" value="PICKUP"> Nhận tại chi nhánh</label><p class="muted">Nếu địa chỉ giao khác tỉnh/thành phố chi nhánh, hệ thống sẽ chuyển xử lý tồn kho qua kho trung tâm.</p></div>
                 <div class="form-actions">
                   <button type="button" class="btn btn-primary" id="checkoutToStep2">Tiếp tục</button>
@@ -187,8 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const address = document.getElementById('receiverAddressLine');
   const deliveryCity = document.getElementById('deliveryCity');
   const pickupRadios = document.querySelectorAll('input[name="fulfillmentType"]');
-  const mapsKey = form.dataset.googleMapsKey;
-  let geocoder;
   let preferredStoreId = null;
   try { preferredStoreId = localStorage.getItem('preferredStoreId'); } catch (_) { }
 
@@ -277,38 +276,14 @@ document.addEventListener('DOMContentLoaded', () => {
       message.textContent = 'Nhập địa chỉ chi tiết và tỉnh/thành phố giao hàng trước.';
       return;
     }
-    if (!geocoder) {
-      message.textContent = 'Bản đồ chưa được cấu hình. Hãy tìm theo địa chỉ tại trang cửa hàng hoặc chọn chi nhánh thủ công.';
-      return;
-    }
-    message.textContent = 'Đang xác định tọa độ địa chỉ giao hàng…';
+    message.textContent = 'Đang tra địa chỉ với OpenStreetMap…';
     try {
-      const { results } = await geocoder.geocode({
-        address: `${address.value}, ${deliveryCity.value}`
-      });
-      if (!results?.length) throw new Error('Không tìm thấy địa chỉ. Hãy kiểm tra lại địa chỉ và tỉnh/thành phố.');
-      const location = results[0].geometry.location;
-      await suggestNearestStores(location.lat(), location.lng(), true);
+      const location = await window.geocodeWithNominatim(`${address.value}, ${deliveryCity.value}`);
+      await suggestNearestStores(location.latitude, location.longitude, true);
     } catch (error) {
       message.textContent = error.message || 'Không thể xác định địa chỉ giao hàng.';
     }
   });
-
-  if (mapsKey) {
-    window.initCheckoutGeocoder = async () => {
-      try {
-        const { Geocoder } = await google.maps.importLibrary('geocoding');
-        geocoder = new Geocoder();
-      } catch (_) {
-        document.getElementById('locationMessage').textContent = 'Không tải được dịch vụ định vị địa chỉ. Kiểm tra API Geocoding.';
-      }
-    };
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(mapsKey)}&loading=async&callback=initCheckoutGeocoder`;
-    script.async = true;
-    script.onerror = () => { document.getElementById('locationMessage').textContent = 'Không tải được Google Maps. Kiểm tra khóa và API đã bật.'; };
-    document.head.append(script);
-  }
 });
 </script>
 </body>

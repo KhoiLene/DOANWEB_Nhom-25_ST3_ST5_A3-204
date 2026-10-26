@@ -1,0 +1,80 @@
+<div th:fragment="assistant-knowledge">
+    <link rel="stylesheet" th:href="@{/css/rag-manager.css}">
+    <script defer th:src="@{/js/rag-manager.js}"></script>
+    <section class="rag-manager" id="ragManager">
+        <div class="rag-manager__intro">
+            <div>
+                <span class="rag-manager__eyebrow">LOCAL RAG · ROLE SCOPED</span>
+                <h1>Mạng tri thức trợ lý</h1>
+                <p>Quản lý tài liệu theo từng role. Mỗi trợ lý chỉ truy xuất kho tri thức được gán cho vai trò đang đăng nhập.</p>
+            </div>
+            <div class="rag-manager__metrics" aria-live="polite">
+                <div><strong id="ragSourceCount">—</strong><span>Nguồn tri thức</span></div>
+                <div><strong id="ragActiveCount">—</strong><span>Đang hoạt động</span></div>
+                <div><strong id="ragRoleCount">4</strong><span>Phạm vi role</span></div>
+            </div>
+        </div>
+
+        <section class="rag-globe-card" aria-label="Bản đồ kết nối kho tri thức">
+            <div class="rag-globe-card__top">
+                <div><h2>Quả cầu liên kết</h2><p>Giữ chuột để xoay · chọn nút tài liệu để chỉnh sửa</p></div>
+                <span class="rag-engine-badge"><i></i> RAG cục bộ</span>
+            </div>
+            <div class="rag-globe">
+                <canvas id="ragGlobe" aria-label="Đồ thị role, tài liệu và khái niệm trong RAG"></canvas>
+                <div class="rag-globe__legend">
+                    <span data-role="customer"><i></i>Khách</span>
+                    <span data-role="store-staff"><i></i>Cửa hàng</span>
+                    <span data-role="warehouse"><i></i>Kho</span>
+                    <span data-role="admin"><i></i>Admin</span>
+                </div>
+                <div class="rag-globe__tooltip" id="ragGlobeTooltip" hidden></div>
+            </div>
+        </section>
+
+        <div class="rag-workbench">
+            <section class="rag-sources-card">
+                <div class="rag-section-heading">
+                    <div><h2>Nguồn tri thức</h2><p>Tài liệu đang được truy xuất khi trả lời.</p></div>
+                    <button class="rag-button rag-button--primary" id="ragNewSource" type="button">+ Thêm nguồn</button>
+                </div>
+                <div class="rag-role-filter" role="group" aria-label="Lọc theo role">
+                    <button type="button" data-filter="all" class="is-active">Tất cả</button>
+                    <button type="button" data-filter="customer">Khách hàng</button>
+                    <button type="button" data-filter="store-staff">Cửa hàng</button>
+                    <button type="button" data-filter="warehouse">Kho</button>
+                    <button type="button" data-filter="admin">Admin</button>
+                </div>
+                <p class="rag-manager__status" id="ragStatus" role="status" aria-live="polite">Đang tải các nguồn tri thức…</p>
+                <div class="rag-source-list" id="ragSourceList"></div>
+            </section>
+
+            <section class="rag-editor-card" id="ragEditorCard">
+                <div class="rag-section-heading"><div><h2 id="ragEditorTitle">Nguồn mới</h2><p>Viết tài liệu Markdown, FAQ hoặc quy trình đã duyệt.</p></div></div>
+                <form id="ragSourceForm">
+                    <input type="hidden" id="ragSourceId">
+                    <label for="ragSourceRole">Phạm vi role</label>
+                    <select id="ragSourceRole" required>
+                        <option value="customer">Khách hàng</option>
+                        <option value="store-staff">Nhân viên cửa hàng</option>
+                        <option value="warehouse">Nhân viên kho</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <label for="ragSourceName">Tên nguồn</label>
+                    <input id="ragSourceName" maxlength="180" required placeholder="VD: Quy trình đổi trả mỹ phẩm">
+                    <label for="ragSourceContent">Nội dung</label>
+                    <textarea id="ragSourceContent" rows="13" maxlength="100000" required placeholder="Nhập hướng dẫn có thể dùng để trả lời…"></textarea>
+                    <label class="rag-file-import" for="ragImportFile">Nhập từ tệp .md hoặc .txt</label>
+                    <input id="ragImportFile" type="file" accept=".md,.txt,text/plain,text/markdown">
+                    <label class="rag-active-toggle"><input type="checkbox" id="ragSourceActive" checked> Cho phép chatbot dùng nguồn này</label>
+                    <div class="rag-editor-actions">
+                        <button class="rag-button rag-button--primary" type="submit">Lưu nguồn</button>
+                        <button class="rag-button rag-button--quiet" id="ragResetForm" type="button">Làm mới</button>
+                        <button class="rag-button rag-button--danger" id="ragDeleteSource" type="button" hidden>Xóa</button>
+                    </div>
+                </form>
+                <p class="rag-editor-note">Lưu trong PostgreSQL của project; không gửi tài liệu ra dịch vụ AI bên ngoài.</p>
+            </section>
+        </div>
+    </section>
+</div>

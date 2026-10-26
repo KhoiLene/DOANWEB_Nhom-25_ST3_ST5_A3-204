@@ -1,10 +1,7 @@
 package com.shopchain.controller;
 
 import com.shopchain.service.RoleAssistantService;
-import com.shopchain.service.RoleAssistantService.AssistantNotConfiguredException;
-import com.shopchain.service.RoleAssistantService.AssistantProviderException;
 import com.shopchain.service.RoleAssistantService.ChatTurn;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -33,10 +30,6 @@ public class AssistantController {
             return ResponseEntity.ok(assistantService.ask(resolveRole(authentication), request.message(), request.history()));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(Map.of("error", exception.getMessage()));
-        } catch (AssistantNotConfiguredException exception) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", exception.getMessage()));
-        } catch (AssistantProviderException exception) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("error", exception.getMessage()));
         }
     }
 

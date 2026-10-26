@@ -2,6 +2,11 @@ package com.shopchain.controller;
 
 import com.shopchain.entity.Store;
 import com.shopchain.repository.StoreRepository;
+import com.shopchain.service.NominatimGeocodingService;
+import com.shopchain.service.NominatimGeocodingService.GeocodingUnavailableException;
+import com.shopchain.service.NominatimGeocodingService.GeocodedLocation;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Comparator;
@@ -12,9 +17,25 @@ import java.util.Locale;
 @RequestMapping("/api/locations")
 public class LocationController {
     private final StoreRepository storeRepository;
+    private final NominatimGeocodingService geocodingService;
 
-    public LocationController(StoreRepository storeRepository) {
+    public LocationController(StoreRepository storeRepository, NominatimGeocodingService geocodingService) {
         this.storeRepository = storeRepository;
+        this.geocodingService = geocodingService;
+    }
+
+    @GetMapping("/geocode")
+    public ResponseEntity<?> geocode(@RequestParam String query,
+                                     @RequestParam(required = false) String countryCode) {
+        try {
+            GeocodedLocation location = geocodingService.geocode(query, countryCode);
+            return ResponseEntity.ok(location);
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", exception.getMessage()));
+        } catch (GeocodingUnavailableException exception) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(java.util.Map.of("error", exception.getMessage()));
+        }
     }
 
     @GetMapping("/nearest")
@@ -35,15 +56,13 @@ public class LocationController {
 
     @GetMapping("/search")
     public List<StoreResult> search(@RequestParam String query) {
-        String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        String normalized = query == null ? "" : fold(query.trim());
+        List<String> terms = java.util.Arrays.stream(normalized.split("\\s+"))
+                .filter(term -> term.length() > 1).toList();
         return storeRepository.findAll().stream()
                 .filter(Store::isActive)
                 .filter(Store::isPickupEnabled)
-                .filter(store -> normalized.isBlank()
-                        || contains(store.getName(), normalized)
-                        || contains(store.getAddress(), normalized)
-                        || contains(store.getDistrict(), normalized)
-                        || contains(store.getCity(), normalized))
+                .filter(store -> matchesTerms(store, terms))
                 .sorted(Comparator.comparingInt(store -> searchRank(store, normalized)))
                 .map(store -> result(store, null))
                 .limit(5)
@@ -59,15 +78,28 @@ public class LocationController {
     }
 
     private boolean equals(String value, String query) {
-        return value != null && value.trim().equalsIgnoreCase(query);
+        return value != null && fold(value.trim()).equals(query);
     }
 
     private boolean startsWith(String value, String query) {
-        return value != null && value.toLowerCase(Locale.ROOT).startsWith(query);
+        return value != null && fold(value).startsWith(query);
     }
 
     private boolean contains(String value, String query) {
-        return value != null && value.toLowerCase(Locale.ROOT).contains(query);
+        return value != null && fold(value).contains(query);
+    }
+
+    private boolean matchesTerms(Store store, List<String> terms) {
+        if (terms.isEmpty()) return true;
+        return terms.stream().allMatch(term -> contains(store.getName(), term)
+                || contains(store.getAddress(), term)
+                || contains(store.getDistrict(), term)
+                || contains(store.getCity(), term));
+    }
+
+    private String fold(String value) {
+        return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").replace('đ', 'd').replace('Đ', 'D').toLowerCase(Locale.ROOT);
     }
 
     private StoreResult result(Store store, Double distance) {

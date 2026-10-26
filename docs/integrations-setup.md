@@ -1,53 +1,39 @@
-# Cấu hình bản đồ và chatbot
+# Bản đồ miễn phí và chatbot RAG cục bộ
 
-Các tích hợp tắt an toàn khi thiếu cấu hình. Không commit giá trị thật vào `application.properties` hoặc Git.
+## Bản đồ chi nhánh
 
-## Thiết lập trên Windows PowerShell
+Project không cần Google Maps API key hoặc tài khoản billing. Bản đồ dùng Leaflet để hiển thị tile OpenStreetMap; tìm địa chỉ gọi Nominatim qua backend, sau đó thử trực tiếp từ trình duyệt nếu backend không truy cập được dịch vụ công cộng. Trang `/stores` và checkout chỉ gửi địa chỉ đi tra cứu sau khi khách bấm tìm. Admin chọn tọa độ chi nhánh bằng cách định vị địa chỉ trong Việt Nam hoặc kéo ghim trên bản đồ. Nếu cả hai đường geocoding đều không khả dụng, khách vẫn có thể tìm chi nhánh theo tên/tỉnh/thành đã lưu trong database.
 
-Mở PowerShell tại thư mục gốc của repo. Các lệnh `$env:...` chỉ tồn tại trong cửa sổ PowerShell hiện tại; chúng không ghi khóa vào Git. Không dán khóa vào chat hoặc ảnh chụp màn hình.
+GPS dùng `navigator.geolocation`, chỉ được hỏi quyền sau khi người dùng nhấn nút. Vị trí GPS không được lưu vào database. Kết quả chi nhánh vẫn do API nội bộ tính khoảng cách và giới hạn tối đa 5 gợi ý.
 
-```powershell
-# Sau khi tạo key trên Google Cloud Console:
-$env:GOOGLE_MAPS_BROWSER_KEY = "YOUR_RESTRICTED_BROWSER_KEY"
+Nominatim công cộng là dịch vụ cộng đồng: ứng dụng giới hạn tối đa một request mỗi giây cho mỗi tiến trình backend và cho mỗi tab trình duyệt, không autocomplete và chỉ tra một địa chỉ mỗi lần. Dịch vụ có thể giới hạn hoặc từ chối traffic; phù hợp cho demo/lưu lượng thấp. OpenStreetMap tile server cũng có chính sách sử dụng và không đảm bảo SLA. Khi vận hành sản phẩm thật với nhiều người dùng, nên tự host geocoder/tiles hoặc chọn nhà cung cấp có SLA. Xem [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/) và [OpenStreetMap Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/).
 
-# Sau khi tạo OpenAI API key:
-$env:OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"
-python .\scripts\provision_assistant_vector_stores.py
-```
+## Chatbot role scoped RAG
 
-Lệnh provisioning in ra bốn vector store ID. Chờ trạng thái từng file là `completed` trong OpenAI dashboard, rồi đặt các ID được in ra vào cùng cửa sổ PowerShell:
+RAG chạy miễn phí trong ứng dụng:
 
-```powershell
-$env:OPENAI_VECTOR_STORE_CUSTOMER = "vs_customer_id"
-$env:OPENAI_VECTOR_STORE_STORE_STAFF = "vs_store_staff_id"
-$env:OPENAI_VECTOR_STORE_WAREHOUSE = "vs_warehouse_id"
-$env:OPENAI_VECTOR_STORE_ADMIN = "vs_admin_id"
-$env:OPENAI_MODEL = "gpt-4.1-mini"
-```
+- Bốn kho tri thức riêng cho `customer`, `store-staff`, `warehouse` và `admin` được lưu trong PostgreSQL.
+- Khi khởi động lần đầu, ứng dụng nạp tài liệu mẫu trong `src/main/resources/assistant-knowledge/`.
+- Admin tạo, nhập tệp `.md`/`.txt`, chỉnh sửa, bật/tắt hoặc xóa nguồn tại `/admin/assistant-knowledge`.
+- Backend xác định role từ phiên đăng nhập và quyền đã xác thực, rồi truy xuất đúng nguồn đang bật cho role đó. Role không được nhận từ payload trình duyệt.
+- Nếu Ollama chưa chạy, bot vẫn phản hồi bằng các trích đoạn khớp từ tài liệu role đó. Khi Ollama cài mô hình, bot tổng hợp câu trả lời từ chính những đoạn đã truy xuất.
+- Nội dung câu hỏi và tài liệu RAG không gửi tới OpenAI hay dịch vụ AI bên ngoài.
 
-Sau đó khởi động ứng dụng trong cửa sổ đó để Spring nhận các biến:
+### Không cần cài thêm gì để dùng fallback RAG
 
-```powershell
-.\mvnw.cmd spring-boot:run
-```
+Chạy app như hiện tại. Sau khi đăng nhập bằng một trong bốn role, widget trợ lý sẽ xuất hiện. Khi chưa có nguồn tri thức hoạt động cho role, admin thêm hoặc bật nguồn trong trang quản lý RAG.
 
-Nếu chạy app bằng Docker hoặc IDE, hãy khai báo các biến ở cấu hình môi trường của chính tiến trình Spring. Đừng đặt `OPENAI_API_KEY` vào JavaScript, HTML, `application.properties` hay Docker image. Key Maps được trình duyệt nhìn thấy theo thiết kế; giới hạn bằng website referrer và chỉ bật APIs cần dùng.
+### Bật câu trả lời sinh bởi mô hình local (tùy chọn)
 
-## Google Maps
+1. Cài Ollama từ [ollama.com/download](https://ollama.com/download).
+2. Mở PowerShell và tải mô hình nhỏ đa ngôn ngữ:
 
-1. Tạo browser key trong Google Cloud, bật Maps JavaScript API và Geocoding API.
-2. Giới hạn key theo HTTP referrer cho môi trường phát triển và domain website khi triển khai; chỉ cho phép các API cần thiết.
-3. Đặt biến môi trường `GOOGLE_MAPS_BROWSER_KEY` trước khi khởi động Spring như phần PowerShell ở trên.
-4. Tại `/admin/locations/stores`, nhập địa chỉ rồi định vị hoặc đặt ghim lên bản đồ; kiểm tra tọa độ trước khi lưu.
-5. Tại `/stores`, khách nhập địa chỉ hoặc bấm nút GPS. Website geocode địa chỉ bằng Maps JavaScript API rồi gọi API nội bộ để trả tối đa 5 chi nhánh gần nhất.
+   ```powershell
+   ollama pull qwen2.5:1.5b
+   ```
 
-Nếu chưa có khóa, nhập tọa độ thủ công ở admin và tìm khu vực theo tên/địa chỉ chi nhánh vẫn hoạt động. Không lưu vị trí GPS của khách vào cơ sở dữ liệu.
+3. Đảm bảo Ollama đang chạy ở `http://localhost:11434`, rồi khởi động lại Spring. Đây là địa chỉ và endpoint mặc định Ollama.
 
-## OpenAI RAG
+Project mặc định dùng `qwen2.5:1.5b`. Có thể đổi `OLLAMA_BASE_URL` hoặc `OLLAMA_MODEL` trong môi trường tiến trình Spring. Mô hình Qwen2.5 1.5B khoảng 986 MB và hỗ trợ tiếng Việt; model page liệt kê các biến thể và giấy phép của dòng model. [Ollama Chat API](https://docs.ollama.com/api/chat) · [Qwen2.5 model library](https://ollama.com/library/qwen2.5).
 
-1. Rà soát tài liệu từng role trong `docs/assistant-knowledge/`, sau đó chạy `python scripts/provision_assistant_vector_stores.py` với `OPENAI_API_KEY` đã đặt ở môi trường cục bộ. Script tạo bốn vector store, tải mỗi tài liệu vào store riêng và in các ID.
-2. Cấu hình `OPENAI_API_KEY`, `OPENAI_MODEL` và lần lượt `OPENAI_VECTOR_STORE_CUSTOMER`, `OPENAI_VECTOR_STORE_STORE_STAFF`, `OPENAI_VECTOR_STORE_WAREHOUSE`, `OPENAI_VECTOR_STORE_ADMIN`.
-3. Khởi động lại Spring. Chatbot trên storefront, admin, kho và POS sẽ lấy role từ JWT, chỉ tìm trong vector store đã gán cho role đó.
-4. Nếu một biến còn thiếu, chatbot sẽ hiện trạng thái chưa sẵn sàng và API không gửi câu hỏi sang nhà cung cấp.
-
-Mọi câu hỏi chatbot được gửi tới OpenAI Responses API khi tích hợp đã bật. API key chỉ nằm ở backend. Chatbot hiện chỉ trả lời dựa trên tài liệu; nó không đọc tồn kho/đơn trực tiếp và không thực hiện thao tác ghi dữ liệu.
+Ollama chạy trên máy của bạn; tốc độ và lượng RAM phụ thuộc cấu hình máy. Nếu Ollama không có hoặc chưa tải model, backend tự dùng phản hồi trích đoạn để chatbot không bị tắt.
