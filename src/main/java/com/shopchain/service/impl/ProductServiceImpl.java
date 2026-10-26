@@ -89,6 +89,22 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public Page<Product> searchFilteredProducts(String keyword, Long categoryId, boolean saleOnly,
+                                                Double minPrice, Double maxPrice, Long storeId, Pageable pageable) {
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        return productRepository.searchFilteredActiveProducts(normalizedKeyword, categoryId, saleOnly,
+                minPrice, maxPrice, storeId, pageable);
+    }
+
+    @Override
+    public Page<Product> searchBestSellingProducts(String keyword, Long categoryId, boolean saleOnly,
+                                                   Double minPrice, Double maxPrice, Long storeId, Pageable pageable) {
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        return productRepository.searchBestSellingActiveProducts(normalizedKeyword, categoryId, saleOnly,
+                minPrice, maxPrice, storeId, pageable);
+    }
+
+    @Override
     public Product getProductDetail(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));

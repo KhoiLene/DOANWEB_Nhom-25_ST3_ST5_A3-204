@@ -13,6 +13,10 @@ public interface ProductService {
     String uploadImage(MultipartFile file) throws IOException;
     Page<Product> searchProducts(String keyword, Long categoryId, Pageable pageable);
     Page<Product> searchProducts(String keyword, Long categoryId, boolean saleOnly, Pageable pageable);
+    Page<Product> searchFilteredProducts(String keyword, Long categoryId, boolean saleOnly,
+                                        Double minPrice, Double maxPrice, Long storeId, Pageable pageable);
+    Page<Product> searchBestSellingProducts(String keyword, Long categoryId, boolean saleOnly,
+                                           Double minPrice, Double maxPrice, Long storeId, Pageable pageable);
     Product getProductDetail(Long id);
     void deleteProduct(Long id);
     List<Product> getFlashSaleProducts();

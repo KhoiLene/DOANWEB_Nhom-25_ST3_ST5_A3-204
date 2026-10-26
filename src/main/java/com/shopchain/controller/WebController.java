@@ -90,28 +90,53 @@ public class WebController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "sort", defaultValue = "newest") String sort,
             @RequestParam(value = "sale", defaultValue = "false") boolean saleOnly,
+            @RequestParam(value = "discounted", defaultValue = "false") boolean discountedOnly,
+            @RequestParam(value = "minPrice", required = false) Double minPrice,
+            @RequestParam(value = "maxPrice", required = false) Double maxPrice,
+            @RequestParam(value = "storeId", required = false) Long storeId,
             Model model) {
 
         String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
-        String normalizedSort = List.of("newest", "price_asc", "price_desc", "name").contains(sort) ? sort : "newest";
+        String normalizedSort = List.of("newest", "price_asc", "price_desc", "name", "best_seller").contains(sort) ? sort : "newest";
+        Double safeMinPrice = minPrice != null && minPrice >= 0 ? minPrice : null;
+        Double safeMaxPrice = maxPrice != null && maxPrice >= 0 ? maxPrice : null;
+        if (safeMinPrice != null && safeMaxPrice != null && safeMinPrice > safeMaxPrice) {
+            Double swap = safeMinPrice;
+            safeMinPrice = safeMaxPrice;
+            safeMaxPrice = swap;
+        }
+        List<Store> availableStores = storeRepository.findByActiveTrueAndPickupEnabledTrue();
+        Long safeStoreId = storeId != null && availableStores.stream().anyMatch(store -> store.getId().equals(storeId))
+                ? storeId : null;
         Sort order = switch (normalizedSort) {
             case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
             case "price_desc" -> Sort.by(Sort.Direction.DESC, "price");
             case "name" -> Sort.by(Sort.Direction.ASC, "name");
+            case "best_seller" -> Sort.unsorted();
             default -> Sort.by(Sort.Direction.DESC, "id");
         };
         int safePage = Math.max(0, page);
-        var productPage = productService.searchProducts(normalizedKeyword, categoryId, saleOnly,
-                PageRequest.of(safePage, 12, order));
+        var pageable = PageRequest.of(safePage, 12, order);
+        boolean filterDiscounted = saleOnly || discountedOnly;
+        var productPage = "best_seller".equals(normalizedSort)
+                ? productService.searchBestSellingProducts(normalizedKeyword, categoryId, filterDiscounted,
+                        safeMinPrice, safeMaxPrice, safeStoreId, pageable)
+                : productService.searchFilteredProducts(normalizedKeyword, categoryId, filterDiscounted,
+                        safeMinPrice, safeMaxPrice, safeStoreId, pageable);
         model.addAttribute("products", productPage.getContent());
         model.addAttribute("currentPage", safePage);
         model.addAttribute("totalPages", productPage.getTotalPages());
         model.addAttribute("totalResults", productPage.getTotalElements());
         model.addAttribute("categories", categoryRepository.findAll());
+        model.addAttribute("stores", availableStores);
         model.addAttribute("keyword", normalizedKeyword);
         model.addAttribute("selectedCategoryId", categoryId);
         model.addAttribute("sort", normalizedSort);
         model.addAttribute("saleOnly", saleOnly);
+        model.addAttribute("discountedOnly", discountedOnly);
+        model.addAttribute("minPrice", safeMinPrice);
+        model.addAttribute("maxPrice", safeMaxPrice);
+        model.addAttribute("selectedStoreId", safeStoreId);
         model.addAttribute("pageNumbers", IntStream.range(0, productPage.getTotalPages()).boxed().toList());
 
         return "products";

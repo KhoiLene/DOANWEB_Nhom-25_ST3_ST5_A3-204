@@ -29,7 +29,7 @@ Trước khi chọn, hãy tự hỏi: da thường khô căng hay bóng dầu; d
 - **Trang điểm:** chỉ dùng theo hướng dẫn; tẩy/làm sạch nhẹ nhàng trước khi ngủ.
 - **Chăm sóc tóc và cơ thể:** dùng đúng vùng da/tóc được ghi trên nhãn; tránh để sản phẩm vào mắt hoặc vùng da đang tổn thương.
 
-Không mua chỉ vì tên sản phẩm nghe hợp nhu cầu. Trên trang sản phẩm, xem loại sản phẩm, mô tả, thương hiệu/nhãn, thành phần nếu được cung cấp, cách dùng, cảnh báo và giá. Nếu thiếu thông tin cụ thể, chatbot phải nói rõ chưa có dữ liệu.
+Không mua chỉ vì tên sản phẩm nghe hợp nhu cầu. Trên trang sản phẩm, xem loại sản phẩm, mô tả, thương hiệu/nhãn, thành phần nếu được cung cấp, cách dùng, cảnh báo và giá. Nếu thông tin chưa đủ để tư vấn chính xác, chatbot nên hỏi khách xem nhãn/trang chi tiết hoặc liên hệ nhân viên; không tự suy đoán.
 
 ## 4. Thứ tự dùng cơ bản
 

@@ -28,14 +28,14 @@
         <h3 class="sidebar-title"><i class="fas fa-filter"></i> Lọc theo nhóm</h3>
 
         <label class="sidebar-option sidebar-option--all">
-          <a th:href="@{/products}" class="sidebar-option__label" style="text-decoration: none; color: inherit; display: block; width: 100%;">
+          <a th:href="@{/products(keyword=${keyword},sale=${saleOnly},discounted=${discountedOnly},minPrice=${minPrice},maxPrice=${maxPrice},storeId=${selectedStoreId},sort=${sort})}" class="sidebar-option__label" style="text-decoration: none; color: inherit; display: block; width: 100%;">
             <strong style="font-weight: bold;">Tất cả sản phẩm</strong>
           </a>
         </label>
 
         <ul class="sidebar-tree" id="sidebarTree">
             <li th:each="cat : ${categories}" class="sidebar-tree-item">
-                <a th:href="@{/products(categoryId=${cat.id})}" th:text="${cat.name}">Tên danh mục</a>
+                <a th:href="@{/products(categoryId=${cat.id},keyword=${keyword},sale=${saleOnly},discounted=${discountedOnly},minPrice=${minPrice},maxPrice=${maxPrice},storeId=${selectedStoreId},sort=${sort})}" th:text="${cat.name}">Tên danh mục</a>
             </li>
         </ul>
       </aside>
@@ -52,6 +52,10 @@
           <form th:action="@{/products}" method="GET" class="products-search-form">
             <input th:if="${selectedCategoryId != null}" type="hidden" name="categoryId" th:value="${selectedCategoryId}">
             <input th:if="${saleOnly}" type="hidden" name="sale" value="true">
+            <input th:if="${discountedOnly}" type="hidden" name="discounted" value="true">
+            <input th:if="${minPrice != null}" type="hidden" name="minPrice" th:value="${minPrice}">
+            <input th:if="${maxPrice != null}" type="hidden" name="maxPrice" th:value="${maxPrice}">
+            <input th:if="${selectedStoreId != null}" type="hidden" name="storeId" th:value="${selectedStoreId}">
             <div class="search-inline">
               <i class="fas fa-search"></i>
               <input type="search" name="keyword" th:value="${keyword}" placeholder="Tìm theo tên, mã hoặc mô tả...">
@@ -62,6 +66,7 @@
                 <option value="newest" th:selected="${sort == 'newest'}">Mới nhất</option>
                 <option value="price_asc" th:selected="${sort == 'price_asc'}">Giá tăng dần</option>
                 <option value="price_desc" th:selected="${sort == 'price_desc'}">Giá giảm dần</option>
+                <option value="best_seller" th:selected="${sort == 'best_seller'}">Bán chạy</option>
                 <option value="name" th:selected="${sort == 'name'}">Tên A-Z</option>
               </select>
             </label>
@@ -75,6 +80,36 @@
         <p class="search-context" th:if="${keyword != null && !keyword.isBlank()}" th:text="${'Kết quả cho “' + keyword + '”'}">Kết quả tìm kiếm</p>
         <p class="search-context" th:if="${saleOnly}">Sản phẩm đang có ưu đãi</p>
         </div>
+
+        <details class="products-advanced-filter" th:open="${minPrice != null or maxPrice != null or selectedStoreId != null or discountedOnly or saleOnly}">
+          <summary><i class="fas fa-sliders-h" aria-hidden="true"></i> Bộ lọc nâng cao</summary>
+          <form th:action="@{/products}" method="get" class="advanced-filter-form">
+            <input th:if="${keyword != null}" type="hidden" name="keyword" th:value="${keyword}">
+            <input th:if="${selectedCategoryId != null}" type="hidden" name="categoryId" th:value="${selectedCategoryId}">
+            <input type="hidden" name="sort" th:value="${sort}">
+            <input th:if="${saleOnly}" type="hidden" name="sale" value="true">
+            <label>Giá từ (đ)
+              <input type="number" name="minPrice" min="0" step="1000" inputmode="numeric" placeholder="Không giới hạn" th:value="${minPrice}">
+            </label>
+            <label>Đến giá (đ)
+              <input type="number" name="maxPrice" min="0" step="1000" inputmode="numeric" placeholder="Không giới hạn" th:value="${maxPrice}">
+            </label>
+            <label>Chi nhánh còn hàng
+              <select name="storeId">
+                <option value="">Tất cả chi nhánh</option>
+                <option th:each="store : ${stores}" th:value="${store.id}" th:selected="${store.id == selectedStoreId}" th:text="${store.name + (store.district != null ? ' · ' + store.district : '')}">Chi nhánh</option>
+              </select>
+            </label>
+            <label class="advanced-filter-sale">
+              <input type="checkbox" name="discounted" value="true" th:checked="${discountedOnly or saleOnly}">
+              Chỉ xem sản phẩm đang giảm giá
+            </label>
+            <div class="advanced-filter-actions">
+              <button type="submit" class="btn-submit-search">Áp dụng bộ lọc</button>
+              <a th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sort=${sort})}">Xóa bộ lọc nâng cao</a>
+            </div>
+          </form>
+        </details>
 
         <div class="products-grid" id="productsGrid">
             <div class="product-card" th:each="product : ${products}">
@@ -99,9 +134,9 @@
 
         <!-- PAGINATION -->
         <nav class="pagination" id="pagination" aria-label="Phân trang" th:if="${totalPages > 1}">
-          <a class="page-link" th:if="${currentPage > 0}" th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sale=${saleOnly},sort=${sort},page=${currentPage - 1})}" aria-label="Trang trước">‹</a>
-          <a class="page-link" th:each="pageNumber : ${pageNumbers}" th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sale=${saleOnly},sort=${sort},page=${pageNumber})}" th:text="${pageNumber + 1}" th:classappend="${pageNumber == currentPage} ? ' is-active' : ''">1</a>
-          <a class="page-link" th:if="${currentPage + 1 < totalPages}" th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sale=${saleOnly},sort=${sort},page=${currentPage + 1})}" aria-label="Trang sau">›</a>
+          <a class="page-link" th:if="${currentPage > 0}" th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sale=${saleOnly},discounted=${discountedOnly},minPrice=${minPrice},maxPrice=${maxPrice},storeId=${selectedStoreId},sort=${sort},page=${currentPage - 1})}" aria-label="Trang trước">‹</a>
+          <a class="page-link" th:each="pageNumber : ${pageNumbers}" th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sale=${saleOnly},discounted=${discountedOnly},minPrice=${minPrice},maxPrice=${maxPrice},storeId=${selectedStoreId},sort=${sort},page=${pageNumber})}" th:text="${pageNumber + 1}" th:classappend="${pageNumber == currentPage} ? ' is-active' : ''">1</a>
+          <a class="page-link" th:if="${currentPage + 1 < totalPages}" th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sale=${saleOnly},discounted=${discountedOnly},minPrice=${minPrice},maxPrice=${maxPrice},storeId=${selectedStoreId},sort=${sort},page=${currentPage + 1})}" aria-label="Trang sau">›</a>
         </nav>
 
       </section>
