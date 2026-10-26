@@ -34,8 +34,18 @@ public class RoleAssistantService {
                     + "|(?:tiết lộ|show|reveal)\\s+(?:prompt|chỉ dẫn hệ thống|system prompt)");
     private static final java.util.regex.Pattern UNSUPPORTED_TOPIC = java.util.regex.Pattern.compile(
             "(?iu)(?:học toán|giải toán|bài tập toán|\\bmath(?:ematics)?\\b|phương trình|định lý|lập trình|mã nguồn|source code|coding|database|cơ sở dữ liệu|\\bapi\\b|endpoint|framework|docker|debug|chính trị|bầu cử|tình yêu|hẹn hò|bóng đá|\\b(?:soccer|football|politics|dating)\\b|đầu tư chứng khoán|chẩn đoán bệnh|kê đơn thuốc)");
+    private static final List<String> CUSTOMER_TOPICS = List.of(
+            "my pham", "san pham", "cham soc", "duong da", "skincare", "haircare", "toc", "cham toc",
+            "duong toc", "dau goi", "dau xa", "moi", "son", "trang diem", "makeup", "kem", "serum",
+            "toner", "chong nang", "sua rua mat", "mat na", "tinh chat", "tay trang", "duong am", "loai da",
+            "da dau", "da kho", "da nhay cam", "mun", "thanh phan", "cach dung", "su dung", "routine",
+            "tu van", "gia", "don hang", "gio hang", "mua hang", "thanh toan", "giao hang", "doi tra",
+            "cua hang", "chi nhanh", "tim cua hang", "gan nhat", "dia chi", "vi tri", "gps", "ban do",
+            "nhan tai cua hang", "lay hang tai cua hang", "khuyen mai", "uu dai", "tich diem", "diem thuong",
+            "voucher", "ship", "lam dep", "dep da", "da dep", "lo trinh da dep", "cham soc sac dep",
+            "lo trinh cham soc da", "routine da", "duong da hang ngay");
     private static final Map<String, List<String>> ROLE_TOPICS = Map.of(
-            "customer", List.of("my pham", "san pham", "cham soc", "duong da", "skincare", "haircare", "toc", "cham toc", "duong toc", "dau goi", "dau xa", "moi", "son", "trang diem", "makeup", "kem", "serum", "toner", "chong nang", "sua rua mat", "mat na", "tinh chat", "tay trang", "duong am", "loai da", "da dau", "da kho", "da nhay cam", "mun", "thanh phan", "cach dung", "su dung", "routine", "tu van", "gia", "don hang", "gio hang", "mua hang", "thanh toan", "giao hang", "doi tra", "cua hang", "khuyen mai", "uu dai", "tich diem", "diem thuong", "voucher", "ship"),
+            "customer", CUSTOMER_TOPICS,
             "store-staff", List.of("ban tai quay", "ban hang", "hoa don", "thanh toan", "san pham", "khuyen mai", "don hang", "khach hang", "cua hang", "chi nhanh", "doi tra", "in hoa don", "ma giam gia", "giao hang", "ton kho", "ca lam", "nhan vien", "chuc nang", "thao tac"),
             "warehouse", List.of("kho", "ton kho", "nhap", "xuat", "nhap hang", "xuat hang", "dieu chuyen", "phieu", "sku", "don hang", "kiem ke", "chi nhanh", "san pham", "so luong", "nhan hang", "tra hang", "nha cung cap", "chuc nang", "thao tac"),
             "admin", List.of("quan tri", "he thong", "nguoi dung", "vai tro", "nhan su", "san pham", "danh muc", "chi nhanh", "kho", "don hang", "khuyen mai", "bao cao", "doanh thu", "phan quyen", "rag", "chatbot", "tinh nang", "cai dat", "cau hinh", "hoa don", "thao tac"));
@@ -264,7 +274,7 @@ public class RoleAssistantService {
 
     private String greetingTopics(String role) {
         return switch (role) {
-            case "customer" -> "tìm hiểu sản phẩm, cách sử dụng và chính sách mua hàng";
+            case "customer" -> "chăm sóc da, tóc, môi, chọn sản phẩm, tìm chi nhánh và đặt hàng";
             case "store-staff" -> "sử dụng chức năng bán hàng, hóa đơn và chương trình khuyến mãi";
             case "warehouse" -> "quản lý tồn kho, nhập hàng và xử lý đơn";
             case "admin" -> "quản lý hệ thống, nhân sự và chương trình khuyến mãi";
