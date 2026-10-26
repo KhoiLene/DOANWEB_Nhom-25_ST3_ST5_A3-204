@@ -281,13 +281,13 @@
       });
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
       map.once('load', () => {
-        mapMessage.textContent = 'Bản đồ OpenFreeMap · dữ liệu © OpenMapTiles, © OpenStreetMap.';
+        mapMessage.textContent = 'Bản đồ OpenFreeMap · dữ liệu © OpenMapTiles, © OpenStreetMap. Gợi ý địa chỉ từ Photon.';
       });
       map.on('error', () => {
         mapMessage.textContent = 'Bản đồ đang tải chậm. Danh sách chi nhánh và tìm kiếm vẫn sử dụng được.';
       });
     } catch (_) {
-      mapMessage.textContent = 'Không tải được bản đồ. Danh sách chi nhánh và tìm kiếm vẫn dùng được.';
+        mapMessage.textContent = 'Không tải được bản đồ. Gợi ý địa chỉ từ Photon · dữ liệu OpenStreetMap; danh sách chi nhánh vẫn dùng được.';
     }
   }
 
