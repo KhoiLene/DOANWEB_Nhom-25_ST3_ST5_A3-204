@@ -165,7 +165,7 @@
                             <div class="countdown-box" id="seconds-box">00</div>
                         </div>
                     </div>
-                    <a href="#" class="btn btn-outline" style="padding: 8px 20px; font-size: 0.85rem;">Xem tất cả</a>
+                    <a th:href="@{/products(sale=true)}" class="btn btn-outline" style="padding: 8px 20px; font-size: 0.85rem;">Xem tất cả</a>
                 </div>
 
                 <div class="products-grid" id="flash-sale-products-container">
@@ -304,14 +304,11 @@
             
             <ul class="mobile-nav-list" id="mobile-navigation-menu">
                 <li><a th:href="@{/}" class="mobile-nav-link active">Trang chủ</a></li>
-                <li><a th:href="@{/products}" class="mobile-nav-link">Sản phẩm mới</a></li>
-                <li><a th:href="@{/products}" class="mobile-nav-link">Chăm sóc da</a></li>
-                <li><a th:href="@{/products}" class="mobile-nav-link">Chăm sóc tóc</a></li>
-                <li><a th:href="@{/products}" class="mobile-nav-link">Trang điểm</a></li>
-                <li><a th:href="@{/products}" class="mobile-nav-link">Chăm sóc cơ thể</a></li>
-                <li><a th:href="@{/products}" class="mobile-nav-link">Combo Quà tặng</a></li>
+                <li><a th:href="@{/products(sort='newest')}" class="mobile-nav-link">Sản phẩm mới</a></li>
+                <li th:each="category : ${navCategories}"><a th:href="@{/products(categoryId=${category.id})}" class="mobile-nav-link" th:text="${category.name}">Danh mục sản phẩm</a></li>
+                <li><a th:href="@{/products(sale=true)}" class="mobile-nav-link">Ưu đãi</a></li>
                 <li><a th:href="@{/about}" class="mobile-nav-link">Về TECHTRA</a></li>
-                <li><a href="#" class="mobile-nav-link">Hệ thống cửa hàng</a></li>
+                <li><a th:href="@{/stores}" class="mobile-nav-link">Hệ thống cửa hàng</a></li>
             </ul>
         </div>
     </div>
