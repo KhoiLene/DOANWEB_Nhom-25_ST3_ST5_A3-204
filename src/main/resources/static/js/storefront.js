@@ -23,6 +23,17 @@
     showMessage.timer = window.setTimeout(() => toast.classList.remove('is-visible'), 2800);
   }
 
+  function hideBrokenNavigationImage(image) {
+    if (!(image instanceof HTMLImageElement) || !image.matches('[data-nav-image]')) return;
+    image.hidden = true;
+    image.parentElement?.classList.add('has-image-error');
+  }
+
+  document.addEventListener('error', event => hideBrokenNavigationImage(event.target), true);
+  document.querySelectorAll('img[data-nav-image]').forEach(image => {
+    if (image.complete && image.naturalWidth === 0) hideBrokenNavigationImage(image);
+  });
+
   async function refreshCartCount() {
     try {
       const response = await fetch('/api/cart/summary', { credentials: 'same-origin' });

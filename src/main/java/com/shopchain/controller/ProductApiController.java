@@ -2,6 +2,8 @@ package com.shopchain.controller;
 
 import com.shopchain.entity.Product;
 import com.shopchain.service.ProductService;
+import com.shopchain.repository.UserRepository;
+import org.springframework.security.core.Authentication;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +18,11 @@ import java.util.Objects;
 public class ProductApiController {
 
     private final ProductService productService;
+    private final UserRepository userRepository;
 
-    public ProductApiController(ProductService productService) {
+    public ProductApiController(ProductService productService, UserRepository userRepository) {
         this.productService = productService;
+        this.userRepository = userRepository;
     }
 
     @GetMapping("/search")
@@ -32,7 +36,8 @@ public class ProductApiController {
     }
 
     @GetMapping("/search/suggestions")
-    public ResponseEntity<List<ProductSuggestion>> suggestions(@RequestParam(required = false) String keyword) {
+    public ResponseEntity<List<ProductSuggestion>> suggestions(@RequestParam(required = false) String keyword,
+                                                               Authentication authentication) {
         String query = keyword == null ? "" : keyword.trim();
         if (query.length() < 2 || query.length() > 100) return ResponseEntity.ok(List.of());
         Page<Product> page = productService.searchProducts(query, null, PageRequest.of(0, 6));
@@ -46,10 +51,17 @@ public class ProductApiController {
                     .limit(6)
                     .toList();
         }
+        int points = authentication == null || !authentication.isAuthenticated() ? 0
+                : userRepository.findByUsername(authentication.getName())
+                    .map(user -> user.getLoyaltyPoints() == null ? 0 : user.getLoyaltyPoints()).orElse(0);
         List<ProductSuggestion> suggestions = matches.stream()
                 .filter(Objects::nonNull)
-                .map(product -> new ProductSuggestion(product.getId(), product.getName(),
-                        product.getImageUrl(), product.getPrice()))
+                .map(product -> {
+                    boolean eligible = product.campaignEligibleFor(points);
+                    return new ProductSuggestion(product.getId(), product.getName(), product.getImageUrl(),
+                            product.effectivePrice(points), eligible ? product.getPrice() : product.effectivePrice(points),
+                            product.getDiscountPercent(), product.getCampaignName(), product.getCampaignAudience());
+                })
                 .toList();
         return ResponseEntity.ok(suggestions);
     }
@@ -65,5 +77,6 @@ public class ProductApiController {
         return ResponseEntity.ok(productService.getProductDetail(id));
     }
 
-    public record ProductSuggestion(Long id, String name, String imageUrl, Double price) { }
+    public record ProductSuggestion(Long id, String name, String imageUrl, Double price, Double originalPrice,
+                                    Double discountPercent, String campaignName, String campaignAudience) { }
 }

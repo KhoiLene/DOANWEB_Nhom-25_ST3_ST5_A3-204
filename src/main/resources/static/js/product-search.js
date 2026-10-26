@@ -56,9 +56,24 @@
           info.className = 'product-search-suggestion__info';
           const name = document.createElement('strong');
           name.textContent = product.name || 'Sản phẩm';
+          const prices = document.createElement('span');
+          prices.className = 'product-search-suggestion__prices';
+          if (Number(product.originalPrice) > Number(product.price)) {
+            const original = document.createElement('del');
+            original.textContent = formatPrice(product.originalPrice);
+            prices.append(original);
+          }
           const price = document.createElement('small');
           price.textContent = formatPrice(product.price);
-          info.append(name, price);
+          prices.append(price);
+          if (product.discountPercent) {
+            const campaign = document.createElement('span');
+            campaign.className = 'product-search-suggestion__campaign';
+            campaign.textContent = `${product.campaignName || 'Ưu đãi Techtra'} · ${product.campaignAudience === 'VIP' ? 'VIP' : 'Mọi khách hàng'}`;
+            prices.append(campaign);
+            if (product.campaignAudience === 'VIP') campaign.classList.add('product-search-suggestion__vip');
+          }
+          info.append(name, prices);
           link.append(image, info);
           panel.append(link);
         });

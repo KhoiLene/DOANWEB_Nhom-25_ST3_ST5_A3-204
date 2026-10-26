@@ -77,8 +77,20 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
                         .isActive(true)
                         .isFeatured(seed.featured())
                         .isFlashSale(seed.flashSale())
+                        .discountPercent(seed.flashSale() ? 10d : null)
+                        .campaignName(seed.flashSale() ? "Flash Sale Techtra" : null)
+                        .campaignAudience("ALL")
                         .category(categories.get(seed.category()))
                         .build();
+            }
+            // Keep legacy/demo catalog entries consistent with the Flash Sale flag while
+            // preserving any campaign values that an administrator has already set.
+            if (Boolean.TRUE.equals(product.getIsFlashSale())) {
+                if (product.getDiscountPercent() == null) product.setDiscountPercent(10d);
+                if (product.getCampaignName() == null || product.getCampaignName().isBlank())
+                    product.setCampaignName("Flash Sale Techtra");
+                if (product.getCampaignAudience() == null || product.getCampaignAudience().isBlank())
+                    product.setCampaignAudience("ALL");
             }
             if (product.getSku() == null || product.getSku().isBlank()) {
                 product.setSku("TECH-" + String.format("%04d", productIndex));

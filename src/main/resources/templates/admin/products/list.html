@@ -25,7 +25,14 @@
                         </td>
                         <td th:text="${p.name}">Sản phẩm A</td>
                         <td th:text="${p.category?.name}">Danh mục</td>
-                        <td th:text="${#numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                        <td>
+                            <strong th:text="${#numbers.formatDecimal(p.effectivePrice(0), 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
+                            <div th:if="${p.hasDiscountCampaign()}" style="color:#64748b; font-size:.78rem;">
+                                <span th:text="${p.campaignName}">Chương trình</span>
+                                <span> · </span>
+                                <span th:text="${p.campaignAudience == 'VIP' ? 'VIP' : 'Tất cả khách'}">Tất cả khách</span>
+                            </div>
+                        </td>
                         <td>
                             <span th:if="${p.isActive}" class="btn" style="background: #e8f5e9; color: #2e7d32; font-size: 0.7rem; padding: 4px 8px;">Hoạt động</span>
                             <span th:unless="${p.isActive}" class="btn" style="background: #ffebee; color: #c62828; font-size: 0.7rem; padding: 4px 8px;">Ngừng bán</span>

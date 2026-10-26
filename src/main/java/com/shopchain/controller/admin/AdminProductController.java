@@ -47,6 +47,24 @@ public class AdminProductController {
                               @RequestParam Long categoryId,
                               @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
                               Model model) {
+        if (product.getDiscountPercent() != null && (product.getDiscountPercent() <= 0 || product.getDiscountPercent() >= 100)) {
+            model.addAttribute("categories", categoryRepository.findAll());
+            model.addAttribute("title", product.getId() == null ? "Thêm sản phẩm mới" : "Chỉnh sửa sản phẩm");
+            model.addAttribute("activePage", "products");
+            model.addAttribute("content", "admin/products/form");
+            model.addAttribute("productFormError", "Mức giảm phải lớn hơn 0% và nhỏ hơn 100%.");
+            return "admin/layout";
+        }
+        if (product.getDiscountPercent() == null) {
+            product.setCampaignName(null);
+            product.setCampaignAudience("ALL");
+            product.setIsFlashSale(false);
+        } else {
+            product.setIsFlashSale(true);
+            if (product.getCampaignName() == null || product.getCampaignName().isBlank())
+                product.setCampaignName("Ưu đãi Techtra");
+            if (!"VIP".equalsIgnoreCase(product.getCampaignAudience())) product.setCampaignAudience("ALL");
+        }
         product.setCategory(categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại: " + categoryId)));
         // In a real scenario, you'd upload imageFile to Cloudinary here

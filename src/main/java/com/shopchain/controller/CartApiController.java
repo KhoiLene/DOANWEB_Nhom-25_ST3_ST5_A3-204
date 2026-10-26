@@ -71,8 +71,10 @@ public class CartApiController {
 
     private Map<String, Object> summary(Cart cart, String message) {
         int count = cart.getItems().stream().mapToInt(item -> item.getQuantity()).sum();
+        int loyaltyPoints = cart.getUser() == null || cart.getUser().getLoyaltyPoints() == null
+                ? 0 : cart.getUser().getLoyaltyPoints();
         double subtotal = cart.getItems().stream()
-                .mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity()).sum();
+                .mapToDouble(item -> item.getProduct().effectivePrice(loyaltyPoints) * item.getQuantity()).sum();
         Map<String, Object> result = new HashMap<>();
         result.put("count", count);
         result.put("subtotal", subtotal);

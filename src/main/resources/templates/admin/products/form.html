@@ -4,6 +4,7 @@
             <h3 style="margin: 0;" th:text="${product.id == null ? 'Thêm sản phẩm mới' : 'Chỉnh sửa sản phẩm'}">Thêm mới</h3>
         </div>
         <div class="card__body">
+            <div class="alert alert-danger" th:if="${productFormError}" th:text="${productFormError}"></div>
             <form th:action="@{/admin/products/save}" th:object="${product}" method="post" enctype="multipart/form-data">
                 <input type="hidden" th:field="*{id}">
 
@@ -24,6 +25,24 @@
                 <div class="form-group">
                     <label class="form-label">Giá bán <span style="color: red;">*</span></label>
                     <input type="number" step="0.01" th:field="*{price}" class="form-control" placeholder="Nhập giá sản phẩm..." required>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:18px 0; padding:16px; border:1px solid #dbe7fb; border-radius:12px; background:#f8fbff;">
+                    <div class="form-group">
+                        <label class="form-label">Giảm giá (%)</label>
+                        <input type="number" min="0.01" max="99.99" step="0.01" th:field="*{discountPercent}" class="form-control" placeholder="Để trống nếu không giảm">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tên chương trình</label>
+                        <input type="text" maxlength="120" th:field="*{campaignName}" class="form-control" placeholder="Ví dụ: Flash Sale cuối tuần">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Đối tượng áp dụng</label>
+                        <select th:field="*{campaignAudience}" class="form-control">
+                            <option value="ALL">Tất cả khách hàng</option>
+                            <option value="VIP">Khách VIP (từ 500 điểm)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -48,11 +67,7 @@
                             <input type="checkbox" th:field="*{isFeatured}"> Sản phẩm nổi bật
                         </label>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">
-                            <input type="checkbox" th:field="*{isFlashSale}"> Flash Sale
-                        </label>
-                    </div>
+                    <div class="form-group"><small class="form-label">Gắn mức giảm ở trên sẽ đưa sản phẩm vào danh sách ưu đãi.</small></div>
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">

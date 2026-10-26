@@ -1,0 +1,25 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="display(product, loyaltyPoints)">
+  <span class="product-campaign-corner product-campaign-corner--vip"
+        th:if="${product.hasDiscountCampaign() and product.campaignAudience == 'VIP'}"
+        aria-label="Ưu đãi dành riêng cho khách VIP">
+    <i class="fa-solid fa-crown" aria-hidden="true"></i> VIP
+  </span>
+  <div class="product-price-display">
+    <div class="product-price-display__amounts">
+      <span class="price-final"
+            th:text="${#numbers.formatDecimal(product.effectivePrice(loyaltyPoints), 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+      <span class="price-original"
+            th:if="${product.campaignEligibleFor(loyaltyPoints)}"
+            th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+      <span class="product-discount-pill"
+            th:if="${product.campaignEligibleFor(loyaltyPoints)}"
+            th:text="${'-' + #numbers.formatDecimal(product.discountPercent, 0, 'POINT', 0, 'POINT') + '%'}">-10%</span>
+    </div>
+    <div class="product-campaign-note" th:if="${product.hasDiscountCampaign()}">
+      <span th:text="${product.campaignName ?: 'Ưu đãi Techtra'}">Ưu đãi Techtra</span>
+      <span aria-hidden="true">·</span>
+      <span th:if="${product.campaignAudience == 'VIP'}">Dành riêng cho khách VIP</span>
+      <span th:unless="${product.campaignAudience == 'VIP'}">Áp dụng cho mọi khách hàng</span>
+    </div>
+  </div>
+</th:block>

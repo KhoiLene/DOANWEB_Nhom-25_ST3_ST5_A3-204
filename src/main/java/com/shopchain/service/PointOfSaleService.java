@@ -39,6 +39,9 @@ public class PointOfSaleService {
                 .status("COMPLETED").paymentMethod(paymentMethod).paymentStatus("PAID").totalAmount(0d).build();
         List<OrderItem> items = new ArrayList<>();
         List<SalesInvoiceLine> invoiceLines = new ArrayList<>();
+        int customerPoints = blankToNull(customerPhone) == null ? 0
+                : userRepository.findByPhone(blankToNull(customerPhone)).stream()
+                    .findFirst().map(user -> user.getLoyaltyPoints() == null ? 0 : user.getLoyaltyPoints()).orElse(0);
         double subtotal = 0;
         for (SaleLine requested : requestedLines) {
             if (requested.productId() == null || requested.quantity() == null || requested.quantity() <= 0)
@@ -49,7 +52,7 @@ public class PointOfSaleService {
             if (stock.getStockQuantity() < requested.quantity())
                 throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm: " + stock.getProduct().getName());
             stock.setStockQuantity(stock.getStockQuantity() - requested.quantity());
-            double unitPrice = stock.getPrice();
+            double unitPrice = stock.getProduct().effectivePrice(stock.getPrice(), customerPoints);
             double lineTotal = unitPrice * requested.quantity();
             subtotal += lineTotal;
             items.add(OrderItem.builder().order(order).product(stock.getProduct())

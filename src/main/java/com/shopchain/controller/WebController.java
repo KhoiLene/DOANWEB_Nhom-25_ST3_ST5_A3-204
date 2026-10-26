@@ -61,7 +61,8 @@ public class WebController {
     }
 
     @GetMapping("/")
-    public String index(Model model) {
+    public String index(Model model, Authentication authentication) {
+        model.addAttribute("customerLoyaltyPoints", customerLoyaltyPoints(authentication));
         // 1. Brand Core Values
         model.addAttribute("brandValues", homepageValueRepository.findByEnabledTrueOrderBySortOrderAsc());
 
@@ -94,7 +95,7 @@ public class WebController {
             @RequestParam(value = "minPrice", required = false) Double minPrice,
             @RequestParam(value = "maxPrice", required = false) Double maxPrice,
             @RequestParam(value = "storeId", required = false) Long storeId,
-            Model model) {
+            Model model, Authentication authentication) {
 
         String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
         String normalizedSort = List.of("newest", "price_asc", "price_desc", "name", "best_seller").contains(sort) ? sort : "newest";
@@ -124,6 +125,7 @@ public class WebController {
                 : productService.searchFilteredProducts(normalizedKeyword, categoryId, filterDiscounted,
                         safeMinPrice, safeMaxPrice, safeStoreId, pageable);
         model.addAttribute("products", productPage.getContent());
+        model.addAttribute("customerLoyaltyPoints", customerLoyaltyPoints(authentication));
         model.addAttribute("currentPage", safePage);
         model.addAttribute("totalPages", productPage.getTotalPages());
         model.addAttribute("totalResults", productPage.getTotalElements());
@@ -149,9 +151,10 @@ public class WebController {
     }
 
     @GetMapping("/product/{id}")
-    public String productDetail(@PathVariable Long id, Model model) {
+    public String productDetail(@PathVariable Long id, Model model, Authentication authentication) {
         Product product = productService.getProductDetail(id);
         model.addAttribute("product", product);
+        model.addAttribute("customerLoyaltyPoints", customerLoyaltyPoints(authentication));
         model.addAttribute("reviews", reviewService.getReviewsByProduct(id));
         model.addAttribute("avgRating", reviewService.getAverageRating(id));
         model.addAttribute("reviewCount", reviewService.countReviews(id));
@@ -184,13 +187,15 @@ public class WebController {
     @GetMapping("/cart")
     public String cart(Model model, Authentication authentication) {
         Long userId = currentUserId(authentication);
+        int points = customerLoyaltyPoints(authentication);
         Cart cart = cartService.getCart(userId);
         model.addAttribute("cart", cart);
         model.addAttribute("cartItems", cart.getItems());
+        model.addAttribute("customerLoyaltyPoints", points);
         model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
 
         double subtotal = cart.getItems().stream()
-                .mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity())
+                .mapToDouble(item -> item.getProduct().effectivePrice(points) * item.getQuantity())
                 .sum();
 
         model.addAttribute("subtotal", subtotal);
@@ -225,15 +230,17 @@ public class WebController {
     @GetMapping("/checkout")
     public String checkout(Model model, Authentication authentication) {
         Long userId = currentUserId(authentication);
+        int points = customerLoyaltyPoints(authentication);
         Cart cart = cartService.getCart(userId);
         if (cart.getItems().isEmpty()) return "redirect:/cart";
         model.addAttribute("cart", cart);
         model.addAttribute("cartItems", cart.getItems());
         model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
         model.addAttribute("customer", userRepository.findById(userId).orElseThrow());
+        model.addAttribute("customerLoyaltyPoints", points);
 
         double subtotal = cart.getItems().stream()
-                .mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity())
+                .mapToDouble(item -> item.getProduct().effectivePrice(points) * item.getQuantity())
                 .sum();
 
         model.addAttribute("subtotal", subtotal);
@@ -260,7 +267,9 @@ public class WebController {
             model.addAttribute("cartItems", cart.getItems());
             model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
             model.addAttribute("customer", userRepository.findById(currentUserId(authentication)).orElseThrow());
-            double subtotal = cart.getItems().stream().mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity()).sum();
+            int points = customerLoyaltyPoints(authentication);
+            model.addAttribute("customerLoyaltyPoints", points);
+            double subtotal = cart.getItems().stream().mapToDouble(item -> item.getProduct().effectivePrice(points) * item.getQuantity()).sum();
             model.addAttribute("subtotal", subtotal);
             model.addAttribute("shipping", subtotal >= 500000 ? 0 : 30000);
             model.addAttribute("total", subtotal + (subtotal >= 500000 ? 0 : 30000));
@@ -399,6 +408,13 @@ public class WebController {
         return userRepository.findByUsername(authentication.getName())
                 .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản đang đăng nhập."))
                 .getId();
+    }
+
+    private int customerLoyaltyPoints(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) return 0;
+        return userRepository.findByUsername(authentication.getName())
+                .map(user -> user.getLoyaltyPoints() == null ? 0 : user.getLoyaltyPoints())
+                .orElse(0);
     }
 }
 /*

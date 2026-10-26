@@ -42,7 +42,7 @@
                     <span th:text="${item.product.name}">Tên sản phẩm</span>
                   </div>
                 </div>
-                <div class="col-price" th:text="${#numbers.formatDecimal(item.product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                <div class="col-price" th:text="${#numbers.formatDecimal(item.product.effectivePrice(customerLoyaltyPoints), 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
                 <div class="col-qty">
                   <form th:action="@{/cart/update}" method="post" class="cart-quantity-form">
                     <input type="hidden" name="productId" th:value="${item.product.id}" />
@@ -50,7 +50,7 @@
                     <button type="submit" class="btn-quantity-update">Cập nhật</button>
                   </form>
                 </div>
-                <div class="col-total" th:text="${#numbers.formatDecimal(item.product.price * item.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                <div class="col-total" th:text="${#numbers.formatDecimal(item.product.effectivePrice(customerLoyaltyPoints) * item.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
                 <div class="col-action">
                   <form th:action="@{/cart/remove}" method="post">
                     <input type="hidden" name="productId" th:value="${item.product.id}" />

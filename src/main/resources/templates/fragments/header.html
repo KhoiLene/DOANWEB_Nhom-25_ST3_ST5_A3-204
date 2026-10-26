@@ -3,6 +3,7 @@
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/assistant-widget.css}">
     <link rel="stylesheet" th:href="@{/css/theme.css}">
+    <link rel="stylesheet" th:href="@{/css/product-pricing.css}">
     <script defer th:src="@{/js/storefront.js}"></script>
     <script defer th:src="@{/js/product-search.js}"></script>
     <script defer th:src="@{/js/theme-toggle.js}"></script>
@@ -65,7 +66,7 @@
                                             <a th:href="@{/products(sale=true)}" class="menu-type-new__title">Xem tất cả</a>
                                             <div class="menu-type-1__content" id="saleMenuMount">
                                                 <a class="menu-type-1__content--item" th:each="product : ${navFlashSaleProducts}" th:href="@{/product/{id}(id=${product.id})}">
-                                                    <span class="menu-type-1__content--item__img"><img th:src="${product.imageUrl}" th:alt="${product.name}"></span>
+                                                    <span class="menu-type-1__content--item__img"><img data-nav-image th:src="${product.imageUrl}" th:alt="${product.name}"></span>
                                                     <span class="menu-type-1__content--item__title" th:text="${product.name}">Sản phẩm ưu đãi</span>
                                                 </a>
                                                 <p class="menu-empty" th:if="${#lists.isEmpty(navFlashSaleProducts)}">Ưu đãi mới sẽ sớm được cập nhật.</p>
@@ -128,14 +129,19 @@
                                             <div class="menu-type-2__content">
                                                 <div class="menu-type-2__left">
                                                     <div class="menu-type-2__list-menu news-menu__list" id="newsMenuMount">
-                                                        <ul><li><a th:href="@{/news}"><i class="fa-solid fa-newspaper"></i>Tất cả bài viết</a></li></ul>
-                                                        <ul><li th:each="category : ${navNewsCategories}"><a th:href="@{/news(categoryId=${category.id})}" th:text="${category.name}">Chủ đề</a></li></ul>
+                                                        <ul>
+                                                            <li><a th:href="@{/news}"><i class="fa-solid fa-newspaper"></i>Tất cả bài viết</a></li>
+                                                            <li th:each="category : ${navNewsCategories}"><a th:href="@{/news(categoryId=${category.id})}" th:text="${category.name}">Chủ đề</a></li>
+                                                        </ul>
                                                     </div>
                                                 </div>
-                                                <div class="menu-type-2__right" data-banner-container>
-                                                    <div class="menu-type-2__right--item" data-banner-item>
-                                                        <a th:href="@{/news}"><img th:src="@{/img/header/techtra-logo.png}" alt="Bài viết Techtra"></a>
-                                                    </div>
+                                                <div class="menu-type-2__right news-menu-feature">
+                                                    <a th:href="@{/news}" class="news-menu-feature__card">
+                                                        <span class="news-menu-feature__icon" aria-hidden="true"><i class="fa-solid fa-sparkles"></i></span>
+                                                        <span class="news-menu-feature__eyebrow">TECHTRA BEAUTY · GÓC LÀM ĐẸP</span>
+                                                        <strong>Chăm sóc mỗi ngày, bắt đầu từ điều phù hợp với bạn</strong>
+                                                        <span class="news-menu-feature__link">Khám phá bài viết <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                                                    </a>
                                                 </div>
                                             </div>
                                             <a th:href="@{/news}" class="menu-type-2__more">Tất cả bài viết</a>

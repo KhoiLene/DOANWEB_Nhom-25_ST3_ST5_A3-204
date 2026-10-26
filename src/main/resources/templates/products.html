@@ -119,9 +119,7 @@
                 <div class="product-info">
                     <span class="product-cat" th:text="${product.category?.name}">Danh mục</span>
                     <h3 class="product-title" th:text="${product.name}">Tên sản phẩm</h3>
-                    <div class="product-price-group">
-                        <span class="price-final" th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
-                    </div>
+                    <th:block th:replace="~{fragments/product-pricing :: display(${product}, ${customerLoyaltyPoints})}"></th:block>
                     <button type="button" class="quick-add-to-cart" data-add-to-cart th:attr="data-product-id=${product.id}"><i class="fas fa-cart-plus"></i> Thêm vào giỏ</button>
                 </div>
             </div>

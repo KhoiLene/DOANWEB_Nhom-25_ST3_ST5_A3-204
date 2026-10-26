@@ -85,9 +85,10 @@ public class OrderServiceImpl implements OrderService {
             if (inventory.getStockQuantity() < item.getQuantity())
                 throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm " + item.getProduct().getName());
             inventory.setStockQuantity(inventory.getStockQuantity() - item.getQuantity());
-            total += inventory.getPrice() * item.getQuantity();
+            double unitPrice = item.getProduct().effectivePrice(inventory.getPrice(), user.getLoyaltyPoints());
+            total += unitPrice * item.getQuantity();
             order.getOrderItems().add(OrderItem.builder().order(order).product(item.getProduct())
-                    .quantity(item.getQuantity()).price(inventory.getPrice()).build());
+                    .quantity(item.getQuantity()).price(unitPrice).build());
         }
         order.setTotalAmount(total);
         Order saved = orderRepository.save(order);
@@ -155,16 +156,17 @@ public class OrderServiceImpl implements OrderService {
         for (CartItem item : cart.getItems()) {
             ProductInventory inv = inventoryRepository.findByProductIdAndStoreId(item.getProduct().getId(), storeId).get();
 
+            double unitPrice = item.getProduct().effectivePrice(inv.getPrice(), user.getLoyaltyPoints());
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(item.getProduct())
                     .quantity(item.getQuantity())
-                    .price(inv.getPrice())
+                    .price(unitPrice)
                     .build();
 
             order.getOrderItems().add(orderItem);
 
-            total += inv.getPrice() * item.getQuantity();
+            total += unitPrice * item.getQuantity();
             inv.setStockQuantity(inv.getStockQuantity() - item.getQuantity());
             inventoryRepository.save(inv);
             // Note: orderItem saving logic would normally be handled by JPA cascade

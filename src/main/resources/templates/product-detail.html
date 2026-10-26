@@ -160,12 +160,8 @@
           </button>
         </div>
 
-        <div class="price-box">
-          <div class="price-row">
-            <span class="final-price" id="finalPrice" th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
-            <span class="old-price" id="oldPrice" style="display:none;"></span>
-          </div>
-          <span class="discount-badge" id="discountBadge" style="display:none;"></span>
+        <div class="price-box" id="priceBox">
+          <th:block th:replace="~{fragments/product-pricing :: display(${product}, ${customerLoyaltyPoints})}"></th:block>
         </div>
 
         <div class="stock-info" id="stockInfo">Đang cập nhật kho hàng</div>
@@ -219,7 +215,7 @@
                   <span class="product-cat" th:text="${rel.category?.name}">Danh mục</span>
                   <h3 class="product-title" th:text="${rel.name}">Tên sản phẩm</h3>
                   <div class="product-price-group">
-                      <span class="price-final" th:text="${#numbers.formatDecimal(rel.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                      <th:block th:replace="~{fragments/product-pricing :: display(${rel}, ${customerLoyaltyPoints})}"></th:block>
                   </div>
                   <button type="button" class="quick-add-to-cart" data-add-to-cart th:attr="data-product-id=${rel.id}"><i class="fas fa-cart-plus"></i> Thêm vào giỏ</button>
               </div>
@@ -241,7 +237,7 @@
   <div id="stickyBar" role="complementary" aria-label="Thanh mua nhanh">
     <div class="sticky-info">
       <div id="stickyName" th:text="${product.name}"></div>
-      <div id="stickyPrice" th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'"></div>
+      <div id="stickyPrice" th:text="${#numbers.formatDecimal(product.effectivePrice(customerLoyaltyPoints), 0, 'COMMA', 0, 'POINT')} + ' đ'"></div>
     </div>
     <div class="sticky-btns">
       <button class="btn-outline" id="stickyAddCart" type="button" th:attr="data-product-id=${product.id}">

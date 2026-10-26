@@ -148,7 +148,7 @@
                     <span th:text="${item.product.name}">Tên sản phẩm</span>
                     <span class="item-qty" th:text="${'x' + item.quantity}">x1</span>
                   </div>
-                  <span class="item-price" th:text="${#numbers.formatDecimal(item.product.price * item.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                  <span class="item-price" th:text="${#numbers.formatDecimal(item.product.effectivePrice(customerLoyaltyPoints) * item.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
                 </div>
               </div>
               <div class="aside-divider"></div>
