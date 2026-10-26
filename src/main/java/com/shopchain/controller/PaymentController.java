@@ -5,6 +5,7 @@ import com.shopchain.entity.Order;
 import com.shopchain.repository.OrderRepository;
 import com.shopchain.service.PaymentService;
 import com.shopchain.service.InvoiceService;
+import com.shopchain.service.LoyaltyService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,11 +18,14 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final OrderRepository orderRepository;
     private final InvoiceService invoiceService;
+    private final LoyaltyService loyaltyService;
 
-    public PaymentController(PaymentService paymentService, OrderRepository orderRepository, InvoiceService invoiceService) {
+    public PaymentController(PaymentService paymentService, OrderRepository orderRepository,
+                             InvoiceService invoiceService, LoyaltyService loyaltyService) {
         this.paymentService = paymentService;
         this.orderRepository = orderRepository;
         this.invoiceService = invoiceService;
+        this.loyaltyService = loyaltyService;
     }
 
     @GetMapping("/vnpay")
@@ -52,6 +56,7 @@ public class PaymentController {
                 order.setPaymentStatus("PAID");
                 order.setStatus("CONFIRMED"); // Chuyển sang xác nhận sau khi trả tiền
                 orderRepository.save(order);
+                loyaltyService.awardForPaidOrder(order.getId());
                 invoiceService.issueForPaidOrder(order.getId());
                 return ResponseEntity.ok("Payment Successful! Your order is being processed.");
             }

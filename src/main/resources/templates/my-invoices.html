@@ -1,1 +1,46 @@
-<!DOCTYPE html><html lang="vi" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Biên nhận của tôi</title><style>body{font:15px Arial,sans-serif;background:#f8f7f9;color:#282336}.wrap{max-width:980px;margin:36px auto;background:#fff;padding:28px;border-radius:14px}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:12px;border-bottom:1px solid #eee}a{color:#743b73}</style></head><body><main class="wrap"><h1>Biên nhận của tôi</h1><p><a th:href="@{/profile}">Quay lại tài khoản</a></p><table><thead><tr><th>Mã biên nhận</th><th>Ngày</th><th>Chi nhánh</th><th>Tổng tiền</th><th></th></tr></thead><tbody><tr th:each="invoice : ${invoices}"><td th:text="${invoice.invoiceNumber}">WEB-1</td><td th:text="${#temporals.format(invoice.issuedAt,'dd/MM/yyyy HH:mm')}">Ngày</td><td th:text="${invoice.order.store.name}">Chi nhánh</td><td th:text="${#numbers.formatDecimal(invoice.totalAmount,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</td><td><a th:href="@{/my/invoices/{id}(id=${invoice.id})}">Xem / in</a></td></tr><tr th:if="${#lists.isEmpty(invoices)}"><td colspan="5">Chưa có biên nhận đã phát hành. Biên nhận trực tuyến được phát hành sau khi xác nhận thanh toán.</td></tr></tbody></table></main></body></html>
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biên nhận của tôi | Techtra Beauty</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" th:href="@{/css/customer-account.css}">
+  <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+  <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+  <style>
+    .invoice-panel{margin-top:18px;padding:22px;border:1px solid #dbe4f0;border-radius:16px;background:#fff;box-shadow:0 8px 24px rgba(37,99,235,.06);overflow-x:auto}
+    .invoice-table{width:100%;border-collapse:collapse;min-width:680px;color:#26364b}
+    .invoice-table th,.invoice-table td{padding:13px 12px;border-bottom:1px solid #e9eef5;text-align:left;font-size:.84rem}
+    .invoice-table th{background:#f6f8fb;color:#526277;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+    .invoice-table tbody tr:last-child td{border-bottom:0}
+    .invoice-table a{color:#2563eb;font-weight:700}
+    .invoice-back{display:inline-flex;margin-top:14px;color:#2563eb;font-size:.85rem;font-weight:700}
+  </style>
+</head>
+<body>
+  <div th:replace="~{fragments/header :: header}"></div>
+  <main class="account-page">
+    <section class="account-welcome">
+      <div><span class="account-eyebrow">TÀI KHOẢN CỦA BẠN</span><h1>Biên nhận mua hàng</h1><p>Các biên nhận đã phát hành cho những đơn hàng của bạn.</p></div>
+      <a class="account-link-button" th:href="@{/profile}"><i class="fa-solid fa-arrow-left"></i> Tài khoản</a>
+    </section>
+    <section class="invoice-panel">
+      <table class="invoice-table">
+        <thead><tr><th>Mã biên nhận</th><th>Ngày phát hành</th><th>Chi nhánh</th><th>Tổng tiền</th><th></th></tr></thead>
+        <tbody>
+          <tr th:each="invoice : ${invoices}">
+            <td th:text="${invoice.invoiceNumber}">WEB-1</td>
+            <td th:text="${#temporals.format(invoice.issuedAt,'dd/MM/yyyy HH:mm')}">Ngày</td>
+            <td th:text="${invoice.order.store.name}">Chi nhánh</td>
+            <td th:text="${#numbers.formatDecimal(invoice.totalAmount,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</td>
+            <td><a th:href="@{/my/invoices/{id}(id=${invoice.id})}">Xem / in</a></td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(invoices)}"><td colspan="5" class="account-empty">Chưa có biên nhận đã phát hành. Biên nhận trực tuyến được phát hành sau khi đơn hàng thanh toán thành công.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+  <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -15,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import com.shopchain.repository.UserRepository;
 import java.time.Duration;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Controller
 public class WebController {
@@ -33,13 +35,14 @@ public class WebController {
     private final StoreRepository storeRepository;
     private final OrderService orderService;
     private final SalesInvoiceRepository salesInvoiceRepository;
+    private final CustomerProgramService customerProgramService;
 
     public WebController(ProductService productService, NewsService newsService, AboutService aboutService,
                          CartService cartService, AuthService authService, HomepageValueRepository homepageValueRepository,
                          HomepagePromoBannerRepository promoBannerRepository, HomepageBlogRepository homepageBlogRepository,
                          CategoryRepository categoryRepository, ReviewService reviewService,
                          UserRepository userRepository, StoreRepository storeRepository, OrderService orderService,
-                         SalesInvoiceRepository salesInvoiceRepository) {
+                         SalesInvoiceRepository salesInvoiceRepository, CustomerProgramService customerProgramService) {
         this.productService = productService;
         this.newsService = newsService;
         this.aboutService = aboutService;
@@ -54,6 +57,7 @@ public class WebController {
         this.storeRepository = storeRepository;
         this.orderService = orderService;
         this.salesInvoiceRepository = salesInvoiceRepository;
+        this.customerProgramService = customerProgramService;
     }
 
     @GetMapping("/")
@@ -84,15 +88,39 @@ public class WebController {
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "categoryId", required = false) Long categoryId,
             @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "sort", defaultValue = "newest") String sort,
+            @RequestParam(value = "sale", defaultValue = "false") boolean saleOnly,
             Model model) {
 
-        var productPage = productService.searchProducts(keyword, categoryId, PageRequest.of(page, 12));
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        String normalizedSort = List.of("newest", "price_asc", "price_desc", "name").contains(sort) ? sort : "newest";
+        Sort order = switch (normalizedSort) {
+            case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
+            case "price_desc" -> Sort.by(Sort.Direction.DESC, "price");
+            case "name" -> Sort.by(Sort.Direction.ASC, "name");
+            default -> Sort.by(Sort.Direction.DESC, "id");
+        };
+        int safePage = Math.max(0, page);
+        var productPage = productService.searchProducts(normalizedKeyword, categoryId, saleOnly,
+                PageRequest.of(safePage, 12, order));
         model.addAttribute("products", productPage.getContent());
-        model.addAttribute("currentPage", page);
+        model.addAttribute("currentPage", safePage);
         model.addAttribute("totalPages", productPage.getTotalPages());
+        model.addAttribute("totalResults", productPage.getTotalElements());
         model.addAttribute("categories", categoryRepository.findAll());
+        model.addAttribute("keyword", normalizedKeyword);
+        model.addAttribute("selectedCategoryId", categoryId);
+        model.addAttribute("sort", normalizedSort);
+        model.addAttribute("saleOnly", saleOnly);
+        model.addAttribute("pageNumbers", IntStream.range(0, productPage.getTotalPages()).boxed().toList());
 
         return "products";
+    }
+
+    @GetMapping("/search")
+    public String search(@RequestParam(value = "keyword", required = false) String keyword) {
+        return "redirect:/products" + (keyword == null || keyword.isBlank() ? "" : "?keyword=" +
+                java.net.URLEncoder.encode(keyword.trim(), java.nio.charset.StandardCharsets.UTF_8));
     }
 
     @GetMapping("/product/{id}")
@@ -153,6 +181,16 @@ public class WebController {
         return "redirect:/cart";
     }
 
+    @PostMapping("/cart/update")
+    public String updateCart(@RequestParam Long productId, @RequestParam Integer quantity, Authentication authentication) {
+        if (quantity == null || quantity < 1) {
+            cartService.removeFromCart(currentUserId(authentication), productId);
+        } else {
+            cartService.updateQuantity(currentUserId(authentication), productId, quantity);
+        }
+        return "redirect:/cart";
+    }
+
     @PostMapping("/cart/clear")
     public String clearCart(Authentication authentication) {
         cartService.clearCart(currentUserId(authentication));
@@ -161,9 +199,13 @@ public class WebController {
 
     @GetMapping("/checkout")
     public String checkout(Model model, Authentication authentication) {
-        Cart cart = cartService.getCart(currentUserId(authentication));
+        Long userId = currentUserId(authentication);
+        Cart cart = cartService.getCart(userId);
+        if (cart.getItems().isEmpty()) return "redirect:/cart";
         model.addAttribute("cart", cart);
         model.addAttribute("cartItems", cart.getItems());
+        model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
+        model.addAttribute("customer", userRepository.findById(userId).orElseThrow());
 
         double subtotal = cart.getItems().stream()
                 .mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity())
@@ -190,6 +232,7 @@ public class WebController {
             model.addAttribute("cart", cart);
             model.addAttribute("cartItems", cart.getItems());
             model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
+            model.addAttribute("customer", userRepository.findById(currentUserId(authentication)).orElseThrow());
             double subtotal = cart.getItems().stream().mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity()).sum();
             model.addAttribute("subtotal", subtotal);
             model.addAttribute("shipping", subtotal >= 500000 ? 0 : 30000);
@@ -200,7 +243,8 @@ public class WebController {
     }
 
     @GetMapping("/order-success")
-    public String orderSuccess() {
+    public String orderSuccess(@RequestParam(required = false) Long orderId, Model model) {
+        model.addAttribute("orderId", orderId);
         return "order-success";
     }
 
@@ -243,7 +287,7 @@ public class WebController {
                 case "ROLE_ADMIN" -> "redirect:/admin/dashboard";
                 case "ROLE_WAREHOUSE" -> "redirect:/warehouse/inventory";
                 case "ROLE_STORE_STAFF" -> "redirect:/staff/orders";
-                default -> "redirect:/profile";
+                default -> "redirect:/";
             };
         } catch (Exception e) {
             model.addAttribute("error", "Invalid username or password");
@@ -295,7 +339,19 @@ public class WebController {
     }
 
     @GetMapping("/profile")
-    public String profile() {
+    public String profile(Model model, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        List<Order> orders = orderService.getUserOrders(user.getId(), PageRequest.of(0, 50)).getContent();
+        double totalSpent = orders.stream()
+                .filter(order -> "PAID".equalsIgnoreCase(order.getPaymentStatus()))
+                .filter(order -> !"CANCELLED".equalsIgnoreCase(order.getStatus()))
+                .mapToDouble(Order::getTotalAmount).sum();
+        int points = user.getLoyaltyPoints() == null ? 0 : user.getLoyaltyPoints();
+        model.addAttribute("customer", user);
+        model.addAttribute("customerOrders", orders);
+        model.addAttribute("promotionPrograms", customerProgramService.listFor(user.getId()));
+        model.addAttribute("totalSpent", totalSpent);
+        model.addAttribute("loyaltyTier", points >= 1500 ? "Kim cương" : points >= 500 ? "Vàng" : "Thành viên");
         return "profile";
     }
 

@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+.account-page { width: min(1240px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 60px; color: #1c2b40; font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', sans-serif; }
+.account-welcome { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 28px 32px; border: 1px solid #dbe4f0; border-radius: 18px; background: linear-gradient(110deg,#fff 55%,#f4f8ff); box-shadow: 0 8px 24px rgba(37,99,235,.07); }
+.account-eyebrow { color: #2563eb; font-size: .7rem; font-weight: 800; letter-spacing: .12em; }
+.account-welcome h1 { margin: 6px 0; color: #1c2b40; font: 700 clamp(1.6rem,3vw,2.25rem) Montserrat,sans-serif; }
+.account-welcome p { margin: 0; color: #5a6b7d; }
+.account-link-button { display: inline-flex; align-items: center; gap: 9px; padding: 12px 16px; border-radius: 10px; background: #2563eb; color: #fff; font-weight: 700; white-space: nowrap; }
+.account-link-button:hover { background: #1d4ed8; color: #fff; }
+.account-stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; margin: 18px 0; }
+.account-stat { display: flex; min-height: 128px; flex-direction: column; gap: 4px; padding: 18px; border: 1px solid #dbe4f0; border-radius: 14px; background: #fff; box-shadow: 0 6px 18px rgba(37,99,235,.05); }
+.account-stat > span { color: #5a6b7d; font-size: .8rem; font-weight: 700; }
+.account-stat strong { overflow: hidden; color: #1c2b40; font: 700 1.2rem Montserrat,sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.account-stat small { color: #738195; font-size: .72rem; }
+.account-stat--points { border-color: #e9d7b6; background: linear-gradient(135deg,#fff,#fffaf2); }
+.account-stat--points strong { color: #b47b28; font-size: 1.7rem; }
+.account-columns { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,.85fr); gap: 18px; align-items: start; }
+.account-panel { min-width: 0; padding: 22px; border: 1px solid #dbe4f0; border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgba(37,99,235,.06); }
+.account-panel__heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 18px; }
+.account-panel__heading h2 { margin: 4px 0 0; color: #1c2b40; font: 700 1.2rem Montserrat,sans-serif; }
+.account-panel__heading > a { color: #2563eb; font-size: .82rem; font-weight: 700; white-space: nowrap; }
+.account-panel__hint { color: #738195; font-size: .72rem; }
+.promotion-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.promotion-card { overflow: hidden; border: 1px solid #e5eaf1; border-radius: 12px; background: #fff; }
+.promotion-card > img { width: 100%; height: 130px; object-fit: cover; background: #f1f5f9; }
+.promotion-card__body { padding: 14px; }
+.promotion-card__tag { color: #b47b28; font-size: .66rem; font-weight: 800; letter-spacing: .1em; }
+.promotion-card h3 { min-height: 44px; margin: 7px 0 12px; color: #26364b; font: 700 .92rem/1.45 'Plus Jakarta Sans',sans-serif; }
+.promotion-card__actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.promotion-card__actions a { color: #2563eb; font-size: .75rem; font-weight: 700; }
+.join-promotion { min-height: 34px; padding: 7px 12px; border: 0; border-radius: 8px; background: #2563eb; color: white; font: 700 .75rem 'Plus Jakarta Sans',sans-serif; cursor: pointer; }
+.join-promotion:hover { background: #1d4ed8; }
+.joined-promotion { color: #23734c; font-size: .75rem; font-weight: 700; }
+.account-message { min-height: 18px; margin: 10px 0 0; color: #23734c; font-size: .8rem; }
+.account-empty { padding: 22px 12px; border: 1px dashed #dbe4f0; border-radius: 10px; color: #738195; text-align: center; font-size: .86rem; }
+.account-empty a { color: #2563eb; font-weight: 700; }
+.order-list { display: grid; gap: 10px; }
+.customer-order { padding: 14px; border: 1px solid #e5eaf1; border-radius: 11px; background: #fff; }
+.customer-order__top,.customer-order__details { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.customer-order__top strong { color: #26364b; font-size: .86rem; }
+.order-status { padding: 4px 8px; border-radius: 999px; background: #edf4ff; color: #2563eb; font-size: .66rem; font-weight: 800; }
+.customer-order__details { margin: 10px 0 7px; color: #738195; font-size: .72rem; }
+.customer-order__details strong { color: #1c2b40; font-size: .83rem; }
+.customer-order__items { overflow: hidden; color: #64748b; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+.account-footer-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 16px 20px; border: 1px solid #dbe4f0; border-radius: 13px; background: #fff; }
+.account-footer-actions div { display: flex; flex-direction: column; gap: 3px; }
+.account-footer-actions strong { color: #26364b; font-size: .82rem; }
+.account-footer-actions span { color: #738195; font-size: .76rem; }
+.account-logout { padding: 9px 13px; border: 1px solid #dbe4f0; border-radius: 9px; background: #fff; color: #526277; font: 700 .78rem 'Plus Jakarta Sans',sans-serif; cursor: pointer; }
+.account-logout:hover { border-color: #efb8b4; background: #fff5f4; color: #b42318; }
+@media(max-width: 900px) { .account-columns { grid-template-columns: 1fr; } .account-stats { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width: 600px) { .account-page { width: calc(100% - 28px); padding-top: 20px; } .account-welcome { align-items: flex-start; flex-direction: column; padding: 22px; } .account-stats { gap: 9px; } .account-stat { min-height: 115px; padding: 13px; } .account-stat strong { font-size: 1rem; } .account-stat--points strong { font-size: 1.45rem; } .account-panel { padding: 17px 14px; } .promotion-grid { grid-template-columns: 1fr; } .promotion-card { display: grid; grid-template-columns: 100px 1fr; } .promotion-card > img { height: 100%; min-height: 130px; } .promotion-card__body { padding: 12px; } .account-panel__hint { display: none; } .customer-order__details { align-items: flex-start; flex-direction: column; gap: 4px; } .account-footer-actions { align-items: flex-start; flex-direction: column; } }

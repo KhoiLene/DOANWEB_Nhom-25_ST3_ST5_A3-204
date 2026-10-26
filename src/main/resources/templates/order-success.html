@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đặt hàng thành công | Techtra Beauty</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+  <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+  <style>
+    .order-success{width:min(680px,calc(100% - 32px));margin:54px auto 72px;padding:40px 28px;text-align:center;border:1px solid #dbe4f0;border-radius:20px;background:#fff;box-shadow:0 12px 36px rgba(37,99,235,.09)}
+    .order-success__icon{width:72px;height:72px;margin:0 auto 18px;display:grid;place-items:center;border-radius:50%;background:#eaf7ee;color:#18854b;font-size:30px}
+    .order-success h1{margin:0;color:#1c2b40;font:700 clamp(1.5rem,4vw,2rem) Montserrat,'Plus Jakarta Sans',sans-serif}
+    .order-success p{color:#5a6b7d;line-height:1.7}
+    .order-success__number{margin:18px 0;padding:13px;border-radius:10px;background:#f6f8fb;color:#1c2b40;font-weight:700}
+    .order-success__actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:24px}
+    .order-success__actions a{padding:11px 16px;border-radius:9px;background:#2563eb;color:#fff;font-weight:700}
+    .order-success__actions a.secondary{border:1px solid #dbe4f0;background:#fff;color:#2563eb}
+  </style>
+</head>
+<body>
+  <div th:replace="~{fragments/header :: header}"></div>
+  <main class="order-success">
+    <div class="order-success__icon"><i class="fa-solid fa-check"></i></div>
+    <h1>Đơn hàng đã được ghi nhận</h1>
+    <p>Techtra Beauty đã nhận được đơn hàng của bạn. Bạn có thể theo dõi trạng thái trong tài khoản; điểm thưởng sẽ được cộng khi thanh toán thành công.</p>
+    <div class="order-success__number" th:if="${orderId != null}" th:text="${'Mã đơn hàng: #' + orderId}">Mã đơn hàng</div>
+    <div class="order-success__actions">
+      <a th:href="@{/profile}">Theo dõi đơn hàng</a>
+      <a class="secondary" th:href="@{/products}">Tiếp tục mua sắm</a>
+    </div>
+  </main>
+  <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

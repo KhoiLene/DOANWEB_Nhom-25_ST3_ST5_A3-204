@@ -8,9 +8,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap');
 
 :root {
-  --primary: #d70018;
-  --primary-dark: #b5000f;
-  --primary-hover: #fef2f2;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-hover: #eff6ff;
 
   --blue: #1a73e8;
   --text: #1f2937;
@@ -22,7 +22,7 @@
 
   --success: #16a34a;
   --warning: #f59e0b;
-  --danger: #d70018;
+  --danger: #b42318;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -87,6 +87,12 @@ img { max-width: 100%; display: block; }
 }
 
 .cart-items { min-width: 0; }
+.cart-quantity-form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cart-quantity-form input { width: 68px; min-height: 36px; padding: 5px 8px; border: 1px solid #cfd9e7; border-radius: 8px; font: inherit; text-align: center; }
+.btn-quantity-update { min-height: 34px; padding: 5px 8px; border-radius: 7px; background: #eff6ff; color: #2563eb; font-size: 11px; font-weight: 700; }
+.cart-promotion-note { padding: 14px; border: 1px solid #e9d7b6; border-radius: 12px; background: #fffaf2; }
+.cart-promotion-note p { margin: 6px 0; color: #5a6b7d; font-size: 13px; }
+.cart-promotion-note a { color: #2563eb; font-size: 13px; font-weight: 700; }
 
 /* ─── TABLE (desktop) ────────────────────────────────────────── */
 .cart-table {

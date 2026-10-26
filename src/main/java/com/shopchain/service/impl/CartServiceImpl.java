@@ -23,6 +23,7 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public Cart addToCart(Long userId, Long productId, Integer quantity) {
         requirePositive(quantity);
+        if (quantity > 99) throw new IllegalArgumentException("Mỗi sản phẩm chỉ có thể thêm tối đa 99 món một lần.");
         User user = userRepository.findById(userId).orElseThrow();
         Cart cart = cartRepository.findByUser(user).orElseGet(() -> {
             Cart newCart = Cart.builder().user(user).build();
@@ -30,12 +31,14 @@ public class CartServiceImpl implements CartService {
         });
 
         Product product = productRepository.findById(productId).orElseThrow();
+        if (Boolean.FALSE.equals(product.getIsActive())) throw new IllegalArgumentException("Sản phẩm hiện không còn được bán.");
 
         CartItem existingItem = cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(productId))
                 .findFirst().orElse(null);
 
         if (existingItem != null) {
+            if (existingItem.getQuantity() + quantity > 99) throw new IllegalArgumentException("Giỏ hàng giới hạn 99 món cho mỗi sản phẩm.");
             existingItem.setQuantity(existingItem.getQuantity() + quantity);
         } else {
             CartItem newItem = CartItem.builder()
@@ -52,13 +55,15 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public Cart updateQuantity(Long userId, Long productId, Integer quantity) {
         requirePositive(quantity);
+        if (quantity > 99) throw new IllegalArgumentException("Số lượng tối đa là 99.");
         User user = userRepository.findById(userId).orElseThrow();
         Cart cart = cartRepository.findByUser(user).orElseThrow();
 
-        cart.getItems().stream()
-                .filter(item -> item.getProduct().getId().equals(productId))
+        CartItem item = cart.getItems().stream()
+                .filter(cartItem -> cartItem.getProduct().getId().equals(productId))
                 .findFirst()
-                .ifPresent(item -> item.setQuantity(quantity));
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không có trong giỏ hàng."));
+        item.setQuantity(quantity);
 
         return cartRepository.save(cart);
     }
@@ -67,7 +72,8 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public void removeFromCart(Long userId, Long productId) {
         User user = userRepository.findById(userId).orElseThrow();
-        Cart cart = cartRepository.findByUser(user).orElseThrow();
+        Cart cart = cartRepository.findByUser(user).orElse(null);
+        if (cart == null) return;
         cart.getItems().removeIf(item -> item.getProduct().getId().equals(productId));
         cartRepository.save(cart);
     }
@@ -82,7 +88,8 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public void clearCart(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
-        Cart cart = cartRepository.findByUser(user).orElseThrow();
+        Cart cart = cartRepository.findByUser(user).orElse(null);
+        if (cart == null) return;
         cart.getItems().clear();
         cartRepository.save(cart);
     }

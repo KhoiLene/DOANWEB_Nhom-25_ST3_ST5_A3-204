@@ -26,6 +26,9 @@ public class User {
 
     private String fullName;
     private String phone;
+    @Builder.Default
+    @Column(name = "loyalty_points")
+    private Integer loyaltyPoints = 0;
     @Column(name = "is_active")
     private boolean enabled = false;
 

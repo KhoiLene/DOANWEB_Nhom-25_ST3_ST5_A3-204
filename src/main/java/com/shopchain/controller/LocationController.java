@@ -18,11 +18,13 @@ public class LocationController {
     }
 
     @GetMapping("/nearest")
-    public List<StoreResult> nearest(@RequestParam double latitude, @RequestParam double longitude) {
+    public List<StoreResult> nearest(@RequestParam double latitude, @RequestParam double longitude,
+                                     @RequestParam(defaultValue = "5") int limit) {
         return storeRepository.findByActiveTrueAndPickupEnabledTrueAndLatitudeIsNotNullAndLongitudeIsNotNull()
                 .stream()
                 .map(store -> result(store, distanceKm(latitude, longitude, store.getLatitude(), store.getLongitude())))
                 .sorted(Comparator.comparingDouble(StoreResult::distanceKm))
+                .limit(Math.min(5, Math.max(1, limit)))
                 .toList();
     }
 
@@ -37,8 +39,26 @@ public class LocationController {
                         || contains(store.getAddress(), normalized)
                         || contains(store.getDistrict(), normalized)
                         || contains(store.getCity(), normalized))
+                .sorted(Comparator.comparingInt(store -> searchRank(store, normalized)))
                 .map(store -> result(store, null))
+                .limit(5)
                 .toList();
+    }
+
+    private int searchRank(Store store, String query) {
+        if (query.isBlank()) return 4;
+        if (equals(store.getName(), query) || equals(store.getAddress(), query)) return 0;
+        if (startsWith(store.getName(), query) || startsWith(store.getAddress(), query)) return 1;
+        if (equals(store.getDistrict(), query) || equals(store.getCity(), query)) return 2;
+        return 3;
+    }
+
+    private boolean equals(String value, String query) {
+        return value != null && value.trim().equalsIgnoreCase(query);
+    }
+
+    private boolean startsWith(String value, String query) {
+        return value != null && value.toLowerCase(Locale.ROOT).startsWith(query);
     }
 
     private boolean contains(String value, String query) {

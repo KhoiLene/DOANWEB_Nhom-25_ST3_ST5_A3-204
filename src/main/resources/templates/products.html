@@ -49,10 +49,12 @@
             <i class="fas fa-sliders-h"></i> Lọc
           </button>
 
-          <form th:action="@{/products}" method="GET" style="display: flex; align-items: center; gap: 15px; flex-grow: 1; justify-content: center;">
+          <form th:action="@{/products}" method="GET" class="products-search-form">
+            <input th:if="${selectedCategoryId != null}" type="hidden" name="categoryId" th:value="${selectedCategoryId}">
+            <input th:if="${saleOnly}" type="hidden" name="sale" value="true">
             <div class="search-inline">
               <i class="fas fa-search"></i>
-              <input type="text" name="keyword" th:value="${keyword}" placeholder="Tìm sản phẩm...">
+              <input type="search" name="keyword" th:value="${keyword}" placeholder="Tìm theo tên, mã hoặc mô tả...">
             </div>
 
             <label class="sort-inline">Sắp xếp:
@@ -63,12 +65,15 @@
                 <option value="name" th:selected="${sort == 'name'}">Tên A-Z</option>
               </select>
             </label>
-            <button type="submit" class="btn-submit-search" style="display: none;">Tìm</button>
+            <button type="submit" class="btn-submit-search">Tìm kiếm</button>
           </form>
 
           <div class="toolbar-count">
-            <span th:text="${products.size()}">0</span> sản phẩm
+          <span th:text="${totalResults}">0</span> sản phẩm
           </div>
+
+        <p class="search-context" th:if="${keyword != null && !keyword.isBlank()}" th:text="${'Kết quả cho “' + keyword + '”'}">Kết quả tìm kiếm</p>
+        <p class="search-context" th:if="${saleOnly}">Sản phẩm đang có ưu đãi</p>
         </div>
 
         <div class="products-grid" id="productsGrid">
@@ -82,17 +87,22 @@
                     <div class="product-price-group">
                         <span class="price-final" th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
                     </div>
+                    <button type="button" class="quick-add-to-cart" data-add-to-cart th:attr="data-product-id=${product.id}"><i class="fas fa-cart-plus"></i> Thêm vào giỏ</button>
                 </div>
             </div>
         </div>
 
-        <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="empty-state" id="emptyState" th:if="${#lists.isEmpty(products)}">
           <i class="fas fa-box-open"></i>
           <p>Không có sản phẩm nào phù hợp.</p>
         </div>
 
         <!-- PAGINATION -->
-        <nav class="pagination" id="pagination" aria-label="Phân trang"></nav>
+        <nav class="pagination" id="pagination" aria-label="Phân trang" th:if="${totalPages > 1}">
+          <a class="page-link" th:if="${currentPage > 0}" th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sale=${saleOnly},sort=${sort},page=${currentPage - 1})}" aria-label="Trang trước">‹</a>
+          <a class="page-link" th:each="pageNumber : ${pageNumbers}" th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sale=${saleOnly},sort=${sort},page=${pageNumber})}" th:text="${pageNumber + 1}" th:classappend="${pageNumber == currentPage} ? ' is-active' : ''">1</a>
+          <a class="page-link" th:if="${currentPage + 1 < totalPages}" th:href="@{/products(keyword=${keyword},categoryId=${selectedCategoryId},sale=${saleOnly},sort=${sort},page=${currentPage + 1})}" aria-label="Trang sau">›</a>
+        </nav>
 
       </section>
     </div>

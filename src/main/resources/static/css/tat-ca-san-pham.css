@@ -301,6 +301,12 @@ main.all-wrapper {
  * ============================================================ */
 .all-main { min-width: 0; }
 
+.products-search-form { display: flex; align-items: center; gap: 12px; flex: 1; min-width: min(100%, 360px); }
+.btn-submit-search { min-height: 40px; padding: 8px 15px; border: 0; border-radius: 9px; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer; }
+.btn-submit-search:hover { filter: brightness(.94); }
+.search-context { margin: -6px 0 14px; color: #5a6b7d; font-size: .9rem; }
+.product-info .quick-add-to-cart { width: 100%; }
+
 .all-toolbar {
   display: flex;
   align-items: center;
@@ -623,6 +629,8 @@ main.all-wrapper {
   main.all-wrapper { padding: 20px; }
   .all-layout { grid-template-columns: 220px 1fr; gap: 18px; }
 }
+
+@media(max-width:768px) { .products-search-form { flex-wrap: wrap; } .products-search-form .search-inline { flex-basis: 100%; } .products-search-form .sort-inline { flex: 1; } }
 
 /* --- Mobile 768 — sidebar thành drawer, filter button hiện --- */
 @media (max-width: 768px) {

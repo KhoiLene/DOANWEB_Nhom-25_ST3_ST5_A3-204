@@ -1223,12 +1223,37 @@ body {
 @media (max-width: 992px) {
     .disable-max-992 { display: none !important; }
     .wrapper-header-mobile-top { display: block; }
+    .site-header__mobile { display: flex; }
+    .mobile-store-nav { display: flex; }
 
     .hero-section { height: 400px; }
     .hero-title { font-size: 30px; }
     .hero-content { padding: 0 20px; }
     .hero-desc { font-size: 14px; }
 }
+
+.site-header__mobile,
+.mobile-store-nav { display: none; }
+.site-header__mobile { min-height: 64px; align-items: center; gap: 12px; padding: 8px 16px; }
+.site-header__mobile .header-logo { flex: 0 0 auto; font-size: 1rem; }
+.mobile-search { flex: 1; min-width: 0; display: flex; height: 40px; border: 1px solid #dbe4f0; background: #f7f9fc; border-radius: 10px; overflow: hidden; }
+.mobile-search input { flex: 1; min-width: 0; width: 100%; border: 0; outline: 0; padding: 0 10px; background: transparent; color: #1c2b40; font: inherit; }
+.mobile-search button { width: 40px; display: grid; place-items: center; background: transparent; color: #2563eb; }
+.mobile-account,.mobile-cart { width: 38px; height: 40px; display: inline-grid; place-items: center; color: #2563eb; position: relative; }
+.mobile-cart .header-cart__count { position: absolute; top: 0; right: -3px; }
+.mobile-store-nav { overflow-x: auto; gap: 8px; padding: 0 16px 10px; border-bottom: 1px solid #e5eaf1; white-space: nowrap; }
+.mobile-store-nav a { padding: 7px 11px; border-radius: 999px; background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 700; }
+.header-customer-link { display: flex; align-items: center; gap: 7px; color: #2563eb; max-width: 120px; }
+.header-customer-link .header-custom_item__text { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.menu-parent:focus-within .site-header__main { display: block; }
+.quick-add-to-cart { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; margin-top: 10px; padding: 7px 12px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; font: 700 12px 'Be Vietnam Pro',sans-serif; cursor: pointer; }
+.quick-add-to-cart:hover { background: #1d4ed8; }
+.quick-add-to-cart:disabled { opacity: .65; cursor: wait; }
+#storefrontToast { position: fixed; right: 20px; bottom: 20px; z-index: 5000; max-width: min(420px,calc(100vw - 32px)); padding: 13px 17px; border-radius: 11px; background: #173b2c; color: #fff; box-shadow: 0 10px 32px rgba(15,23,42,.2); font: 600 14px 'Be Vietnam Pro',sans-serif; opacity: 0; transform: translateY(8px); pointer-events: none; transition: .2s ease; }
+#storefrontToast.is-visible { opacity: 1; transform: translateY(0); }
+#storefrontToast[data-kind="error"] { background: #9f2828; }
+@media(max-width: 992px) { .site-header__mobile,.mobile-store-nav { display: flex; } }
 
 @media (max-width: 768px) {
     .categories-grid { grid-template-columns: 1fr; }

@@ -12,6 +12,7 @@ public interface ProductService {
     Product createProductForStore(ProductRequest dto, MultipartFile imageFile, Long storeId) throws IOException;
     String uploadImage(MultipartFile file) throws IOException;
     Page<Product> searchProducts(String keyword, Long categoryId, Pageable pageable);
+    Page<Product> searchProducts(String keyword, Long categoryId, boolean saleOnly, Pageable pageable);
     Product getProductDetail(Long id);
     void deleteProduct(Long id);
     List<Product> getFlashSaleProducts();

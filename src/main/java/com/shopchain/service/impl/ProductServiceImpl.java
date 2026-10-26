@@ -79,14 +79,13 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Page<Product> searchProducts(String keyword, Long categoryId, Pageable pageable) {
-        if (keyword != null && categoryId != null) {
-            return productRepository.findByCategoryAndNameContaining(categoryId, keyword, pageable);
-        } else if (keyword != null) {
-            return productRepository.findByNameContainingIgnoreCase(keyword, pageable);
-        } else if (categoryId != null) {
-            return productRepository.findByCategoryId(categoryId, pageable);
-        }
-        return productRepository.findAll(pageable);
+        return searchProducts(keyword, categoryId, false, pageable);
+    }
+
+    @Override
+    public Page<Product> searchProducts(String keyword, Long categoryId, boolean saleOnly, Pageable pageable) {
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        return productRepository.searchActiveProducts(normalizedKeyword, categoryId, saleOnly, pageable);
     }
 
     @Override

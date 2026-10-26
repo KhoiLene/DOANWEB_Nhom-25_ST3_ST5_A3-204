@@ -184,7 +184,7 @@
         </div>
 
         <div class="cta-row">
-          <button class="btn-outline" id="btnAddCart" type="button">
+          <button class="btn-outline" id="btnAddCart" type="button" th:attr="data-product-id=${product.id}">
             <i class="fas fa-cart-plus"></i> Thêm vào giỏ
           </button>
           <button class="btn-primary" id="btnBuyNow" type="button">Mua ngay</button>
@@ -221,6 +221,7 @@
                   <div class="product-price-group">
                       <span class="price-final" th:text="${#numbers.formatDecimal(rel.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
                   </div>
+                  <button type="button" class="quick-add-to-cart" data-add-to-cart th:attr="data-product-id=${rel.id}"><i class="fas fa-cart-plus"></i> Thêm vào giỏ</button>
               </div>
           </div>
       </div>
@@ -243,7 +244,7 @@
       <div id="stickyPrice" th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'"></div>
     </div>
     <div class="sticky-btns">
-      <button class="btn-outline" id="stickyAddCart" type="button">
+      <button class="btn-outline" id="stickyAddCart" type="button" th:attr="data-product-id=${product.id}">
         <i class="fas fa-cart-plus"></i> Thêm vào giỏ
       </button>
       <button class="btn-primary" id="stickyBuyNow" type="button">Mua ngay</button>
@@ -283,25 +284,14 @@
         let qty = 1;
         const qtyVal = document.getElementById('qtyValue');
         document.getElementById('qtyMinus').onclick = () => { if(qty > 1) { qty--; qtyVal.innerText = qty; } };
-        document.getElementById('qtyPlus').onclick = () => { qty++; qtyVal.innerText = qty; };
+        document.getElementById('qtyPlus').onclick = () => { if(qty < 99) { qty++; qtyVal.innerText = qty; } };
 
-        // Cart Actions (API calls)
-        const addToCart = async () => {
-            const productId = [[${product.id}]];
-            const quantity = parseInt(qtyVal.innerText);
-            try {
-                const response = await fetch('/api/cart/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ productId, quantity })
-                });
-                if (response.ok) alert('Đã thêm vào giỏ hàng!');
-            } catch (e) { alert('Có lỗi xảy ra'); }
-        };
+        const addToCart = () => window.TechtraStorefront.addToCart([[${product.id}]], parseInt(qtyVal.innerText, 10));
         document.getElementById('btnAddCart').onclick = addToCart;
         document.getElementById('stickyAddCart').onclick = addToCart;
-        document.getElementById('btnBuyNow').onclick = () => { window.location.href = '/checkout'; };
-        document.getElementById('stickyBuyNow').onclick = () => { window.location.href = '/checkout'; };
+        const buyNow = async () => { if (await addToCart()) window.location.href = '/checkout'; };
+        document.getElementById('btnBuyNow').onclick = buyNow;
+        document.getElementById('stickyBuyNow').onclick = buyNow;
     });
   </script>
 </body>

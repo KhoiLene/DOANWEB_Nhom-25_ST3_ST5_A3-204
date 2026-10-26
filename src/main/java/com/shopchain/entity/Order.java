@@ -42,6 +42,10 @@ public class Order {
     private String deliveryAddress;
     private String deliveryCity;
 
+    @Builder.Default
+    @Column(name = "loyalty_points_awarded")
+    private Boolean loyaltyPointsAwarded = false;
+
     @ManyToOne
     @JoinColumn(name = "warehouse_id")
     private Warehouse fulfillmentWarehouse;

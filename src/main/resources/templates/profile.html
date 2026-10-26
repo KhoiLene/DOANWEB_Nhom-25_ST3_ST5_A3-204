@@ -1,150 +1,85 @@
 <!DOCTYPE html>
-<html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Khách hàng - Techtra</title>
-    <link rel="stylesheet" href="/components/khach-hang/khach-hang.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <div id="header-placeholder"></div>
-
-    <main class="customer-page container">
-      <div class="customer-header">
-        <h1>Khách hàng</h1>
-        <p class="customer-subtitle">Thông tin hồ sơ, lịch sử mua hàng và chương trình khách thân thiết.</p>
-        <p><a th:href="@{/my/invoices}">Xem biên nhận mua hàng</a></p>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài khoản của tôi | Techtra Beauty</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" th:href="@{/css/customer-account.css}">
+  <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+  <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+</head>
+<body>
+  <div th:replace="~{fragments/header :: header}"></div>
+  <main class="account-page container">
+    <section class="account-welcome">
+      <div>
+        <span class="account-eyebrow">TÀI KHOẢN TECHTRA BEAUTY</span>
+        <h1>Chào <span th:text="${customer.fullName != null && !customer.fullName.isBlank() ? customer.fullName : customer.username}">bạn</span></h1>
+        <p>Theo dõi đơn hàng, tham gia ưu đãi và tích điểm ngay trên cửa hàng.</p>
       </div>
+      <a class="account-link-button" th:href="@{/products}"><i class="fa-solid fa-bag-shopping"></i> Tiếp tục mua sắm</a>
+    </section>
 
-      <div class="customer-layout">
-        <section class="customer-left">
-          <div class="panel">
-            <div class="panel-title">
-              <i class="fa-regular fa-user"></i>
-              <h2>Hồ sơ</h2>
-            </div>
+    <section class="account-stats" aria-label="Tóm tắt thành viên">
+      <article class="account-stat account-stat--points"><span>Điểm Techtra</span><strong th:text="${customer.loyaltyPoints != null ? customer.loyaltyPoints : 0}">0</strong><small>1 điểm cho mỗi 10.000đ đã thanh toán</small></article>
+      <article class="account-stat"><span>Hạng thành viên</span><strong th:text="${loyaltyTier}">Thành viên</strong><small>Tích thêm để mở khóa hạng tiếp theo</small></article>
+      <article class="account-stat"><span>Đã chi tiêu</span><strong th:text="${#numbers.formatDecimal(totalSpent, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong><small>Tính từ các đơn đã thanh toán</small></article>
+      <article class="account-stat"><span>Tài khoản</span><strong th:text="${customer.username}">username</strong><small th:text="${customer.email}">email</small></article>
+    </section>
 
-            <p class="form-hint">
-              <i class="fa-solid fa-pen-to-square"></i>
-              Click vào ô bất kỳ để chỉnh sửa. Đổi số điện thoại hoặc email cần mã OTP.
-            </p>
-
-            <div class="account-actions">
-              <a class="btn btn-ghost" href="/components/quen-mk/index.html">
-                <i class="fa-solid fa-lock"></i> Đổi / đặt lại mật khẩu
-              </a>
-              <button type="button" id="logoutBtn" class="btn btn-ghost btn-danger">
-                <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
-              </button>
-            </div>
-
-            <form id="profileForm" class="form-grid">
-              <div class="field">
-                <label for="customerName">Họ tên</label>
-                <div class="edit-row">
-                  <input id="customerName" type="text" placeholder="Nhập họ tên" readonly />
-                  <button type="button" class="btn-mini btn-edit" data-target="customerName">Đổi</button>
-                </div>
-              </div>
-              <div class="field">
-                <label for="customerPhone">Số điện thoại</label>
-                <div class="otp-row">
-                  <input id="customerPhone" type="text" placeholder="Nhập số điện thoại" readonly />
-                  <button type="button" id="sendPhoneOtpBtn" class="btn-mini" hidden>Gửi mã</button>
-                  <button type="button" class="btn-mini btn-edit" data-target="customerPhone">Đổi</button>
-                  <span id="phoneVerifiedBadge" class="otp-badge" hidden>✓ Đã xác thực</span>
-                </div>
-                <div class="otp-input-wrap" id="phoneOtpWrap" hidden>
-                  <input id="phoneOtpCode" maxlength="6" placeholder="Mã 6 số" inputmode="numeric" />
-                  <button type="button" id="verifyPhoneOtpBtn" class="btn-mini">Xác nhận</button>
-                  <small id="phoneOtpHint" class="otp-hint">Mã có hiệu lực 5 phút.</small>
-                </div>
-              </div>
-              <div class="field">
-                <label for="customerEmail">Email</label>
-                <div class="otp-row">
-                  <input id="customerEmail" type="email" placeholder="Nhập email" readonly />
-                  <button type="button" id="sendEmailOtpBtn" class="btn-mini" hidden>Gửi mã</button>
-                  <button type="button" class="btn-mini btn-edit" data-target="customerEmail">Đổi</button>
-                  <span id="emailVerifiedBadge" class="otp-badge" hidden>✓ Đã xác thực</span>
-                </div>
-                <div class="otp-input-wrap" id="emailOtpWrap" hidden>
-                  <input id="emailOtpCode" maxlength="6" placeholder="Mã 6 số" inputmode="numeric" />
-                  <button type="button" id="verifyEmailOtpBtn" class="btn-mini">Xác nhận</button>
-                  <small id="emailOtpHint" class="otp-hint">Mã có hiệu lực 5 phút.</small>
-                </div>
-              </div>
-              <div class="field field--full">
-                <label for="customerAddress">Địa chỉ</label>
-                <div class="edit-row">
-                  <input id="customerAddress" type="text" placeholder="Nhập địa chỉ" readonly />
-                  <button type="button" class="btn-mini btn-edit" data-target="customerAddress">Đổi</button>
-                </div>
-              </div>
-
-              <div class="form-actions">
-                <button class="btn btn-primary" type="submit">Lưu thay đổi</button>
-              </div>
-
-              <div id="profileMessage" class="form-message" aria-live="polite"></div>
-            </form>
-          </div>
-        </section>
-
-        <section class="customer-right">
-          <div class="panel panel--stack">
-            <div class="panel-title">
-              <i class="fa-solid fa-receipt"></i>
-              <h2>Lịch sử mua hàng</h2>
-            </div>
-            <div id="ordersMount" class="history-list"></div>
-            <div class="muted" id="ordersEmpty" style="display:none">Chưa có đơn hàng.</div>
-          </div>
-
-          <div class="panel panel--stack">
-            <div class="panel-title">
-              <i class="fa-solid fa-crown"></i>
-              <h2>Khách thân thiết</h2>
-            </div>
-            <div class="loyalty-summary">
-              <div class="loyalty-row">
-                <span>Rank</span>
-                <strong id="loyaltyRank">—</strong>
-              </div>
-              <div class="loyalty-row">
-                <span>LTV</span>
-                <strong id="loyaltyLtv">0 đ</strong>
-              </div>
-              <div class="loyalty-row">
-                <span>Tổng đơn</span>
-                <strong id="loyaltyOrders">0</strong>
+    <div class="account-columns">
+      <section class="account-panel">
+        <div class="account-panel__heading">
+          <div><span class="account-eyebrow">DÀNH CHO BẠN</span><h2>Chương trình ưu đãi</h2></div>
+          <span class="account-panel__hint">Tham gia để theo dõi các hoạt động khuyến mãi</span>
+        </div>
+        <div class="promotion-grid" th:if="${not #lists.isEmpty(promotionPrograms)}">
+          <article class="promotion-card" th:each="program : ${promotionPrograms}">
+            <img th:if="${program.promotion.imageUrl != null}" th:src="${program.promotion.imageUrl}" th:alt="${program.promotion.title}">
+            <div class="promotion-card__body">
+              <span class="promotion-card__tag" th:text="${program.promotion.tag ?: 'ƯU ĐÃI TECHTRA'}">ƯU ĐÃI</span>
+              <h3 th:text="${program.promotion.title}">Chương trình</h3>
+              <div class="promotion-card__actions">
+                <button type="button" class="join-promotion" th:if="${not program.joined}" th:attr="data-promotion-id=${program.promotion.id}">Tham gia</button>
+                <span class="joined-promotion" th:if="${program.joined}"><i class="fa-solid fa-circle-check"></i> Đã tham gia</span>
+                <a th:if="${program.promotion.ctaLink != null}" th:href="${program.promotion.ctaLink}" th:text="${program.promotion.ctaText ?: 'Khám phá'}">Khám phá</a>
               </div>
             </div>
+          </article>
+        </div>
+        <div class="account-empty" th:if="${#lists.isEmpty(promotionPrograms)}">Chưa có chương trình nào. Ưu đãi mới sẽ xuất hiện tại đây.</div>
+        <p class="account-message" id="promotionMessage" role="status" aria-live="polite"></p>
+      </section>
 
-            <div class="voucher-block">
-              <h3>Voucher</h3>
-              <div id="vouchersMount" class="voucher-list"></div>
-              <div class="muted" id="vouchersEmpty" style="display:none">Chưa có voucher.</div>
+      <section class="account-panel account-orders">
+        <div class="account-panel__heading">
+          <div><span class="account-eyebrow">MUA SẮM CỦA BẠN</span><h2>Đơn hàng gần đây</h2></div>
+          <a th:href="@{/my/invoices}">Biên nhận <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="order-list" th:if="${not #lists.isEmpty(customerOrders)}">
+          <article class="customer-order" th:each="order : ${customerOrders}">
+            <div class="customer-order__top">
+              <strong th:text="${'Đơn hàng #' + order.id}">Đơn hàng #1</strong>
+              <span class="order-status" th:text="${order.status}">PENDING</span>
             </div>
-          </div>
-        </section>
-      </div>
+            <div class="customer-order__details">
+              <span th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy HH:mm')}">Ngày đặt</span>
+              <span th:text="${order.store.name}">Chi nhánh</span>
+              <strong th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
+            </div>
+            <div class="customer-order__items" th:text="${#strings.listJoin(order.orderItems.![product.name + ' × ' + quantity], ', ')}">Sản phẩm trong đơn</div>
+          </article>
+        </div>
+        <div class="account-empty" th:if="${#lists.isEmpty(customerOrders)}">Bạn chưa có đơn hàng nào. <a th:href="@{/products}">Khám phá sản phẩm</a>.</div>
+      </section>
+    </div>
 
-      <div class="login-cta" id="loginCta" style="display:none">
-        <i class="fa-solid fa-circle-info"></i>
-        <p>Bạn cần đăng nhập để xem lịch sử và voucher.</p>
-        <a class="btn btn-primary" href="/components/dang-nhap/dangnhap.html">Đăng nhập</a>
-      </div>
-    </main>
-
-    <div id="footer-placeholder"></div>
-
-  </body>
+    <section class="account-footer-actions">
+      <div><strong>Thông tin tài khoản</strong><span th:text="${(customer.fullName ?: customer.username) + ' · ' + customer.phone}">Tên · số điện thoại</span></div>
+      <form th:action="@{/logout-process}" method="post"><button type="submit" class="account-logout">Đăng xuất</button></form>
+    </section>
+  </main>
+  <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
 </html>

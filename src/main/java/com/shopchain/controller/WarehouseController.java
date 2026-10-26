@@ -3,6 +3,7 @@ package com.shopchain.controller;
 import com.shopchain.repository.*;
 import com.shopchain.service.InventoryOperationsService;
 import com.shopchain.service.InvoiceService;
+import com.shopchain.service.OrderService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -22,12 +23,13 @@ public class WarehouseController {
     private final InventoryOperationsService inventoryOperationsService;
     private final OrderRepository orderRepository;
     private final InvoiceService invoiceService;
+    private final OrderService orderService;
 
     public WarehouseController(UserRepository userRepository, ProductInventoryRepository inventoryRepository,
                                ProductRepository productRepository, StoreRepository storeRepository,
                                InventoryMovementRepository movementRepository, StockTransferRepository transferRepository,
                                InventoryOperationsService inventoryOperationsService, OrderRepository orderRepository,
-                               InvoiceService invoiceService) {
+                               InvoiceService invoiceService, OrderService orderService) {
         this.userRepository = userRepository;
         this.inventoryRepository = inventoryRepository;
         this.productRepository = productRepository;
@@ -37,6 +39,7 @@ public class WarehouseController {
         this.inventoryOperationsService = inventoryOperationsService;
         this.orderRepository = orderRepository;
         this.invoiceService = invoiceService;
+        this.orderService = orderService;
     }
 
     @GetMapping("/orders")
@@ -60,9 +63,8 @@ public class WarehouseController {
                 || "SHIPPING".equals(status) && "PROCESSING".equals(order.getStatus())
                 || "DELIVERED".equals(status) && "SHIPPING".equals(order.getStatus())))
             throw new IllegalArgumentException("Trạng thái đơn hàng không hợp lệ.");
-        order.setStatus(status);
-        if ("DELIVERED".equals(status) && "COD".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("PAID");
-        orderRepository.save(order);
+        orderService.updateOrderStatus(orderId, status);
+        order = orderRepository.findById(orderId).orElseThrow();
         if ("DELIVERED".equals(status) && "PAID".equals(order.getPaymentStatus())) invoiceService.issueForPaidOrder(order.getId());
         return "redirect:/warehouse/orders";
     }

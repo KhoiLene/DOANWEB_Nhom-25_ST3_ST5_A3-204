@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Thanh toán - Techtra</title>
-    <link rel="stylesheet" th:href="@{/css/thanh-toan/thanh-toan.css}" />
+    <link rel="stylesheet" th:href="@{/css/thanh-toan.css}" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -42,7 +42,8 @@
         </div>
       </section>
 
-      <form th:action="@{/checkout/place-order}" method="post">
+      <p class="checkout-error" th:if="${checkoutError}" th:text="${checkoutError}" role="alert">Không thể đặt hàng.</p>
+      <form id="checkoutForm" th:action="@{/checkout/place-order}" method="post" novalidate>
         <section class="checkout-layout">
           <section class="checkout-main">
             <!-- Step 1 -->
@@ -51,32 +52,32 @@
               <div class="form-grid">
                 <div class="field">
                   <label for="receiverName">Họ tên</label>
-                  <input id="receiverName" name="name" type="text" placeholder="Nhập họ tên" autocomplete="name" required />
+                  <input id="receiverName" name="name" type="text" th:value="${customer.fullName}" placeholder="Nhập họ tên" autocomplete="name" required />
                 </div>
                 <div class="field">
                   <label for="receiverPhone">Số điện thoại</label>
-                  <input id="receiverPhone" name="phone" type="text" placeholder="Nhập số điện thoại" autocomplete="tel" required />
+                  <input id="receiverPhone" name="phone" type="text" th:value="${customer.phone}" placeholder="Nhập số điện thoại" autocomplete="tel" required />
                 </div>
                 <div class="field field--full">
                   <label for="receiverEmail">Email (tuỳ chọn)</label>
-                  <input id="receiverEmail" type="email" placeholder="Nhập email" autocomplete="email" />
+                  <input id="receiverEmail" type="email" th:value="${customer.email}" placeholder="Nhập email" autocomplete="email" />
                 </div>
                 <div class="field field--full">
                   <label for="receiverAddressLine">Địa chỉ chi tiết</label>
                   <input id="receiverAddressLine" name="address" type="text" placeholder="VD: 12 Nguyễn Trãi" autocomplete="street-address" />
                 </div>
-                <div class="field"><label for="deliveryCity">Tỉnh / thành phố nhận hàng</label><input id="deliveryCity" name="deliveryCity" type="text" placeholder="VD: Thành phố Hồ Chí Minh" required /></div>
+                <div class="field"><label for="deliveryCity">Tỉnh / thành phố nhận hàng</label><input id="deliveryCity" name="deliveryCity" type="text" placeholder="VD: Thành phố Hồ Chí Minh" /></div>
                 <div class="field"><label for="storeId">Chọn chi nhánh</label><select id="storeId" name="storeId" required><option value="">Chọn chi nhánh gần bạn</option><option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name + ' · ' + (store.district ?: '') + ' ' + (store.city ?: '')}">Chi nhánh</option></select><button type="button" class="btn btn-secondary" id="locateStores">Dùng vị trí hiện tại để sắp xếp chi nhánh gần nhất</button><small id="locationMessage"></small></div>
                 <div class="field field--full"><label>Cách nhận hàng</label><label><input type="radio" name="fulfillmentType" value="DELIVERY" checked> Giao đến địa chỉ</label> <label><input type="radio" name="fulfillmentType" value="PICKUP"> Nhận tại chi nhánh</label><p class="muted">Nếu địa chỉ giao khác tỉnh/thành phố chi nhánh, hệ thống sẽ chuyển xử lý tồn kho qua kho trung tâm.</p></div>
                 <div class="form-actions">
-                  <button type="button" class="btn btn-primary" onclick="document.getElementById('stepPanel1').style.display='none'; document.getElementById('stepPanel2').style.display='block';">Tiếp tục</button>
+                  <button type="button" class="btn btn-primary" id="checkoutToStep2">Tiếp tục</button>
                 </div>
               </div>
             </div>
 
             <!-- Step 2 -->
             <div class="step-panel" id="stepPanel2" style="display:none">
-              <h2 class="panel-title">Bước 2: Phương thức thanh toán & Voucher</h2>
+              <h2 class="panel-title">Bước 2: Thanh toán & tích điểm</h2>
 
               <div class="pay-grid">
                 <div class="pay-card">
@@ -92,20 +93,16 @@
                   </div>
                 </div>
 
-                <div class="pay-card">
-                  <div class="voucher">
-                    <label for="voucherCode">Voucher (tuỳ chọn)</label>
-                    <div class="voucher-input">
-                      <input id="voucherCode" name="voucher" type="text" placeholder="Nhập mã voucher" />
-                      <button type="button" class="btn btn-secondary">Áp dụng</button>
-                    </div>
-                  </div>
+                <div class="pay-card checkout-points-note">
+                  <strong><i class="fa-solid fa-star"></i> Tích điểm Techtra</strong>
+                  <p>Điểm được cộng tự động sau khi đơn hàng thanh toán thành công: 1 điểm cho mỗi 10.000đ.</p>
+                  <a th:href="@{/profile}">Xem hạng thành viên và chương trình ưu đãi</a>
                 </div>
               </div>
 
               <div class="form-actions">
                 <button type="button" class="btn btn-ghost" onclick="document.getElementById('stepPanel2').style.display='none'; document.getElementById('stepPanel1').style.display='block';">Quay lại</button>
-                <button type="button" class="btn btn-primary" onclick="document.getElementById('stepPanel2').style.display='none'; document.getElementById('stepPanel3').style.display='block';">Tiếp tục</button>
+                <button type="button" class="btn btn-primary" id="checkoutToStep3">Tiếp tục</button>
               </div>
             </div>
 
@@ -126,7 +123,7 @@
                   <h3>Tóm tắt giá</h3>
                   <div class="summary-line"><span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
                   <div class="summary-line"><span>Vận chuyển</span><strong th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
-                  <div class="summary-line"><span>Giảm giá</span><strong >0 đ</strong></div>
+                  <div class="summary-line"><span>Điểm dự kiến sau thanh toán</span><strong th:text="${#numbers.formatInteger(subtotal / 10000, 1)} + ' điểm'">0 điểm</strong></div>
                   <div class="summary-total"><span>Tổng cộng</span><strong th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
                   <div class="summary-method"><span>Phương thức</span><strong id="sumPayment">—</strong></div>
                 </div>
@@ -134,7 +131,7 @@
 
               <div class="form-actions">
                 <button type="button" class="btn btn-ghost" onclick="document.getElementById('stepPanel3').style.display='none'; document.getElementById('stepPanel2').style.display='block';">Quay lại</button>
-                <button type="submit" class="btn btn-primary">Đặt hàng</button>
+                <button type="button" class="btn btn-primary" id="placeOrderButton">Đặt hàng</button>
               </div>
             </div>
           </section>
@@ -155,7 +152,7 @@
 
               <div class="aside-row"><span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
               <div class="aside-row"><span>Vận chuyển</span><strong th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
-              <div class="aside-row"><span>Giảm giá</span><strong >0 đ</strong></div>
+              <div class="aside-row"><span>Điểm dự kiến sau thanh toán</span><strong th:text="${#numbers.formatInteger(subtotal / 10000, 1)} + ' điểm'">0 điểm</strong></div>
               <div class="aside-total"><span>Tổng</span><strong th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
 
               <div class="aside-hint">
@@ -180,10 +177,78 @@
 
     <div th:replace="~{fragments/footer :: footer}"></div>
 
-</body>
 <script>
-const pickupRadios=document.querySelectorAll('input[name="fulfillmentType"]'),addressInput=document.getElementById('receiverAddressLine');
-function updateAddress(){const pickup=document.querySelector('input[name="fulfillmentType"]:checked').value==='PICKUP';addressInput.required=!pickup;addressInput.placeholder=pickup?'Không cần nhập nếu nhận tại cửa hàng':'VD: 12 Nguyễn Trãi'}pickupRadios.forEach(r=>r.addEventListener('change',updateAddress));updateAddress();
-document.getElementById('locateStores').addEventListener('click',()=>{const msg=document.getElementById('locationMessage');if(!navigator.geolocation){msg.textContent='Trình duyệt không hỗ trợ định vị.';return}msg.textContent='Đang lấy vị trí…';navigator.geolocation.getCurrentPosition(async p=>{const q=new URLSearchParams({latitude:p.coords.latitude,longitude:p.coords.longitude});const stores=await fetch('/api/locations/nearest?'+q).then(r=>r.json());const select=document.getElementById('storeId');for(const s of stores){const option=[...select.options].find(o=>o.value===String(s.id));if(option)select.append(option)}if(stores.length){select.value=String(stores[0].id);msg.textContent='Đã chọn chi nhánh gần nhất: '+stores[0].name+' ('+stores[0].distanceKm.toFixed(1)+' km).'}else msg.textContent='Chưa có chi nhánh có tọa độ. Hãy chọn chi nhánh trong danh sách.'},()=>{msg.textContent='Không lấy được vị trí. Bạn có thể tự chọn chi nhánh trong danh sách.'})});
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('checkoutForm');
+  const panels = [1, 2, 3].map(number => document.getElementById(`stepPanel${number}`));
+  const steps = document.querySelectorAll('.stepper .step');
+  const address = document.getElementById('receiverAddressLine');
+  const deliveryCity = document.getElementById('deliveryCity');
+  const pickupRadios = document.querySelectorAll('input[name="fulfillmentType"]');
+
+  function showStep(number) {
+    panels.forEach((panel, index) => panel.style.display = index + 1 === number ? 'block' : 'none');
+    steps.forEach((step, index) => step.dataset.active = String(index + 1 === number));
+  }
+  function updateFulfillment() {
+    const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
+    address.required = !pickup;
+    deliveryCity.required = !pickup;
+    address.placeholder = pickup ? 'Không cần nhập nếu nhận tại cửa hàng' : 'VD: 12 Nguyễn Trãi';
+  }
+  function validateRecipient() {
+    const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
+    const fields = [form.elements.name, form.elements.phone, form.elements.storeId];
+    if (!pickup) fields.push(address, deliveryCity);
+    for (const field of fields) {
+      if (!field.checkValidity()) { showStep(1); field.reportValidity(); return false; }
+    }
+    return true;
+  }
+  function fillConfirmation() {
+    document.getElementById('confirmName').textContent = form.elements.name.value;
+    document.getElementById('confirmPhone').textContent = form.elements.phone.value;
+    document.getElementById('confirmEmail').textContent = document.getElementById('receiverEmail').value || '—';
+    const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
+    const storeName = form.elements.storeId.selectedOptions[0]?.textContent || '';
+    document.getElementById('confirmAddress').textContent = pickup ? `Nhận tại ${storeName}` : `${address.value}, ${form.elements.deliveryCity.value}`;
+    document.getElementById('sumPayment').textContent = document.querySelector('input[name="paymentMethod"]:checked').value.toUpperCase();
+  }
+
+  pickupRadios.forEach(radio => radio.addEventListener('change', updateFulfillment));
+  updateFulfillment();
+  document.getElementById('checkoutToStep2').addEventListener('click', () => { if (validateRecipient()) showStep(2); });
+  document.getElementById('checkoutToStep3').addEventListener('click', () => { fillConfirmation(); showStep(3); });
+  document.getElementById('placeOrderButton').addEventListener('click', () => {
+    if (!validateRecipient()) return;
+    form.requestSubmit();
+  });
+
+  document.getElementById('locateStores').addEventListener('click', () => {
+    const message = document.getElementById('locationMessage');
+    if (!navigator.geolocation) { message.textContent = 'Trình duyệt không hỗ trợ định vị. Bạn có thể nhập địa chỉ hoặc chọn chi nhánh.'; return; }
+    message.textContent = 'Đang tìm chi nhánh gần bạn…';
+    navigator.geolocation.getCurrentPosition(async position => {
+      try {
+        const query = new URLSearchParams({ latitude: position.coords.latitude, longitude: position.coords.longitude, limit: 5 });
+        const response = await fetch(`/api/locations/nearest?${query}`);
+        if (!response.ok) throw new Error('Không thể tìm chi nhánh lúc này.');
+        const stores = await response.json();
+        const select = document.getElementById('storeId');
+        if (!stores.length) { message.textContent = 'Chưa có chi nhánh gần vị trí này. Hãy chọn chi nhánh trong danh sách.'; return; }
+        const topStores = stores.slice(0, 5);
+        const suggestedIds = new Set(topStores.map(store => String(store.id)));
+        [...select.options].slice(1).forEach(option => { if (!suggestedIds.has(option.value)) option.hidden = true; });
+        topStores.forEach(store => {
+          const option = [...select.options].find(item => item.value === String(store.id));
+          if (option) option.textContent = `${store.name} · ${store.distanceKm.toFixed(1)} km`;
+        });
+        select.value = String(topStores[0].id);
+        message.textContent = `Đang gợi ý ${topStores.length} chi nhánh gần nhất. Bạn có thể đổi lựa chọn trong danh sách.`;
+      } catch (error) { message.textContent = error.message || 'Không tìm được chi nhánh. Bạn có thể tự chọn trong danh sách.'; }
+    }, () => { message.textContent = 'Không lấy được vị trí. Bạn có thể nhập địa chỉ hoặc tự chọn chi nhánh.'; }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+  });
+});
 </script>
+</body>
 </html>

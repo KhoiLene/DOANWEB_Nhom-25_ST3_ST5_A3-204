@@ -1,10 +1,27 @@
 <!-- Header Assets -->
 <th:block th:fragment="header-assets">
     <link rel="stylesheet" th:href="@{/css/header.css}">
+    <script defer th:src="@{/js/storefront.js}"></script>
 </th:block>
 
 <!-- Site Header Fragment -->
-<header th:fragment="header" class="site-header">
+<header th:fragment="header" class="site-header" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <div class="site-header__mobile">
+        <a class="header-logo" th:href="@{/}" aria-label="Techtra Beauty"><span class="header-logo__text">TECHTRA <strong>BEAUTY</strong></span></a>
+        <form class="mobile-search" th:action="@{/products}" method="get" role="search">
+            <input type="search" name="keyword" placeholder="Tìm mỹ phẩm..." th:value="${keyword}" aria-label="Tìm sản phẩm">
+            <button type="submit" aria-label="Tìm"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
+        <a class="mobile-account" th:href="@{/login}" sec:authorize="isAnonymous()" aria-label="Đăng nhập"><i class="fa-regular fa-user"></i></a>
+        <a class="mobile-account" th:href="@{/profile}" sec:authorize="isAuthenticated()" aria-label="Tài khoản"><i class="fa-regular fa-user"></i></a>
+        <a class="mobile-cart" th:href="@{/cart}" aria-label="Giỏ hàng"><i class="fa-solid fa-bag-shopping"></i><span class="header-cart__count" data-cart-badge>0</span></a>
+    </div>
+    <nav class="mobile-store-nav" aria-label="Điều hướng chính">
+        <a th:href="@{/products}">Sản phẩm</a>
+        <a th:href="@{/products(sale=true)}">Ưu đãi</a>
+        <a th:href="@{/stores}">Cửa hàng</a>
+        <a th:href="@{/news}">Góc làm đẹp</a>
+    </nav>
     <div class="bg-header">
         <!-- DESKTOP HEADER (Visible on screens > 992px) -->
         <div class="site-header__top disable-max-992">
@@ -22,22 +39,33 @@
                         <nav class="v2-header-menu-top">
                             <ul>
                                 <li class="menu-parent type-1" data-parent-id="sale" data-has-mega="true">
-                                    <a href="#" data-parent-id="sale">SALE</a>
+                                    <a th:href="@{/products(sale=true)}" data-parent-id="sale">SALE</a>
                                     <div class="menu-type-1 site-header__main menu-type-new">
                                         <div class="container menu-type-1__container menu-type-new__container">
-                                            <a th:href="@{/products(sale=1)}" class="menu-type-new__title">Xem tất cả</a>
-                                            <div class="menu-type-1__content" id="saleMenuMount"></div>
+                                            <a th:href="@{/products(sale=true)}" class="menu-type-new__title">Xem tất cả</a>
+                                            <div class="menu-type-1__content" id="saleMenuMount">
+                                                <a class="menu-type-1__content--item" th:each="product : ${navFlashSaleProducts}" th:href="@{/product/{id}(id=${product.id})}">
+                                                    <span class="menu-type-1__content--item__img"><img th:src="${product.imageUrl}" th:alt="${product.name}"></span>
+                                                    <span class="menu-type-1__content--item__title" th:text="${product.name}">Sản phẩm ưu đãi</span>
+                                                </a>
+                                                <p class="menu-empty" th:if="${#lists.isEmpty(navFlashSaleProducts)}">Ưu đãi mới sẽ sớm được cập nhật.</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </li>
 
                                 <li class="menu-parent type-2" data-parent-id="san_pham" data-has-mega="true">
-                                    <a href="#" data-parent-id="san_pham">SẢN PHẨM</a>
+                                    <a th:href="@{/products}" data-parent-id="san_pham">SẢN PHẨM</a>
                                     <div class="menu-type-2 site-header__main menu-type-new">
                                         <div class="container menu-type-2__container menu-type-new__container">
                                             <div class="menu-type-2__content">
                                                 <div class="menu-type-2__left">
-                                                    <div class="menu-type-2__list-menu" id="productMenuMount"></div>
+                                                    <div class="menu-type-2__list-menu" id="productMenuMount">
+                                                        <div class="menu-type-2__list-menu--item" th:each="category : ${navCategories}">
+                                                            <a class="menu-type-2__list-menu--item__title" th:href="@{/products(categoryId=${category.id})}" th:text="${category.name}">Danh mục sản phẩm</a>
+                                                            <ul><li><a th:href="@{/products(categoryId=${category.id})}">Xem tất cả sản phẩm</a></li></ul>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div class="menu-type-2__right" data-banner-container>
                                                     <div class="menu-type-2__right--item" data-banner-item>
@@ -54,7 +82,12 @@
                                     <a th:href="@{/about}" data-parent-id="ve_KL">VỀ TECHTRA</a>
                                     <div class="menu-type-3 site-header__main menu-type-new">
                                         <div class="container menu-type-3__container menu-type-new__container">
-                                            <div class="menu-type-3__left" id="aboutMenuMount"></div>
+                                            <div class="menu-type-3__left" id="aboutMenuMount">
+                                                <div class="menu-type-3__left--item"><a th:href="@{/about}"><span class="menu-type-3__left--icon"><i class="fa-solid fa-heart"></i></span><span>Về Techtra</span></a></div>
+                                                <div class="menu-type-3__left--item"><a th:href="@{/stores}"><span class="menu-type-3__left--icon"><i class="fa-solid fa-location-dot"></i></span><span>Cửa hàng</span></a></div>
+                                                <div class="menu-type-3__left--item"><a th:href="@{/products}"><span class="menu-type-3__left--icon"><i class="fa-solid fa-spa"></i></span><span>Sản phẩm</span></a></div>
+                                                <div class="menu-type-3__left--item"><a th:href="@{/news}"><span class="menu-type-3__left--icon"><i class="fa-solid fa-book-open"></i></span><span>Góc làm đẹp</span></a></div>
+                                            </div>
                                             <div class="menu-type-3__right">
                                                 <div class="menu-brand-card">Techtra <strong>Beauty</strong><span>Mỹ phẩm & chăm sóc cá nhân</span></div>
                                             </div>
@@ -68,7 +101,10 @@
                                         <div class="container menu-type-2__container menu-type-new__container">
                                             <div class="menu-type-2__content">
                                                 <div class="menu-type-2__left">
-                                                    <div class="menu-type-2__list-menu" id="newsMenuMount"></div>
+                                                    <div class="menu-type-2__list-menu news-menu__list" id="newsMenuMount">
+                                                        <ul><li><a th:href="@{/news}"><i class="fa-solid fa-newspaper"></i>Tất cả bài viết</a></li></ul>
+                                                        <ul><li th:each="category : ${navNewsCategories}"><a th:href="@{/news(categoryId=${category.id})}" th:text="${category.name}">Chủ đề</a></li></ul>
+                                                    </div>
                                                 </div>
                                                 <div class="menu-type-2__right" data-banner-container>
                                                     <div class="menu-type-2__right--item" data-banner-item>
@@ -87,9 +123,9 @@
                     <div class="header-right">
                         <div class="header-search">
                             <div class="header-search__form">
-                                <form th:action="@{/search}" method="GET">
+                                <form th:action="@{/products}" method="GET">
                                     <div class="header-search__field">
-                                        <input type="text" name="keyword" placeholder="Tìm sản phẩm..." autocomplete="off">
+                                        <input type="search" name="keyword" placeholder="Tìm sản phẩm..." autocomplete="off" th:value="${keyword}">
                                         <button class="header-search__button" aria-label="Tìm kiếm">
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 511.999 511.999" style="width: 15px;">
                                                 <path d="M225.773.616C101.283.616 0 101.622 0 225.773S101.284 450.93 225.773 450.93s225.774-101.006 225.774-225.157S350.263.616 225.773.616zm0 413.301c-104.084 0-188.761-84.406-188.761-188.145 0-103.745 84.677-188.145 188.761-188.145s188.761 84.4 188.761 188.145c.001 103.739-84.676 188.145-188.761 188.145z" fill="#2563eb" />
@@ -106,7 +142,7 @@
                                 <div class="header-custom_item__text">HỆ THỐNG<br>CỬA HÀNG</div>
                             </a>
 
-                            <div class="text--primary header-actions__login header-custom_item" id="account-action">
+                            <div class="text--primary header-actions__login header-custom_item" id="account-action" sec:authorize="isAnonymous()">
                                 <a th:href="@{/login}" aria-label="Đăng nhập">
                                     <svg width="28" height="32" viewBox="0 0 28 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M13.9715 31.9998C9.75871 31.9998 5.54593 31.9998 1.33314 31.9998C0.245489 31.9998 -0.0417845 31.7015 0.00471053 30.6231C0.252131 24.7781 4.27562 19.9315 10.0327 18.9865C13.1927 18.4681 16.454 18.3548 19.5891 19.3598C24.5242 20.9415 27.9134 25.6081 27.9997 30.8048C28.0147 31.6698 27.6892 31.9998 26.7958 31.9998C22.5216 32.0015 18.2457 31.9998 13.9715 31.9998ZM14.0114 30.1198C17.8472 30.1198 21.683 30.1198 25.5189 30.1198C25.8294 30.1198 26.1233 30.1981 26.0635 29.6648C25.5969 25.5181 22.236 21.7831 18.1345 20.8765C16.2464 20.4598 14.3335 20.6381 12.4322 20.6315C7.0537 20.6115 2.86748 24.1881 1.96415 29.5048C1.87946 30.0031 1.99736 30.1315 2.50548 30.1298C6.34133 30.1098 10.1772 30.1181 14.013 30.1181L14.0114 30.1198Z" fill="#2563eb" />
@@ -114,12 +150,17 @@
                                 </a>
                             </div>
 
+                            <a class="header-actions__login header-custom_item header-customer-link" th:href="@{/profile}" sec:authorize="isAuthenticated()" aria-label="Tài khoản khách hàng">
+                                <i class="fa-regular fa-user" aria-hidden="true"></i>
+                                <span class="header-custom_item__text" sec:authentication="name">Tài khoản</span>
+                            </a>
+
                             <div class="header-cart header-custom_item" id="headerMiniCart">
                                 <a th:href="@{/cart}" class="icon-cart" aria-label="Giỏ hàng">
                                     <svg width="36" height="31" viewBox="0 0 36 31" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M27.6827 24.8548H14.7778C15.5226 25.2848 16.1679 25.7828 16.5469 26.5473C16.9333 27.3283 16.9858 28.1332 16.6894 28.9547C16.2392 30.1988 15.0067 31.0276 13.6541 30.9982C12.2284 30.9669 11.0465 30.0591 10.6713 28.7066C10.253 27.2052 10.8514 26.0603 12.7349 24.8603C12.2077 24.8291 11.75 24.8162 11.296 24.7721C9.92653 24.6379 8.90037 23.7706 8.55144 22.4695C8.21752 21.2272 8.6715 19.9279 9.78583 19.2094C10.2454 18.9135 10.3017 18.6397 10.1873 18.1491C9.01856 13.0715 7.86671 7.99031 6.743 2.90174C6.60605 2.2806 6.39407 2.03068 5.69995 2.06008C4.24982 2.12072 2.79407 2.08581 1.34018 2.07478C0.473482 2.06927 -0.0217761 1.6613 0.000735588 1.00708C0.0232473 0.378593 0.495994 0.011055 1.34018 0.00737962C3.23867 -0.00180883 5.13716 -0.00180883 7.03753 0.00737962C8.00178 0.0128927 8.26254 0.226065 8.48766 1.15777C8.66587 1.89469 8.88349 2.62609 8.98291 3.37403C9.06921 4.02641 9.37499 4.15505 9.99782 4.15321C18.0383 4.13299 26.0806 4.14035 34.121 4.14035C34.378 4.14035 34.6369 4.12932 34.8939 4.1477C35.7475 4.21018 36.1715 4.75781 35.9388 5.56088C34.5656 10.3021 33.1774 15.0397 31.7985 19.7809C31.6072 20.4407 31.1513 20.6887 30.4872 20.6851C29.221 20.6796 27.9547 20.6851 26.6903 20.6851C21.884 20.6851 17.0778 20.6851 12.2734 20.6851C12.0389 20.6851 11.8025 20.6777 11.5718 20.7016C10.9471 20.7659 10.5512 21.1776 10.5606 21.7307C10.57 22.2765 10.9771 22.6753 11.6037 22.7304C11.8588 22.7525 12.1195 22.7433 12.3766 22.7433C18.3084 22.7433 24.2384 22.7433 30.1702 22.7433C31.2676 22.7433 31.7648 23.0539 31.791 23.7467C31.8173 24.4597 31.3033 24.7978 30.1702 24.8199C30.0089 24.8236 29.8494 24.8401 29.6543 24.9044C30.4497 25.294 31.1101 25.8049 31.4853 26.5969C31.8586 27.3853 31.8961 28.1902 31.5847 29.0061C31.1007 30.2741 29.8344 31.0717 28.4443 30.9908C27.0392 30.9081 25.9267 30.0058 25.5722 28.6588C25.1801 27.174 25.8123 25.9905 27.6864 24.8566L27.6827 24.8548ZM21.5745 6.21326C17.8263 6.21326 14.0799 6.21694 10.3317 6.20959C9.90214 6.20959 9.62075 6.20591 9.75957 6.79765C10.6319 10.5263 11.478 14.2623 12.3053 18.002C12.4103 18.4798 12.6036 18.6195 13.0932 18.6195C18.5035 18.603 23.9138 18.6048 29.326 18.6158C29.7612 18.6158 29.9845 18.5148 30.1139 18.0609C31.1757 14.3322 32.2563 10.609 33.3669 6.89321C33.547 6.29228 33.3781 6.20407 32.8191 6.20591C29.0709 6.22245 25.3246 6.2151 21.5763 6.2151L21.5745 6.21326ZM13.731 28.9271C14.2938 28.9198 14.7497 28.4787 14.7609 27.9329C14.7722 27.3614 14.2901 26.8946 13.6991 26.902C13.1382 26.9093 12.6786 27.3522 12.6692 27.8962C12.658 28.4677 13.1401 28.9345 13.731 28.9271ZM29.6731 27.8907C29.6581 27.3173 29.1628 26.8744 28.5681 26.9057C28.0053 26.9351 27.5682 27.3926 27.5814 27.9384C29.6581 27.3173 29.1628 26.8744 28.5681 26.9057C28.0053 26.9351 27.5682 27.3926 27.5814 27.9384Z" fill="#2563eb" />
                                 </svg>
-                                <span class="header-cart__count" id="cart-badge-count">0</span>
+                                <span class="header-cart__count" id="cart-badge-count" data-cart-badge>0</span>
                             </a>
                         </div>
                     </div>

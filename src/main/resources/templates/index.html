@@ -179,6 +179,7 @@
                             <div class="product-price-group">
                                 <span class="price-final" th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
                             </div>
+                            <button type="button" class="quick-add-to-cart" data-add-to-cart th:attr="data-product-id=${product.id}"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
                         </div>
                     </div>
                 </div>
@@ -210,6 +211,7 @@
                                 <div class="product-price-group">
                                     <span class="price-final" th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
                                 </div>
+                            <button type="button" class="quick-add-to-cart" data-add-to-cart th:attr="data-product-id=${product.id}"><i class="fa-solid fa-cart-plus"></i> Thêm vào giỏ</button>
                             </div>
                         </div>
                     </div>

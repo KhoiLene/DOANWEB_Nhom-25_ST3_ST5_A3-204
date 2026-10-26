@@ -5,6 +5,7 @@ import com.shopchain.entity.*;
 import com.shopchain.repository.*;
 import com.shopchain.service.OrderService;
 import com.shopchain.service.NotificationService;
+import com.shopchain.service.LoyaltyService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -24,11 +25,12 @@ public class OrderServiceImpl implements OrderService {
     private final ProductInventoryRepository inventoryRepository;
     private final NotificationService notificationService;
     private final WarehouseRepository warehouseRepository;
+    private final LoyaltyService loyaltyService;
 
     public OrderServiceImpl(OrderRepository orderRepository, CartRepository cartRepository,
                             UserRepository userRepository, StoreRepository storeRepository,
                             ProductInventoryRepository inventoryRepository, NotificationService notificationService,
-                            WarehouseRepository warehouseRepository) {
+                            WarehouseRepository warehouseRepository, LoyaltyService loyaltyService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
@@ -36,6 +38,7 @@ public class OrderServiceImpl implements OrderService {
         this.inventoryRepository = inventoryRepository;
         this.notificationService = notificationService;
         this.warehouseRepository = warehouseRepository;
+        this.loyaltyService = loyaltyService;
     }
 
     @Override
@@ -165,7 +168,12 @@ public class OrderServiceImpl implements OrderService {
             }
         }
         order.setStatus(status);
+        if ("DELIVERED".equals(status) && "COD".equalsIgnoreCase(order.getPaymentMethod())) {
+            order.setPaymentStatus("PAID");
+        }
         Order savedOrder = orderRepository.save(order);
+        if ("CANCELLED".equals(status)) loyaltyService.revokeForCancelledOrder(savedOrder.getId());
+        else loyaltyService.awardForPaidOrder(savedOrder.getId());
 
         // Thông báo cho User khi đơn hàng thay đổi trạng thái
         notificationService.sendNotificationToUser(order.getUser().getId(), NotificationRequest.builder()

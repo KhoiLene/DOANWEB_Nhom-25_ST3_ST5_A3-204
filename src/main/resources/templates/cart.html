@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Giỏ hàng - Techtra</title>
-    <link rel="stylesheet" th:href="@{/css/gio-hang/gio-hang.css}" />
+    <link rel="stylesheet" th:href="@{/css/gio-hang.css}" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
     <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
@@ -44,7 +44,11 @@
                 </div>
                 <div class="col-price" th:text="${#numbers.formatDecimal(item.product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
                 <div class="col-qty">
-                  <span th:text="${item.quantity}">1</span>
+                  <form th:action="@{/cart/update}" method="post" class="cart-quantity-form">
+                    <input type="hidden" name="productId" th:value="${item.product.id}" />
+                    <input type="number" name="quantity" min="1" max="99" aria-label="Số lượng" th:value="${item.quantity}" />
+                    <button type="submit" class="btn-quantity-update">Cập nhật</button>
+                  </form>
                 </div>
                 <div class="col-total" th:text="${#numbers.formatDecimal(item.product.price * item.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
                 <div class="col-action">
@@ -77,27 +81,21 @@
               <span>Vận chuyển</span>
               <strong th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
             </div>
-            <div class="summary-line summary-line--discount">
-              <span>Giảm giá</span>
-              <strong>0 đ</strong>
-            </div>
+            <div class="summary-line summary-line--discount"><span>Điểm thưởng</span><strong>Tích điểm sau thanh toán</strong></div>
             <div class="summary-total">
               <span>Tổng cộng</span>
               <strong th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
             </div>
 
-            <div class="voucher-block">
-              <label for="voucherCode">Voucher</label>
-              <div class="voucher-input">
-                <input id="voucherCode" type="text" placeholder="Nhập mã voucher (tuỳ chọn)" />
-                <button id="applyVoucherBtn" class="btn btn-secondary" type="button">Áp dụng</button>
-              </div>
-              <div id="voucherMessage" class="voucher-message" aria-live="polite"></div>
+            <div class="voucher-block cart-promotion-note">
+              <strong>Ưu đãi dành cho thành viên</strong>
+              <p>Đăng nhập để tham gia chương trình khuyến mãi và tích điểm Techtra.</p>
+              <a th:href="@{/profile}">Xem chương trình ưu đãi <i class="fa-solid fa-arrow-right"></i></a>
             </div>
 
             <div class="summary-actions">
               <a th:href="@{/checkout}" class="btn btn-primary" th:if="${not #lists.isEmpty(cartItems)}">Thanh toán</a>
-              <form th:action="@{/cart/clear}" method="post" style="display:inline">
+              <form th:action="@{/cart/clear}" method="post" style="display:inline" th:if="${not #lists.isEmpty(cartItems)}">
                 <button type="submit" class="btn btn-ghost">Xoá giỏ</button>
               </form>
             </div>

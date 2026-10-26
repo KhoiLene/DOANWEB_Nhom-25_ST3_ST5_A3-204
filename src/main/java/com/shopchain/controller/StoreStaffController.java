@@ -4,6 +4,7 @@ import com.shopchain.repository.*;
 import com.shopchain.service.InventoryOperationsService;
 import com.shopchain.service.PointOfSaleService;
 import com.shopchain.service.InvoiceService;
+import com.shopchain.service.OrderService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -20,11 +21,13 @@ public class StoreStaffController {
     private final PointOfSaleService pointOfSaleService;
     private final OrderRepository orderRepository;
     private final InvoiceService invoiceService;
+    private final OrderService orderService;
 
     public StoreStaffController(UserRepository userRepository, ProductInventoryRepository inventoryRepository,
                                 InventoryMovementRepository movementRepository, StockTransferRepository transferRepository,
                                 InventoryOperationsService inventoryOperationsService,
-                                PointOfSaleService pointOfSaleService, OrderRepository orderRepository, InvoiceService invoiceService) {
+                                PointOfSaleService pointOfSaleService, OrderRepository orderRepository,
+                                InvoiceService invoiceService, OrderService orderService) {
         this.userRepository = userRepository;
         this.inventoryRepository = inventoryRepository;
         this.movementRepository = movementRepository;
@@ -33,6 +36,7 @@ public class StoreStaffController {
         this.pointOfSaleService = pointOfSaleService;
         this.orderRepository = orderRepository;
         this.invoiceService = invoiceService;
+        this.orderService = orderService;
     }
 
     @GetMapping({"/orders", "/inventory"})
@@ -60,9 +64,8 @@ public class StoreStaffController {
                 || "SHIPPING".equals(status) && "PROCESSING".equals(order.getStatus())
                 || "DELIVERED".equals(status) && "SHIPPING".equals(order.getStatus())))
             throw new IllegalArgumentException("Trạng thái đơn hàng không hợp lệ.");
-        order.setStatus(status);
-        if ("DELIVERED".equals(status) && "COD".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("PAID");
-        orderRepository.save(order);
+        orderService.updateOrderStatus(orderId, status);
+        order = orderRepository.findById(orderId).orElseThrow();
         if ("DELIVERED".equals(status) && "PAID".equals(order.getPaymentStatus())) invoiceService.issueForPaidOrder(order.getId());
         return "redirect:/staff/orders";
     }
