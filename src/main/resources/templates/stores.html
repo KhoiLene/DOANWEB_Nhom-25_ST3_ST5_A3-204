@@ -1,43 +1,36 @@
-<!DOCTYPE html><html lang="vi" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hệ thống cửa hàng | Techtra Beauty</title><link rel="stylesheet" th:href="@{/css/style.css}"><th:block th:replace="~{fragments/header :: header-assets}"></th:block></head>
-<body><div th:replace="~{fragments/header :: header}"></div><main class="container section-padding">
-    <h1>Tìm cửa hàng gần bạn</h1><p>Cho phép truy cập vị trí hoặc nhập khu vực để xem các chi nhánh đang nhận đơn.</p>
-    <button class="btn btn-primary" type="button" id="locateMe">Dùng vị trí hiện tại</button>
-    <form id="addressSearch" style="display:flex;gap:12px;margin:20px 0"><input class="form-control" id="addressQuery" placeholder="Nhập tên đường, quận hoặc tỉnh/thành" required><button class="btn btn-outline" type="submit">Tìm theo địa chỉ</button></form>
-    <p id="locationMessage" role="status"></p><div id="storeResults" class="categories-grid"></div>
-</main><div th:replace="~{fragments/footer :: footer}"></div>
-<script>
-const results = document.getElementById('storeResults');
-const message = document.getElementById('locationMessage');
-function showStores(stores) {
-  results.replaceChildren();
-  if (!stores.length) { message.textContent = 'Chưa tìm thấy chi nhánh phù hợp. Bạn có thể thử nhập quận hoặc tỉnh/thành khác.'; return; }
-  message.textContent = `Tìm thấy ${stores.length} chi nhánh.`;
-  stores.forEach(store => {
-    const card = document.createElement('article');
-    card.className = 'category-card';
-    const heading = document.createElement('h2'); heading.textContent = store.name;
-    const address = document.createElement('p'); address.textContent = [store.address, store.district, store.city].filter(Boolean).join(', ');
-    const phone = document.createElement('p'); phone.textContent = store.phone ? `Điện thoại: ${store.phone}` : '';
-    const distance = document.createElement('p'); distance.textContent = store.distanceKm == null ? '' : `${store.distanceKm.toFixed(1)} km từ vị trí của bạn`;
-    card.append(heading, address, phone, distance); results.append(card);
-  });
-}
-async function load(url) {
-  message.textContent = 'Đang tìm cửa hàng…';
-  try { const response = await fetch(url); if (!response.ok) throw new Error('Không thể tìm chi nhánh.'); showStores(await response.json()); }
-  catch (error) { message.textContent = error.message; }
-}
-document.getElementById('locateMe').addEventListener('click', () => {
-  if (!navigator.geolocation) { message.textContent = 'Trình duyệt này không hỗ trợ lấy vị trí. Hãy nhập địa chỉ.'; return; }
-  message.textContent = 'Trình duyệt sẽ hỏi quyền truy cập vị trí.';
-  navigator.geolocation.getCurrentPosition(
-    position => load(`/api/locations/nearest?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}`),
-    () => { message.textContent = 'Không lấy được vị trí. Bạn vẫn có thể nhập địa chỉ để tìm.'; },
-    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-  );
-});
-document.getElementById('addressSearch').addEventListener('submit', event => {
-  event.preventDefault(); load(`/api/locations/search?query=${encodeURIComponent(document.getElementById('addressQuery').value)}`);
-});
-load('/api/locations/search?query=');
-</script></body></html>
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Hệ thống cửa hàng | Techtra Beauty</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/store-locator.css}">
+    <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+</head>
+<body>
+<div th:replace="~{fragments/header :: header}"></div>
+<main class="store-locator container section-padding" id="store-locator" th:attr="data-google-maps-key=${googleMapsBrowserKey}">
+    <div class="store-locator__heading">
+        <div><span class="store-locator__eyebrow">TECHTRA BEAUTY</span><h1>Tìm cửa hàng gần bạn</h1>
+            <p>Dùng vị trí hiện tại hoặc nhập địa chỉ để xem tối đa 5 chi nhánh phù hợp.</p></div>
+        <button class="btn btn-primary" type="button" id="locateMe">Dùng vị trí hiện tại</button>
+    </div>
+    <form id="addressSearch" class="store-locator__search" role="search">
+        <label class="sr-only" for="addressQuery">Địa chỉ hoặc khu vực</label>
+        <input class="form-control" id="addressQuery" autocomplete="street-address" placeholder="Nhập địa chỉ, quận hoặc tỉnh/thành">
+        <button class="btn btn-outline" type="submit">Tìm cửa hàng</button>
+    </form>
+    <p class="store-locator__message" id="locationMessage" role="status" aria-live="polite"></p>
+    <div class="store-locator__layout">
+        <section class="store-locator__results" aria-label="Chi nhánh gần nhất">
+            <h2>Chi nhánh gợi ý</h2><div id="storeResults" class="store-locator__cards"></div>
+        </section>
+        <div class="store-locator__map-wrap">
+            <div id="storeMap" class="store-locator__map" role="region" aria-label="Bản đồ chi nhánh"></div>
+            <p class="store-locator__map-note" id="mapMessage"></p>
+        </div>
+    </div>
+</main>
+<div th:replace="~{fragments/footer :: footer}"></div>
+<script defer th:src="@{/js/store-locator.js}"></script>
+</body></html>

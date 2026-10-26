@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +27,8 @@ public class OrderServiceImpl implements OrderService {
     private final NotificationService notificationService;
     private final WarehouseRepository warehouseRepository;
     private final LoyaltyService loyaltyService;
+    @Value("${shipping.store-fulfillment-radius-km:50}")
+    private double storeFulfillmentRadiusKm;
 
     public OrderServiceImpl(OrderRepository orderRepository, CartRepository cartRepository,
                             UserRepository userRepository, StoreRepository storeRepository,
@@ -44,7 +47,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public Order placeOnlineOrder(Long userId, Long storeId, String name, String phone, String address,
-                                  String deliveryCity, String fulfillmentType, String paymentMethod) {
+                                  String deliveryCity, String fulfillmentType, String paymentMethod,
+                                  Double deliveryLatitude, Double deliveryLongitude) {
         User user = userRepository.findById(userId).orElseThrow();
         Store store = storeRepository.findById(storeId).orElseThrow();
         if (!store.isActive() || !store.isPickupEnabled()) throw new IllegalArgumentException("Chi nhánh này không nhận đơn.");
@@ -53,11 +57,15 @@ public class OrderServiceImpl implements OrderService {
         boolean pickup = "PICKUP".equals(fulfillmentType);
         if (!pickup && !"DELIVERY".equals(fulfillmentType)) throw new IllegalArgumentException("Vui lòng chọn cách nhận hàng.");
         if (!List.of("COD", "vnpay", "VNPAY").contains(paymentMethod)) throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
-        boolean remote = !pickup && deliveryCity != null && store.getCity() != null
+        boolean otherCity = deliveryCity != null && store.getCity() != null
                 && !normalize(deliveryCity).equals(normalize(store.getCity()));
+        boolean outsideStoreRadius = hasValidCoordinates(deliveryLatitude, deliveryLongitude)
+                && hasValidCoordinates(store.getLatitude(), store.getLongitude())
+                && distanceKm(deliveryLatitude, deliveryLongitude, store.getLatitude(), store.getLongitude()) > storeFulfillmentRadiusKm;
+        boolean remote = !pickup && (otherCity || outsideStoreRadius);
         Warehouse warehouse = null;
-        if (remote) warehouse = warehouseRepository.findByActiveTrue().stream().findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Đơn khác tỉnh cần có kho đang hoạt động. Vui lòng liên hệ cửa hàng."));
+        if (remote) warehouse = chooseWarehouse(deliveryLatitude, deliveryLongitude)
+                .orElseThrow(() -> new IllegalArgumentException("Đơn giao xa cần có kho đang hoạt động. Vui lòng liên hệ cửa hàng."));
 
         Order order = Order.builder().user(user).store(store).orderDate(java.time.LocalDateTime.now())
                 .status("PENDING").paymentMethod(paymentMethod).paymentStatus("UNPAID")
@@ -92,6 +100,30 @@ public class OrderServiceImpl implements OrderService {
     private String normalize(String value) {
         return java.text.Normalizer.normalize(value.trim(), java.text.Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "").toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private java.util.Optional<Warehouse> chooseWarehouse(Double latitude, Double longitude) {
+        List<Warehouse> activeWarehouses = warehouseRepository.findByActiveTrue();
+        if (!hasValidCoordinates(latitude, longitude)) return activeWarehouses.stream().findFirst();
+        return activeWarehouses.stream()
+                .filter(warehouse -> hasValidCoordinates(warehouse.getLatitude(), warehouse.getLongitude()))
+                .min(java.util.Comparator.comparingDouble(warehouse -> distanceKm(latitude, longitude,
+                        warehouse.getLatitude(), warehouse.getLongitude())))
+                .or(() -> activeWarehouses.stream().findFirst());
+    }
+
+    private boolean hasValidCoordinates(Double latitude, Double longitude) {
+        return latitude != null && longitude != null && Double.isFinite(latitude) && Double.isFinite(longitude)
+                && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+    }
+
+    private double distanceKm(double latitude1, double longitude1, double latitude2, double longitude2) {
+        double dLat = Math.toRadians(latitude2 - latitude1);
+        double dLon = Math.toRadians(longitude2 - longitude1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(latitude1)) * Math.cos(Math.toRadians(latitude2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 6371.0088 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     @Override

@@ -43,7 +43,9 @@
       </section>
 
       <p class="checkout-error" th:if="${checkoutError}" th:text="${checkoutError}" role="alert">Không thể đặt hàng.</p>
-      <form id="checkoutForm" th:action="@{/checkout/place-order}" method="post" novalidate>
+      <form id="checkoutForm" th:action="@{/checkout/place-order}" method="post" novalidate th:attr="data-google-maps-key=${googleMapsBrowserKey}">
+        <input type="hidden" id="deliveryLatitude" name="deliveryLatitude">
+        <input type="hidden" id="deliveryLongitude" name="deliveryLongitude">
         <section class="checkout-layout">
           <section class="checkout-main">
             <!-- Step 1 -->
@@ -67,7 +69,7 @@
                   <input id="receiverAddressLine" name="address" type="text" placeholder="VD: 12 Nguyễn Trãi" autocomplete="street-address" />
                 </div>
                 <div class="field"><label for="deliveryCity">Tỉnh / thành phố nhận hàng</label><input id="deliveryCity" name="deliveryCity" type="text" placeholder="VD: Thành phố Hồ Chí Minh" /></div>
-                <div class="field"><label for="storeId">Chọn chi nhánh</label><select id="storeId" name="storeId" required><option value="">Chọn chi nhánh gần bạn</option><option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name + ' · ' + (store.district ?: '') + ' ' + (store.city ?: '')}">Chi nhánh</option></select><button type="button" class="btn btn-secondary" id="locateStores">Dùng vị trí hiện tại để sắp xếp chi nhánh gần nhất</button><small id="locationMessage"></small></div>
+                <div class="field"><label for="storeId">Chọn chi nhánh</label><select id="storeId" name="storeId" required><option value="">Chọn chi nhánh gần bạn</option><option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name + ' · ' + (store.district ?: '') + ' ' + (store.city ?: '')}">Chi nhánh</option></select><button type="button" class="btn btn-secondary" id="locateStores">Dùng vị trí hiện tại để sắp xếp chi nhánh gần nhất</button><button type="button" class="btn btn-secondary" id="locateByDeliveryAddress">Tìm theo địa chỉ giao hàng</button><a th:href="@{/stores}" class="checkout-store-search">Tìm chi nhánh theo địa chỉ trên bản đồ</a><small id="locationMessage"></small><small>Địa chỉ chỉ được gửi tới Google Maps khi bạn bấm tìm theo địa chỉ.</small></div>
                 <div class="field field--full"><label>Cách nhận hàng</label><label><input type="radio" name="fulfillmentType" value="DELIVERY" checked> Giao đến địa chỉ</label> <label><input type="radio" name="fulfillmentType" value="PICKUP"> Nhận tại chi nhánh</label><p class="muted">Nếu địa chỉ giao khác tỉnh/thành phố chi nhánh, hệ thống sẽ chuyển xử lý tồn kho qua kho trung tâm.</p></div>
                 <div class="form-actions">
                   <button type="button" class="btn btn-primary" id="checkoutToStep2">Tiếp tục</button>
@@ -185,6 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const address = document.getElementById('receiverAddressLine');
   const deliveryCity = document.getElementById('deliveryCity');
   const pickupRadios = document.querySelectorAll('input[name="fulfillmentType"]');
+  const mapsKey = form.dataset.googleMapsKey;
+  let geocoder;
+  let preferredStoreId = null;
+  try { preferredStoreId = localStorage.getItem('preferredStoreId'); } catch (_) { }
 
   function showStep(number) {
     panels.forEach((panel, index) => panel.style.display = index + 1 === number ? 'block' : 'none');
@@ -215,6 +221,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sumPayment').textContent = document.querySelector('input[name="paymentMethod"]:checked').value.toUpperCase();
   }
 
+  if (preferredStoreId && [...form.elements.storeId.options].some(option => option.value === preferredStoreId)) {
+    form.elements.storeId.value = preferredStoreId;
+    document.querySelector('input[name="fulfillmentType"][value="PICKUP"]').checked = true;
+    document.getElementById('locationMessage').textContent = 'Đã chọn chi nhánh nhận hàng bạn lưu trước đó.';
+  }
+
   pickupRadios.forEach(radio => radio.addEventListener('change', updateFulfillment));
   updateFulfillment();
   document.getElementById('checkoutToStep2').addEventListener('click', () => { if (validateRecipient()) showStep(2); });
@@ -224,30 +236,79 @@ document.addEventListener('DOMContentLoaded', () => {
     form.requestSubmit();
   });
 
+  async function suggestNearestStores(latitude, longitude, useForDelivery) {
+    const message = document.getElementById('locationMessage');
+    const query = new URLSearchParams({ latitude, longitude, limit: 5 });
+    const response = await fetch(`/api/locations/nearest?${query}`);
+    if (!response.ok) throw new Error('Không thể tìm chi nhánh lúc này.');
+    const stores = await response.json();
+    const select = document.getElementById('storeId');
+    if (!stores.length) { message.textContent = 'Chưa có chi nhánh gần vị trí này. Nếu giao xa, đơn sẽ được chuyển về kho.'; return; }
+    const suggestedIds = new Set(stores.map(store => String(store.id)));
+    [...select.options].slice(1).forEach(option => { option.hidden = !suggestedIds.has(option.value); });
+    stores.forEach(store => {
+      const option = [...select.options].find(item => item.value === String(store.id));
+      if (option) option.textContent = `${store.name} · ${Number(store.distanceKm).toFixed(1)} km`;
+    });
+    select.value = String(stores[0].id);
+    try { localStorage.setItem('preferredStoreId', String(stores[0].id)); } catch (_) { }
+    if (useForDelivery) {
+      document.getElementById('deliveryLatitude').value = latitude;
+      document.getElementById('deliveryLongitude').value = longitude;
+      message.textContent = `Đã gợi ý ${stores.length} chi nhánh theo địa chỉ giao hàng. Nếu địa chỉ xa, hệ thống sẽ chuyển xử lý về kho.`;
+    } else {
+      message.textContent = `Đang gợi ý ${stores.length} chi nhánh gần vị trí hiện tại. Bạn có thể đổi lựa chọn trong danh sách.`;
+    }
+  }
+
   document.getElementById('locateStores').addEventListener('click', () => {
     const message = document.getElementById('locationMessage');
     if (!navigator.geolocation) { message.textContent = 'Trình duyệt không hỗ trợ định vị. Bạn có thể nhập địa chỉ hoặc chọn chi nhánh.'; return; }
-    message.textContent = 'Đang tìm chi nhánh gần bạn…';
-    navigator.geolocation.getCurrentPosition(async position => {
-      try {
-        const query = new URLSearchParams({ latitude: position.coords.latitude, longitude: position.coords.longitude, limit: 5 });
-        const response = await fetch(`/api/locations/nearest?${query}`);
-        if (!response.ok) throw new Error('Không thể tìm chi nhánh lúc này.');
-        const stores = await response.json();
-        const select = document.getElementById('storeId');
-        if (!stores.length) { message.textContent = 'Chưa có chi nhánh gần vị trí này. Hãy chọn chi nhánh trong danh sách.'; return; }
-        const topStores = stores.slice(0, 5);
-        const suggestedIds = new Set(topStores.map(store => String(store.id)));
-        [...select.options].slice(1).forEach(option => { if (!suggestedIds.has(option.value)) option.hidden = true; });
-        topStores.forEach(store => {
-          const option = [...select.options].find(item => item.value === String(store.id));
-          if (option) option.textContent = `${store.name} · ${store.distanceKm.toFixed(1)} km`;
-        });
-        select.value = String(topStores[0].id);
-        message.textContent = `Đang gợi ý ${topStores.length} chi nhánh gần nhất. Bạn có thể đổi lựa chọn trong danh sách.`;
-      } catch (error) { message.textContent = error.message || 'Không tìm được chi nhánh. Bạn có thể tự chọn trong danh sách.'; }
+    message.textContent = 'Trình duyệt sẽ hỏi quyền truy cập vị trí.';
+    navigator.geolocation.getCurrentPosition(position => {
+      suggestNearestStores(position.coords.latitude, position.coords.longitude, false)
+        .catch(error => { message.textContent = error.message || 'Không tìm được chi nhánh.'; });
     }, () => { message.textContent = 'Không lấy được vị trí. Bạn có thể nhập địa chỉ hoặc tự chọn chi nhánh.'; }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
   });
+
+  document.getElementById('locateByDeliveryAddress').addEventListener('click', async () => {
+    const message = document.getElementById('locationMessage');
+    if (!address.value.trim() || !deliveryCity.value.trim()) {
+      message.textContent = 'Nhập địa chỉ chi tiết và tỉnh/thành phố giao hàng trước.';
+      return;
+    }
+    if (!geocoder) {
+      message.textContent = 'Bản đồ chưa được cấu hình. Hãy tìm theo địa chỉ tại trang cửa hàng hoặc chọn chi nhánh thủ công.';
+      return;
+    }
+    message.textContent = 'Đang xác định tọa độ địa chỉ giao hàng…';
+    try {
+      const { results } = await geocoder.geocode({
+        address: `${address.value}, ${deliveryCity.value}`
+      });
+      if (!results?.length) throw new Error('Không tìm thấy địa chỉ. Hãy kiểm tra lại địa chỉ và tỉnh/thành phố.');
+      const location = results[0].geometry.location;
+      await suggestNearestStores(location.lat(), location.lng(), true);
+    } catch (error) {
+      message.textContent = error.message || 'Không thể xác định địa chỉ giao hàng.';
+    }
+  });
+
+  if (mapsKey) {
+    window.initCheckoutGeocoder = async () => {
+      try {
+        const { Geocoder } = await google.maps.importLibrary('geocoding');
+        geocoder = new Geocoder();
+      } catch (_) {
+        document.getElementById('locationMessage').textContent = 'Không tải được dịch vụ định vị địa chỉ. Kiểm tra API Geocoding.';
+      }
+    };
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(mapsKey)}&loading=async&callback=initCheckoutGeocoder`;
+    script.async = true;
+    script.onerror = () => { document.getElementById('locationMessage').textContent = 'Không tải được Google Maps. Kiểm tra khóa và API đã bật.'; };
+    document.head.append(script);
+  }
 });
 </script>
 </body>

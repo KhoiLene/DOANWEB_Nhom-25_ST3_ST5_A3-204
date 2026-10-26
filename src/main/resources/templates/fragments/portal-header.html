@@ -1,4 +1,5 @@
-<header class="portal-header" th:fragment="header(roleTitle, locationName)">
+<th:block th:fragment="header(roleTitle, locationName)">
+<header class="portal-header">
     <div class="portal-header__inner">
         <a class="portal-brand" th:href="@{/}" aria-label="Techtra Beauty - trang chủ"><span>TECHTRA</span><strong>BEAUTY</strong></a>
         <div class="portal-context"><strong th:text="${roleTitle}">Cổng nhân viên</strong><span th:text="${locationName}">Khu vực làm việc</span></div>
@@ -8,3 +9,5 @@
         </nav>
     </div>
 </header>
+<div th:replace="~{fragments/assistant-widget :: widget}"></div>
+</th:block>

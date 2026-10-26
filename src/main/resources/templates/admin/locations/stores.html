@@ -11,6 +11,12 @@
                 <div class="form-group"><label class="form-label">Điện thoại</label><input class="form-control" th:field="*{phone}"></div>
                 <div class="form-group"><label class="form-label">Vĩ độ</label><input class="form-control" type="number" step="any" th:field="*{latitude}"></div>
                 <div class="form-group"><label class="form-label">Kinh độ</label><input class="form-control" type="number" step="any" th:field="*{longitude}"></div>
+                <div class="form-group branch-map-tools" id="branchMapTools" th:attr="data-google-maps-key=${googleMapsBrowserKey}">
+                    <label class="form-label" for="branchMap">Chọn vị trí trên bản đồ</label>
+                    <button class="btn btn-outline" type="button" id="geocodeBranchAddress">Định vị theo địa chỉ</button>
+                    <p id="branchMapMessage" role="status" aria-live="polite">Có thể nhập tọa độ trực tiếp nếu chưa cấu hình bản đồ.</p>
+                    <div class="branch-map" id="branchMap" role="region" aria-label="Bản đồ chọn vị trí chi nhánh"></div>
+                </div>
                 <div class="form-group"><label><input type="checkbox" th:field="*{pickupEnabled}"> Cho phép nhận hàng tại đây</label></div>
                 <div class="form-group"><label><input type="checkbox" th:field="*{active}"> Đang hoạt động</label></div>
                 <button class="btn btn-primary" type="submit">Lưu chi nhánh</button>
@@ -28,3 +34,4 @@
         </tr><tr th:if="${#lists.isEmpty(stores)}"><td colspan="6">Chưa có chi nhánh. Thêm chi nhánh kèm tọa độ để bật tìm cửa hàng gần nhất.</td></tr></tbody>
     </table></div></div>
 </div>
+<script defer th:src="@{/js/admin-store-map.js}"></script>

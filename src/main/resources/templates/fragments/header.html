@@ -1,11 +1,14 @@
 <!-- Header Assets -->
 <th:block th:fragment="header-assets">
     <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/assistant-widget.css}">
     <script defer th:src="@{/js/storefront.js}"></script>
+    <script defer th:src="@{/js/assistant-widget.js}"></script>
 </th:block>
 
 <!-- Site Header Fragment -->
-<header th:fragment="header" class="site-header" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<th:block th:fragment="header" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<header class="site-header">
     <div class="site-header__mobile">
         <a class="header-logo" th:href="@{/}" aria-label="Techtra Beauty"><span class="header-logo__text">TECHTRA <strong>BEAUTY</strong></span></a>
         <form class="mobile-search" th:action="@{/products}" method="get" role="search">
@@ -169,3 +172,5 @@
         </div>
     </div>
 </header>
+<div th:replace="~{fragments/assistant-widget :: widget}"></div>
+</th:block>

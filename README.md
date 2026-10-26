@@ -121,6 +121,8 @@ spring.mail.password=your-app-password
 
 > Nếu không điền, các tính năng trên sẽ không hoạt động nhưng **project vẫn chạy bình thường**.
 
+Các khóa tích hợp nên được đặt bằng biến môi trường và không lưu trong repo. Hướng dẫn Google Maps và chatbot RAG theo từng role, gồm lệnh thiết lập PowerShell, nằm tại [`docs/integrations-setup.md`](docs/integrations-setup.md).
+
 ---
 
 ## 🛠 Một số lệnh Docker hữu ích

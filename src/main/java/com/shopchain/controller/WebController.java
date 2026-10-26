@@ -222,10 +222,12 @@ public class WebController {
     public String placeOrder(@RequestParam String name, @RequestParam String phone, @RequestParam String address,
                              @RequestParam String deliveryCity, @RequestParam Long storeId,
                              @RequestParam String fulfillmentType, @RequestParam String paymentMethod,
+                             @RequestParam(required = false) Double deliveryLatitude,
+                             @RequestParam(required = false) Double deliveryLongitude,
                              Authentication authentication, Model model) {
         try {
             Order order = orderService.placeOnlineOrder(currentUserId(authentication), storeId, name, phone,
-                    address, deliveryCity, fulfillmentType, paymentMethod);
+                    address, deliveryCity, fulfillmentType, paymentMethod, deliveryLatitude, deliveryLongitude);
             return "redirect:/order-success?orderId=" + order.getId();
         } catch (RuntimeException ex) {
             Cart cart = cartService.getCart(currentUserId(authentication));

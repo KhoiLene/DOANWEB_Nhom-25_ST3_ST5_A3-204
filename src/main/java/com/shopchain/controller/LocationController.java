@@ -20,6 +20,11 @@ public class LocationController {
     @GetMapping("/nearest")
     public List<StoreResult> nearest(@RequestParam double latitude, @RequestParam double longitude,
                                      @RequestParam(defaultValue = "5") int limit) {
+        if (!Double.isFinite(latitude) || latitude < -90 || latitude > 90
+                || !Double.isFinite(longitude) || longitude < -180 || longitude > 180) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Tọa độ không hợp lệ.");
+        }
         return storeRepository.findByActiveTrueAndPickupEnabledTrueAndLatitudeIsNotNullAndLongitudeIsNotNull()
                 .stream()
                 .map(store -> result(store, distanceKm(latitude, longitude, store.getLatitude(), store.getLongitude())))
