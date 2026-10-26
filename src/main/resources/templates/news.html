@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tin tức & Đọc báo | Techtra</title>
-  <meta name="description" content="Tổng hợp tin tức công nghệ, khoa học, đời sống được Techtra tuyển chọn từ các báo uy tín.">
+  <title>Góc làm đẹp & chuyện trò | Techtra Beauty</title>
+  <meta name="description" content="Hướng dẫn chăm sóc da, tóc, môi và những câu chuyện gần gũi từ cộng đồng Techtra Beauty.">
 
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -20,9 +20,9 @@
     <!-- ─── Hero / Tiêu đề trang ─── -->
     <section class="tn-hero">
       <div class="tn-hero-inner">
-        <p class="tn-eyebrow"><i class="fas fa-newspaper"></i> Đọc báo cùng Techtra</p>
-        <h1 class="tn-title">Tin tức &amp; Bài viết</h1>
-        <p class="tn-sub">Tổng hợp tin nóng từ VnExpress, Tuổi Trẻ, Dân trí, Thanh Niên… cập nhật mỗi ngày.</p>
+        <p class="tn-eyebrow"><i class="fas fa-spa"></i> Cùng chăm sóc bản thân</p>
+        <h1 class="tn-title">Góc làm đẹp &amp; chuyện trò</h1>
+        <p class="tn-sub">Tìm hướng dẫn dễ áp dụng về chăm da, chăm tóc, chăm môi và những câu chuyện gần gũi từ cộng đồng.</p>
       </div>
     </section>
 
@@ -39,9 +39,6 @@
         <a th:href="@{/news}" class="tn-chip" th:classappend="${categoryId == null} ? 'active' : ''">Tất cả nhóm</a>
         <a th:each="cat : ${categories}" th:href="@{/news(categoryId=${cat.id})}"
            class="tn-chip" th:classappend="${categoryId == cat.id} ? 'active' : ''" th:text="${cat.name}">Danh mục</a>
-      </div>
-      <div class="tn-sites" id="tnSiteFilter">
-        <button class="tn-chip active" data-site="all">Mọi nguồn</button>
       </div>
     </section>
 

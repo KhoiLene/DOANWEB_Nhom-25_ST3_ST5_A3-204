@@ -1,4 +1,5 @@
 <div th:fragment="widget" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+    <span id="assistantUser" hidden sec:authorize="isAuthenticated()" sec:authentication="name"></span>
     <section class="assistant-widget" id="assistantWidget">
         <button class="assistant-widget__launcher" id="assistantLauncher" type="button" aria-expanded="false" aria-controls="assistantPanel">
             <span aria-hidden="true">✦</span><span>Chatbot AI</span>

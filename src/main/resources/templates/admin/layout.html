@@ -74,6 +74,11 @@
                     </a>
                 </li>
                 <li class="admin-sidebar__item">
+                    <a th:href="@{/messages}" class="admin-sidebar__link">
+                        <i class="fa-solid fa-comments"></i><span>Tin nhắn nội bộ</span>
+                    </a>
+                </li>
+                <li class="admin-sidebar__item">
                     <a th:href="@{/admin/settings}" class="admin-sidebar__link" th:classappend="${activePage == 'settings' ? 'active' : ''}">
                         <i class="fa-solid fa-gear"></i>
                         <span>Cài đặt hệ thống</span>
@@ -96,6 +101,7 @@
                         </summary>
                         <div class="admin-profile-menu__panel">
                             <a class="btn btn-outline" th:href="@{/}">Xem cửa hàng</a>
+                            <a class="btn btn-outline" th:href="@{/messages}">Tin nhắn nội bộ</a>
                             <form th:action="@{/logout-process}" method="post"><button class="btn btn-primary" type="submit">Đăng xuất</button></form>
                         </div>
                     </details>

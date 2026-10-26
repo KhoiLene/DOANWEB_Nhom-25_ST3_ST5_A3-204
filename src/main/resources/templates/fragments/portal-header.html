@@ -8,6 +8,7 @@
             <nav class="portal-profile-menu__panel" aria-label="Tài khoản">
                 <a class="portal-header__link" th:href="@{/}">Xem cửa hàng</a>
                 <a class="portal-header__link" th:href="${roleTitle == 'Nhân viên kho' ? '/warehouse/orders' : '/staff/pos'}">Về khu vực làm việc</a>
+                <a class="portal-header__link" th:href="@{/messages}">Tin nhắn nội bộ</a>
                 <form class="portal-logout" th:action="@{/logout-process}" method="post"><button class="portal-header__link" type="submit">Đăng xuất</button></form>
             </nav>
         </details>

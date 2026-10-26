@@ -370,6 +370,17 @@ body {
 }
 .menu-type-2__right--item:hover img { transform: scale(1.02); }
 
+.menu-type-2:not(.menu-type-news) .menu-type-2__right { width: 260px; gap: 9px; }
+.menu-promo-card { position: relative; isolation: isolate; display: flex; min-height: 84px; flex-direction: column; justify-content: center; gap: 4px; overflow: hidden; padding: 11px 14px; border: 1px solid #e5e9ef; border-radius: 13px; color: #17304d; text-decoration: none; background: linear-gradient(115deg,#f0f7f3,#fbfcf8 62%,#eaf5ee); transition: transform .18s ease, box-shadow .18s ease; }
+.menu-promo-card:hover { transform: translateY(-2px); box-shadow: 0 9px 22px #17304d18; }
+.menu-promo-card span { color: #55766b; font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+.menu-promo-card strong { max-width: 88%; color: #17304d; font-family: Montserrat, sans-serif; font-size: 12px; line-height: 1.25; }
+.menu-promo-card em { color: #2563eb; font-size: 10px; font-style: normal; font-weight: 700; }
+.menu-promo-card--hair { background: linear-gradient(115deg,#f3f0e9,#fcfaf4 62%,#eee6d7); }
+.menu-promo-card--hair span { color: #8b7048; }
+.menu-promo-card--lips { background: linear-gradient(115deg,#fcf0ed,#fffaf7 62%,#f7e1df); }
+.menu-promo-card--lips span { color: #a45e61; }
+
 .menu-type-2__more {
     display: inline-flex;
     align-items: center;

@@ -65,7 +65,7 @@ public class RoleAssistantService {
                 ? "Qdrant chưa sẵn sàng."
                 : "Gemini " + gemini.chatModel() + " + " + gemini.embeddingModel() + "; không dùng model cục bộ.";
         return new AssistantContext("Chatbot AI thông minh", description, ready,
-                activeSources.size(), mode, indexedCount, providerConfigured, qdrantReady);
+                activeSources.size(), mode, indexedCount, providerConfigured, qdrantReady, role);
     }
 
     public AssistantReply ask(String role, String question, List<ChatTurn> history) {
@@ -225,7 +225,7 @@ public class RoleAssistantService {
     public record AssistantContext(String name, String description, boolean ready,
                                    long sourceCount, String generationMode,
                                    long indexedSourceCount, boolean providerConfigured,
-                                   boolean vectorStoreReady) { }
+                                   boolean vectorStoreReady, String roleKey) { }
 
     public record AssistantReply(String answer, List<String> sources, String retrievalMode) { }
 

@@ -100,7 +100,31 @@ public class DemoStoreInitializer implements CommandLineRunner {
                 new StoreSeed("Điểm demo Techtra - Nha Trang", "Vị trí mô phỏng khu vực trung tâm Nha Trang",
                         "Tỉnh Khánh Hòa", "Thành phố Nha Trang", 12.2388, 109.1967),
                 new StoreSeed("Điểm demo Techtra - Vũng Tàu", "Vị trí mô phỏng khu vực trung tâm Vũng Tàu",
-                        "Thành phố Hồ Chí Minh", "Thành phố Vũng Tàu", 10.3459, 107.0843)
+                        "Thành phố Hồ Chí Minh", "Thành phố Vũng Tàu", 10.3459, 107.0843),
+                new StoreSeed("Điểm demo Techtra - Ba Đình", "Vị trí mô phỏng khu vực Ba Đình",
+                        "Thành phố Hà Nội", "Quận Ba Đình", 21.0341, 105.8146),
+                new StoreSeed("Điểm demo Techtra - Hạ Long", "Vị trí mô phỏng khu vực trung tâm Hạ Long",
+                        "Tỉnh Quảng Ninh", "Thành phố Hạ Long", 20.9505, 107.0731),
+                new StoreSeed("Điểm demo Techtra - Huế", "Vị trí mô phỏng khu vực trung tâm Huế",
+                        "Thành phố Huế", "Quận Thuận Hóa", 16.4637, 107.5909),
+                new StoreSeed("Điểm demo Techtra - Vinh", "Vị trí mô phỏng khu vực trung tâm Vinh",
+                        "Tỉnh Nghệ An", "Thành phố Vinh", 18.6796, 105.6813),
+                new StoreSeed("Điểm demo Techtra - Quy Nhơn", "Vị trí mô phỏng khu vực trung tâm Quy Nhơn",
+                        "Tỉnh Bình Định", "Thành phố Quy Nhơn", 13.7820, 109.2197),
+                new StoreSeed("Điểm demo Techtra - Buôn Ma Thuột", "Vị trí mô phỏng khu vực trung tâm Buôn Ma Thuột",
+                        "Tỉnh Đắk Lắk", "Thành phố Buôn Ma Thuột", 12.6664, 108.0382),
+                new StoreSeed("Điểm demo Techtra - Đà Lạt", "Vị trí mô phỏng khu vực trung tâm Đà Lạt",
+                        "Tỉnh Lâm Đồng", "Thành phố Đà Lạt", 11.9404, 108.4583),
+                new StoreSeed("Điểm demo Techtra - Biên Hòa", "Vị trí mô phỏng khu vực trung tâm Biên Hòa",
+                        "Tỉnh Đồng Nai", "Thành phố Biên Hòa", 10.9574, 106.8427),
+                new StoreSeed("Điểm demo Techtra - Mỹ Tho", "Vị trí mô phỏng khu vực trung tâm Mỹ Tho",
+                        "Tỉnh Tiền Giang", "Thành phố Mỹ Tho", 10.3600, 106.3599),
+                new StoreSeed("Điểm demo Techtra - Rạch Giá", "Vị trí mô phỏng khu vực trung tâm Rạch Giá",
+                        "Tỉnh Kiên Giang", "Thành phố Rạch Giá", 10.0125, 105.0809),
+                new StoreSeed("Điểm demo Techtra - Long Xuyên", "Vị trí mô phỏng khu vực trung tâm Long Xuyên",
+                        "Tỉnh An Giang", "Thành phố Long Xuyên", 10.3864, 105.4352),
+                new StoreSeed("Điểm demo Techtra - Phú Quốc", "Vị trí mô phỏng khu vực trung tâm Dương Đông",
+                        "Tỉnh Kiên Giang", "Thành phố Phú Quốc", 10.2167, 103.9597)
         );
     }
 

@@ -52,6 +52,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/api/products/**", "/api/locations/**", "/api/payment/vnpay-return", "/css/**", "/js/**", "/images/**", "/img/**", "/", "/products", "/search", "/product/**", "/news", "/news/**", "/about", "/stores", "/login", "/login-process", "/register", "/register-process", "/forgot-password", "/forgot-password-process", "/order-success").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/messages/**").hasAnyRole("ADMIN", "WAREHOUSE", "STORE_STAFF")
                 .requestMatchers("/warehouse/**", "/api/warehouse/**").hasAnyRole("WAREHOUSE", "ADMIN")
                 .requestMatchers("/staff/**", "/api/staff/**").hasAnyRole("STORE_STAFF", "ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

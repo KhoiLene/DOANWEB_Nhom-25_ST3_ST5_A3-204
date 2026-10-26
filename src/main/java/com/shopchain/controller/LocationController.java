@@ -5,6 +5,7 @@ import com.shopchain.repository.StoreRepository;
 import com.shopchain.service.NominatimGeocodingService;
 import com.shopchain.service.NominatimGeocodingService.GeocodingUnavailableException;
 import com.shopchain.service.NominatimGeocodingService.GeocodedLocation;
+import com.shopchain.service.NominatimGeocodingService.AddressSuggestion;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +31,19 @@ public class LocationController {
         try {
             GeocodedLocation location = geocodingService.geocode(query, countryCode);
             return ResponseEntity.ok(location);
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", exception.getMessage()));
+        } catch (GeocodingUnavailableException exception) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(java.util.Map.of("error", exception.getMessage()));
+        }
+    }
+
+    @GetMapping("/suggest")
+    public ResponseEntity<?> suggest(@RequestParam String query) {
+        try {
+            List<AddressSuggestion> suggestions = geocodingService.suggest(query);
+            return ResponseEntity.ok(suggestions);
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", exception.getMessage()));
         } catch (GeocodingUnavailableException exception) {

@@ -81,9 +81,15 @@
                                                     </div>
                                                 </div>
                                                 <div class="menu-type-2__right" data-banner-container>
-                                                    <div class="menu-type-2__right--item" data-banner-item>
-                                                        <a href="#"><img th:src="@{/img/header/KL-logo.png}" alt="Menu Banner 1"></a>
-                                                    </div>
+                                                    <a class="menu-promo-card menu-promo-card--skin" th:each="category : ${navCategories}" th:if="${category.name == 'Chăm sóc da'}" th:href="@{/products(categoryId=${category.id})}">
+                                                        <span>BẮT ĐẦU TỪ ĐIỀU CƠ BẢN</span><strong>Chu trình dưỡng da gọn nhẹ</strong><em>Khám phá sản phẩm →</em>
+                                                    </a>
+                                                    <a class="menu-promo-card menu-promo-card--hair" th:each="category : ${navCategories}" th:if="${category.name == 'Chăm sóc tóc'}" th:href="@{/products(categoryId=${category.id})}">
+                                                        <span>CHĂM TÓC MỖI NGÀY</span><strong>Gội sạch, dưỡng đúng bước</strong><em>Xem sản phẩm →</em>
+                                                    </a>
+                                                    <a class="menu-promo-card menu-promo-card--lips" th:each="category : ${navCategories}" th:if="${category.name == 'Dưỡng môi'}" th:href="@{/products(categoryId=${category.id})}">
+                                                        <span>MỘT CHÚT MỀM MẠI</span><strong>Chăm sóc môi thật đơn giản</strong><em>Khám phá dưỡng môi →</em>
+                                                    </a>
                                                 </div>
                                             </div>
                                             <a th:href="@{/products}" class="menu-type-2__more">Tất cả sản phẩm</a>
@@ -109,7 +115,7 @@
                                 </li>
 
                                 <li class="menu-parent type-2" data-parent-id="bai_viet" data-has-mega="true">
-                                    <a th:href="@{/news}" data-parent-id="bai_viet">BÀI VIẾT</a>
+                                    <a th:href="@{/news}" data-parent-id="bai_viet">GÓC LÀM ĐẸP</a>
                                     <div class="menu-type-2 menu-type-news site-header__main menu-type-new">
                                         <div class="container menu-type-2__container menu-type-new__container">
                                             <div class="menu-type-2__content">

@@ -3,27 +3,117 @@
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bán hàng tại quầy | Techtra Beauty</title><link rel="stylesheet" th:href="@{/css/workspace.css}"><link rel="stylesheet" th:href="@{/css/assistant-widget.css}"><script defer th:src="@{/js/assistant-widget.js}"></script></head>
 <body class="workspace-body">
 <th:block th:replace="~{fragments/portal-header :: header('Nhân viên cửa hàng', ${store.name})}"></th:block>
-<main class="workspace-page">
-    <div class="workspace-page__heading"><div><h1>Bán hàng tại quầy</h1><p>Thêm sản phẩm từ tồn kho chi nhánh và xuất biên nhận cho khách.</p></div><a class="workspace-button workspace-button--secondary" th:href="@{/staff/inventory}">Quản lý chi nhánh</a></div>
-    <nav class="workspace-tabs"><a th:href="@{/staff/orders}">Đơn hàng & tồn kho</a><a class="active" th:href="@{/staff/pos}">Bán tại quầy</a><a th:href="@{/}">Cửa hàng trực tuyến</a></nav>
-    <div class="workspace-grid">
-        <section class="card"><div class="card__header"><h2>Sản phẩm tại chi nhánh</h2><span class="workspace-muted" th:text="${store.name}">Chi nhánh</span></div><div class="card__body">
-            <div th:each="row : ${inventory}" class="workspace-product-row"><div><strong th:text="${row.product.name}">Sản phẩm</strong><br><small th:text="${row.stockQuantity} + ' còn · ' + ${#numbers.formatDecimal(row.price,1,'COMMA',0,'POINT')} + ' ₫'">Tồn · giá</small></div><input type="number" min="1" th:max="${row.stockQuantity}" value="1" th:id="'qty-' + ${row.product.id}" aria-label="Số lượng"><button type="button" class="add-item" th:attr="data-id=${row.product.id},data-name=${row.product.name},data-price=${row.price},data-stock=${row.stockQuantity}">Thêm</button></div>
-            <p class="workspace-empty" th:if="${#lists.isEmpty(inventory)}">Chi nhánh chưa có hàng. Nhân viên kho cần điều chuyển hàng đến trước khi bán.</p>
-        </div></section>
-        <section class="card"><div class="card__header"><h2>Thông tin biên nhận</h2></div><div class="card__body">
-            <label for="customerName">Tên khách (không bắt buộc)</label><input class="workspace-field" id="customerName" autocomplete="name">
-            <label for="customerPhone">Số điện thoại (không bắt buộc)</label><input class="workspace-field" id="customerPhone" autocomplete="tel">
-            <div id="cart" class="workspace-basket"><p class="workspace-muted">Chưa chọn sản phẩm.</p></div>
-            <label for="payment">Thanh toán</label><select id="payment" class="workspace-field"><option value="CASH">Tiền mặt</option><option value="CARD">Thẻ</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="OTHER">Khác</option></select>
-            <p class="workspace-total">Tổng: <span id="total">0 ₫</span></p><p class="workspace-error" id="error" role="status"></p><button type="button" onclick="checkout()">Hoàn tất và xuất biên nhận</button>
-        </div></section>
+<main class="workspace-page pos-page">
+    <div class="workspace-page__heading"><div><h1>Bán hàng tại quầy</h1><p>Tìm nhanh sản phẩm, thêm vào hóa đơn và hoàn tất thanh toán tại một màn hình.</p></div><a class="workspace-button workspace-button--secondary" th:href="@{/staff/inventory}">Quản lý chi nhánh</a></div>
+    <nav class="workspace-tabs"><a th:href="@{/staff/orders}">Đơn hàng &amp; tồn kho</a><a class="active" th:href="@{/staff/pos}">Bán tại quầy</a><a th:href="@{/}">Cửa hàng trực tuyến</a></nav>
+
+    <div class="pos-layout">
+        <section class="card pos-products">
+            <div class="card__header pos-products__header"><div><h2>Chọn sản phẩm</h2><span class="workspace-muted" th:text="${store.name}">Chi nhánh</span></div><span class="pos-count" id="visibleCount">0 sản phẩm</span></div>
+            <div class="pos-search"><label class="sr-only" for="productSearch">Tìm theo tên hoặc mã sản phẩm</label><span aria-hidden="true">⌕</span><input id="productSearch" type="search" placeholder="Quét mã hoặc tìm tên sản phẩm…" autocomplete="off" autofocus><button type="button" id="clearSearch" aria-label="Xóa tìm kiếm">×</button></div>
+            <div class="pos-product-grid" id="productGrid">
+                <article th:each="row : ${inventory}" class="pos-product" th:attr="data-id=${row.product.id},data-name=${row.product.name},data-sku=${row.product.sku},data-category=${row.product.category?.name},data-price=${row.price},data-stock=${row.stockQuantity}">
+                    <div class="pos-product__top"><span class="pos-product__category" th:text="${row.product.category?.name ?: 'Sản phẩm'}">Danh mục</span><span class="pos-product__stock" th:text="${row.stockQuantity} + ' còn'">Kho</span></div>
+                    <h3 th:text="${row.product.name}">Sản phẩm</h3>
+                    <small th:text="'Mã: ' + ${row.product.sku ?: row.product.id}">Mã SKU</small>
+                    <div class="pos-product__bottom"><strong th:text="${#numbers.formatDecimal(row.price,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</strong><button type="button" class="add-item" th:disabled="${row.stockQuantity < 1}" aria-label="Thêm sản phẩm vào hóa đơn">Thêm <span aria-hidden="true">＋</span></button></div>
+                </article>
+                <p class="workspace-empty" th:if="${#lists.isEmpty(inventory)}">Chi nhánh chưa có hàng. Nhân viên kho cần điều chuyển hàng đến trước khi bán.</p>
+                <p class="workspace-empty" id="noProducts" hidden>Không tìm thấy sản phẩm phù hợp.</p>
+            </div>
+        </section>
+
+        <aside class="card pos-checkout" aria-label="Hóa đơn hiện tại">
+            <div class="card__header"><div><h2>Hóa đơn hiện tại</h2><span class="workspace-muted"><span id="cartCount">0</span> sản phẩm</span></div><button type="button" class="pos-clear" id="clearCart">Xóa giỏ</button></div>
+            <div class="card__body">
+                <div id="cart" class="pos-cart" aria-live="polite"><p class="workspace-muted pos-cart__empty">Chưa có sản phẩm. Chọn sản phẩm ở danh sách bên trái.</p></div>
+                <div class="pos-customer-fields"><label for="customerName">Tên khách <span>(không bắt buộc)</span></label><input class="workspace-field" id="customerName" autocomplete="name" placeholder="Khách lẻ"><label for="customerPhone">Số điện thoại <span>(không bắt buộc)</span></label><input class="workspace-field" id="customerPhone" autocomplete="tel" inputmode="tel" placeholder="Số điện thoại"></div>
+                <label for="payment">Phương thức thanh toán</label><select id="payment" class="workspace-field"><option value="CASH">Tiền mặt</option><option value="CARD">Thẻ</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="OTHER">Khác</option></select>
+                <div class="pos-total"><span>Tổng thanh toán</span><strong id="total">0 ₫</strong></div><p class="workspace-error" id="error" role="status" aria-live="polite"></p><button class="pos-submit" type="button" id="checkoutButton">Hoàn tất &amp; xuất biên nhận</button><p class="pos-hint">Kiểm tra số lượng và phương thức thanh toán trước khi xác nhận.</p>
+            </div>
+        </aside>
     </div>
 </main>
 <script>
-const basket=new Map(),fmt=n=>new Intl.NumberFormat('vi-VN').format(n)+' ₫';
-document.querySelectorAll('.add-item').forEach(button=>button.addEventListener('click',()=>add(button.dataset.id,button.dataset.name,button.dataset.price,button.dataset.stock)));
-function add(id,name,price,stock){const q=Number(document.getElementById('qty-'+id).value);if(q<1||q>Number(stock)){document.getElementById('error').textContent='Số lượng vượt quá tồn kho.';return}const old=basket.get(id);const next=(old?.quantity||0)+q;if(next>Number(stock)){document.getElementById('error').textContent='Số lượng trong giỏ vượt quá tồn kho.';return}basket.set(id,{productId:Number(id),name,price:Number(price),quantity:next});render()}
-function render(){const el=document.getElementById('cart');let total=0;el.replaceChildren();for(const [id,x] of basket){total+=x.price*x.quantity;const row=document.createElement('div');row.className='workspace-basket__line';const label=document.createElement('span');label.textContent=x.name+' × '+x.quantity;const value=document.createElement('strong');value.textContent=fmt(x.price*x.quantity);const remove=document.createElement('button');remove.type='button';remove.className='workspace-remove';remove.textContent='Xóa';remove.onclick=()=>{basket.delete(id);render()};row.append(label,value,remove);el.append(row)}if(!basket.size){const empty=document.createElement('p');empty.className='workspace-muted';empty.textContent='Chưa chọn sản phẩm.';el.append(empty)}document.getElementById('total').textContent=fmt(total)}
-async function checkout(){document.getElementById('error').textContent='';if(!basket.size){document.getElementById('error').textContent='Vui lòng thêm sản phẩm.';return}const res=await fetch('/staff/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customerName:document.getElementById('customerName').value,customerPhone:document.getElementById('customerPhone').value,paymentMethod:document.getElementById('payment').value,lines:[...basket.values()].map(({productId,quantity})=>({productId,quantity}))})});if(!res.ok){const body=await res.text();document.getElementById('error').textContent=body||'Không thể hoàn tất giao dịch.';return}const data=await res.json();location.href=data.invoiceUrl}
+(() => {
+  const basket = new Map();
+  const fmt = value => new Intl.NumberFormat('vi-VN').format(value) + ' ₫';
+  const products = [...document.querySelectorAll('.pos-product')];
+  const cart = document.getElementById('cart');
+  const error = document.getElementById('error');
+  const search = document.getElementById('productSearch');
+  const checkoutButton = document.getElementById('checkoutButton');
+
+  function updateSearch() {
+    const term = search.value.trim().toLocaleLowerCase('vi');
+    let visible = 0;
+    products.forEach(product => {
+      const searchable = [product.dataset.name, product.dataset.sku, product.dataset.category].join(' ').toLocaleLowerCase('vi');
+      const matches = searchable.includes(term);
+      product.hidden = !matches;
+      if (matches) visible++;
+    });
+    document.getElementById('visibleCount').textContent = `${visible} sản phẩm`;
+    document.getElementById('noProducts').hidden = visible > 0 || products.length === 0;
+  }
+
+  function addProduct(product, amount = 1) {
+    const id = product.dataset.id;
+    const stock = Number(product.dataset.stock);
+    const existing = basket.get(id);
+    if ((existing?.quantity || 0) + amount > stock) { error.textContent = 'Số lượng trong hóa đơn đã đạt mức tồn kho.'; return; }
+    basket.set(id, { productId: Number(id), name: product.dataset.name, price: Number(product.dataset.price), stock, quantity: (existing?.quantity || 0) + amount });
+    error.textContent = '';
+    renderCart();
+  }
+
+  function renderCart() {
+    let total = 0, itemCount = 0;
+    cart.replaceChildren();
+    basket.forEach((item, id) => {
+      total += item.price * item.quantity;
+      itemCount += item.quantity;
+      const row = document.createElement('article'); row.className = 'pos-cart__item';
+      const detail = document.createElement('div'); detail.className = 'pos-cart__detail';
+      const name = document.createElement('strong'); name.textContent = item.name;
+      const lineTotal = document.createElement('span'); lineTotal.textContent = fmt(item.price * item.quantity);
+      detail.append(name, lineTotal);
+      const controls = document.createElement('div'); controls.className = 'pos-quantity';
+      const minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−'; minus.setAttribute('aria-label', 'Giảm số lượng'); minus.disabled = item.quantity <= 1;
+      minus.addEventListener('click', () => { item.quantity--; renderCart(); });
+      const quantity = document.createElement('span'); quantity.textContent = item.quantity;
+      const plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+'; plus.setAttribute('aria-label', 'Tăng số lượng'); plus.disabled = item.quantity >= item.stock;
+      plus.addEventListener('click', () => { if (item.quantity < item.stock) item.quantity++; renderCart(); });
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'pos-cart__remove'; remove.textContent = '×'; remove.setAttribute('aria-label', 'Bỏ sản phẩm'); remove.addEventListener('click', () => { basket.delete(id); renderCart(); });
+      controls.append(minus, quantity, plus, remove); row.append(detail, controls); cart.append(row);
+    });
+    if (!basket.size) { const empty = document.createElement('p'); empty.className = 'workspace-muted pos-cart__empty'; empty.textContent = 'Chưa có sản phẩm. Chọn sản phẩm ở danh sách bên trái.'; cart.append(empty); }
+    document.getElementById('total').textContent = fmt(total);
+    document.getElementById('cartCount').textContent = itemCount;
+  }
+
+  document.querySelectorAll('.add-item').forEach(button => button.addEventListener('click', () => addProduct(button.closest('.pos-product'))));
+  search.addEventListener('input', updateSearch);
+  document.getElementById('clearSearch').addEventListener('click', () => { search.value = ''; updateSearch(); search.focus(); });
+  search.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    const visible = products.filter(product => !product.hidden);
+    if (visible.length === 1) { event.preventDefault(); addProduct(visible[0]); }
+  });
+  document.getElementById('clearCart').addEventListener('click', () => { basket.clear(); error.textContent = ''; renderCart(); search.focus(); });
+  checkoutButton.addEventListener('click', async () => {
+    error.textContent = '';
+    if (!basket.size) { error.textContent = 'Vui lòng thêm sản phẩm vào hóa đơn.'; search.focus(); return; }
+    checkoutButton.disabled = true;
+    checkoutButton.textContent = 'Đang tạo biên nhận…';
+    try {
+      const response = await fetch('/staff/sales', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ customerName: document.getElementById('customerName').value, customerPhone: document.getElementById('customerPhone').value, paymentMethod: document.getElementById('payment').value, lines: [...basket.values()].map(({ productId, quantity }) => ({ productId, quantity })) }) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || result.message || 'Không thể hoàn tất giao dịch.');
+      location.href = result.invoiceUrl;
+    } catch (exception) { error.textContent = exception.message || 'Không thể hoàn tất giao dịch.'; }
+    finally { checkoutButton.disabled = false; checkoutButton.textContent = 'Hoàn tất & xuất biên nhận'; }
+  });
+  updateSearch();
+})();
 </script></body></html>

@@ -26,27 +26,6 @@
 <body>
     <div th:replace="~{fragments/header :: header}"></div>
 
-    <section class="nav-promo-strip container" aria-label="Gợi ý khám phá sản phẩm">
-        <a class="nav-promo-card nav-promo-card--skin" th:each="category : ${navCategories}" th:if="${category.name == 'Chăm sóc da'}" th:href="@{/products(categoryId=${category.id})}">
-            <span class="nav-promo-card__eyebrow">BẮT ĐẦU TỪ ĐIỀU CƠ BẢN</span>
-            <strong>Chu trình dưỡng da gọn nhẹ</strong>
-            <span class="nav-promo-card__link">Khám phá sản phẩm <span aria-hidden="true">→</span></span>
-            <span class="nav-promo-card__orb" aria-hidden="true"></span>
-        </a>
-        <a class="nav-promo-card nav-promo-card--hair" th:each="category : ${navCategories}" th:if="${category.name == 'Chăm sóc tóc'}" th:href="@{/products(categoryId=${category.id})}">
-            <span class="nav-promo-card__eyebrow">CHĂM TÓC MỖI NGÀY</span>
-            <strong>Gội sạch, dưỡng đúng bước</strong>
-            <span class="nav-promo-card__link">Xem chăm sóc tóc <span aria-hidden="true">→</span></span>
-            <span class="nav-promo-card__orb" aria-hidden="true"></span>
-        </a>
-        <a class="nav-promo-card nav-promo-card--lips" th:each="category : ${navCategories}" th:if="${category.name == 'Dưỡng môi'}" th:href="@{/products(categoryId=${category.id})}">
-            <span class="nav-promo-card__eyebrow">MỘT CHÚT MỀM MẠI</span>
-            <strong>Chăm sóc môi thật đơn giản</strong>
-            <span class="nav-promo-card__link">Khám phá dưỡng môi <span aria-hidden="true">→</span></span>
-            <span class="nav-promo-card__orb" aria-hidden="true"></span>
-        </a>
-    </section>
-
     <!-- MAIN BODY -->
     <main>
 

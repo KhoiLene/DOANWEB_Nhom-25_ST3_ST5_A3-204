@@ -20,7 +20,8 @@
     </div>
     <form id="addressSearch" class="store-locator__search" role="search">
         <label class="sr-only" for="addressQuery">Địa chỉ hoặc khu vực</label>
-        <input class="form-control" id="addressQuery" autocomplete="street-address" placeholder="Nhập địa chỉ, quận hoặc tỉnh/thành">
+        <div class="store-locator__address-field"><input class="form-control" id="addressQuery" autocomplete="street-address" placeholder="Nhập địa chỉ, quận hoặc tỉnh/thành" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="addressSuggestions">
+            <div class="store-locator__suggestions" id="addressSuggestions" role="listbox" hidden></div></div>
         <button class="btn btn-outline" type="submit">Tìm cửa hàng</button>
     </form>
     <p class="store-locator__message" id="locationMessage" role="status" aria-live="polite"></p>

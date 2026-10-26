@@ -5,12 +5,101 @@
   const results = document.getElementById('storeResults');
   const message = document.getElementById('locationMessage');
   const mapMessage = document.getElementById('mapMessage');
+  const addressInput = document.getElementById('addressQuery');
+  const suggestionsBox = document.getElementById('addressSuggestions');
   let map;
   let maplibregl;
   let storeMarkers = [];
   let originMarker;
+  let selectedAddress = null;
+  let suggestionTimer;
+  let suggestionRequest;
+  let activeSuggestion = -1;
+  let currentSuggestions = [];
 
   const preferredStore = () => { try { return localStorage.getItem('preferredStoreId'); } catch (_) { return null; } };
+
+  function hideSuggestions() {
+    suggestionsBox.replaceChildren();
+    suggestionsBox.hidden = true;
+    addressInput.setAttribute('aria-expanded', 'false');
+    activeSuggestion = -1;
+    currentSuggestions = [];
+  }
+
+  function chooseAddress(suggestion) {
+    selectedAddress = suggestion;
+    addressInput.value = suggestion.label;
+    hideSuggestions();
+    byCoordinates(suggestion.latitude, suggestion.longitude);
+  }
+
+  function showSuggestions(suggestions) {
+    suggestionsBox.replaceChildren();
+    currentSuggestions = suggestions;
+    activeSuggestion = -1;
+    if (!suggestions.length) { hideSuggestions(); return; }
+    suggestions.forEach((suggestion, index) => {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'store-locator__suggestion';
+      option.role = 'option';
+      option.setAttribute('aria-selected', 'false');
+      option.dataset.index = String(index);
+      const label = document.createElement('span');
+      label.textContent = suggestion.label;
+      const hint = document.createElement('small');
+      hint.textContent = 'Địa chỉ tại Việt Nam';
+      option.append(label, hint);
+      option.addEventListener('click', () => chooseAddress(suggestion));
+      suggestionsBox.append(option);
+    });
+    suggestionsBox.hidden = false;
+    addressInput.setAttribute('aria-expanded', 'true');
+  }
+
+  addressInput.addEventListener('input', () => {
+    selectedAddress = null;
+    window.clearTimeout(suggestionTimer);
+    suggestionRequest?.abort();
+    const query = addressInput.value.trim();
+    if (query.length < 3) { hideSuggestions(); return; }
+    suggestionTimer = window.setTimeout(async () => {
+      suggestionRequest = new AbortController();
+      try {
+        const response = await fetch(`/api/locations/suggest?query=${encodeURIComponent(query)}`, {
+          headers: { Accept: 'application/json' }, signal: suggestionRequest.signal
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'Không tải được gợi ý địa chỉ.');
+        if (addressInput.value.trim() === query) showSuggestions(Array.isArray(payload) ? payload : []);
+      } catch (error) {
+        if (error.name !== 'AbortError' && addressInput.value.trim() === query) {
+          hideSuggestions();
+          message.textContent = error.message || 'Gợi ý địa chỉ đang tạm gián đoạn. Bạn vẫn có thể bấm Tìm cửa hàng.';
+        }
+      }
+    }, 500);
+  });
+
+  addressInput.addEventListener('keydown', event => {
+    if (suggestionsBox.hidden || !currentSuggestions.length) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      activeSuggestion = (activeSuggestion + direction + currentSuggestions.length) % currentSuggestions.length;
+      suggestionsBox.querySelectorAll('[role="option"]').forEach((option, index) => {
+        option.setAttribute('aria-selected', String(index === activeSuggestion));
+      });
+    } else if (event.key === 'Enter' && activeSuggestion >= 0) {
+      event.preventDefault();
+      chooseAddress(currentSuggestions[activeSuggestion]);
+    } else if (event.key === 'Escape') hideSuggestions();
+  });
+
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.store-locator__address-field')) hideSuggestions();
+  });
 
   function clearMarkers() {
     storeMarkers.forEach(marker => marker?.remove());
@@ -157,20 +246,23 @@
 
   document.getElementById('addressSearch').addEventListener('submit', async event => {
     event.preventDefault();
-    const input = document.getElementById('addressQuery');
-    const query = input.value.trim();
+    const query = addressInput.value.trim();
     if (!query) return;
-    message.textContent = 'Đang xác định địa chỉ với OpenStreetMap…';
+    if (selectedAddress) {
+      await byCoordinates(selectedAddress.latitude, selectedAddress.longitude);
+      return;
+    }
+    message.textContent = 'Đang xác định địa chỉ…';
     try {
       const result = await window.geocodeWithNominatim(query);
-      if (result.displayName) input.value = result.displayName;
+      if (result.displayName) addressInput.value = result.displayName;
       await byCoordinates(result.latitude, result.longitude);
     } catch (error) {
       const localResults = await fetchStores(`/api/locations/search?query=${encodeURIComponent(query)}`);
       if (localResults?.length) {
-        message.textContent = 'Không tra được tọa độ trực tuyến; đang hiển thị chi nhánh khớp từ dữ liệu trong cửa hàng.';
+        message.textContent = 'Chưa xác định được tọa độ địa chỉ; đang hiển thị chi nhánh khớp trong dữ liệu cửa hàng.';
       } else {
-        message.textContent = error.message || 'Không thể xác định địa chỉ. Hãy thử lại.';
+        message.textContent = error.message || 'Không thể xác định địa chỉ. Hãy thử lại hoặc nhập quận, tỉnh/thành.';
       }
     }
   });
