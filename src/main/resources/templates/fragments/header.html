@@ -24,6 +24,9 @@
         <a th:href="@{/products(sale=true)}">Ưu đãi</a>
         <a th:href="@{/stores}">Cửa hàng</a>
         <a th:href="@{/news}">Góc làm đẹp</a>
+        <a th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMIN')">Về quản trị</a>
+        <a th:href="@{/warehouse/orders}" sec:authorize="hasRole('WAREHOUSE')">Về khu vực kho</a>
+        <a th:href="@{/staff/pos}" sec:authorize="hasRole('STORE_STAFF')">Về khu vực cửa hàng</a>
     </nav>
     <div class="bg-header">
         <!-- DESKTOP HEADER (Visible on screens > 992px) -->
@@ -140,6 +143,9 @@
                         </div>
 
                         <div class="header-actions mobile--hidden header-custom">
+                            <a th:href="@{/admin/dashboard}" class="text--primary header-actions__login header-custom_item" sec:authorize="hasRole('ADMIN')">Về quản trị</a>
+                            <a th:href="@{/warehouse/orders}" class="text--primary header-actions__login header-custom_item" sec:authorize="hasRole('WAREHOUSE')">Về khu vực kho</a>
+                            <a th:href="@{/staff/pos}" class="text--primary header-actions__login header-custom_item" sec:authorize="hasRole('STORE_STAFF')">Về cửa hàng</a>
                             <a th:href="@{/stores}" class="text--primary header-actions__login header-custom_item">
                                 <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                                 <div class="header-custom_item__text">HỆ THỐNG<br>CỬA HÀNG</div>

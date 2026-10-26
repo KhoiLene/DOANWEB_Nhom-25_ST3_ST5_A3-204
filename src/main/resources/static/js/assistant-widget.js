@@ -25,6 +25,7 @@
       }
       messages.append(item);
       messages.scrollTop = messages.scrollHeight;
+      return item;
     }
 
     function setOpen(open) {
@@ -48,22 +49,20 @@
         return response.json();
       })
       .then(context => {
-        document.getElementById('assistantName').textContent = context.name || 'Trợ lý Techtra';
-        document.getElementById('assistantDescription').textContent = context.description || '';
+        document.getElementById('assistantName').textContent = 'Chatbot AI thông minh';
+        document.getElementById('assistantDescription').textContent = 'Hỗ trợ theo vai trò của bạn';
         notice.textContent = context.ready
-          ? `Gemini RAG đã sẵn sàng với ${context.indexedSourceCount || 0} nguồn đã lập chỉ mục. ${context.generationMode || 'Câu trả lời dựa trên tài liệu được phép.'}`
-          : !context.providerConfigured
-            ? 'Trợ lý Gemini chưa được cấu hình. Quản trị viên cần đặt GEMINI_API_KEY ở backend.'
-            : !context.vectorStoreReady
-              ? 'Kho vector Qdrant chưa sẵn sàng. Vui lòng báo quản trị viên.'
-              : context.indexedSourceCount === 0
-                ? 'Role này chưa có nguồn tri thức Gemini đã lập chỉ mục. Vui lòng liên hệ quản trị viên.'
-                : 'Trợ lý Gemini hiện chưa sẵn sàng. Vui lòng thử lại sau.';
+          ? 'Xin chào! Bạn có thể hỏi mình về sản phẩm hoặc các chức năng trong tài khoản.'
+          : 'Chatbot đang tạm bận. Vui lòng thử lại sau.';
         ready = Boolean(context.ready);
         question.disabled = !ready;
         send.disabled = !ready;
       })
-      .catch(error => { notice.textContent = error.message; });
+      .catch(() => {
+        notice.textContent = 'Chatbot đang tạm bận. Vui lòng thử lại sau.';
+        question.disabled = true;
+        send.disabled = true;
+      });
 
     form.addEventListener('submit', async event => {
       event.preventDefault();
@@ -72,22 +71,31 @@
       addMessage('user', text);
       question.value = '';
       send.disabled = true;
-        notice.textContent = 'Đang tìm tài liệu trong kho role và gọi Gemini…';
+      notice.textContent = 'Đang trả lời…';
+      const loadingMessage = addMessage('assistant', 'Đang tìm câu trả lời');
+      loadingMessage.classList.add('assistant-widget__message--loading');
       try {
         const response = await fetch('/api/assistant/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({ message: text, history: history.slice(-10) })
         });
-        const result = await response.json();
+        let result;
+        try {
+          result = await response.json();
+        } catch (_) {
+          throw new Error('Chatbot chưa thể trả lời lúc này. Bạn thử lại nhé.');
+        }
         if (!response.ok) throw new Error(result.error || 'Trợ lý đang gặp sự cố.');
+        loadingMessage.remove();
         addMessage('assistant', result.answer, result.sources || []);
         history.push({ role: 'user', content: text }, { role: 'assistant', content: result.answer });
         if (history.length > 10) history.splice(0, history.length - 10);
-        notice.textContent = result.retrievalMode === 'GEMINI_VECTOR' ? 'Gemini RAG · Bạn có thể hỏi tiếp.' : 'Bạn có thể hỏi tiếp.';
+        notice.textContent = 'Bạn có thể hỏi tiếp.';
       } catch (error) {
-        addMessage('assistant', error.message || 'Trợ lý đang gặp sự cố. Vui lòng thử lại.');
-        notice.textContent = 'Câu hỏi chưa được xử lý.';
+        loadingMessage.remove();
+        addMessage('assistant', error.message || 'Chatbot đang mất kết nối tạm thời. Bạn thử lại nhé.');
+        notice.textContent = 'Bạn có thể gửi lại câu hỏi.';
       } finally {
         send.disabled = !ready;
         question.focus();

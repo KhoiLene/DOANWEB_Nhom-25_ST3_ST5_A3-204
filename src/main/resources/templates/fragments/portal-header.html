@@ -5,6 +5,7 @@
         <div class="portal-context"><strong th:text="${roleTitle}">Cổng nhân viên</strong><span th:text="${locationName}">Khu vực làm việc</span></div>
         <nav class="portal-header__actions" aria-label="Tài khoản">
             <a class="portal-header__link" th:href="@{/}">Xem cửa hàng</a>
+            <a class="portal-header__link" th:href="${roleTitle == 'Nhân viên kho' ? '/warehouse/orders' : '/staff/pos'}">Về khu vực làm việc</a>
             <form class="portal-logout" th:action="@{/logout-process}" method="post"><button class="portal-header__link" type="submit">Đăng xuất</button></form>
         </nav>
     </div>

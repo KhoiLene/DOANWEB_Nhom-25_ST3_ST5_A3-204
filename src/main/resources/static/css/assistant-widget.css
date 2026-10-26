@@ -14,6 +14,8 @@
 .assistant-widget__message small { display:block; margin-top:8px; color:#64748b; font-size:.72rem; }
 .assistant-widget__message--user { align-self:flex-end; color:#fff; background:#2563eb; }
 .assistant-widget__message--assistant { align-self:flex-start; color:#1e293b; background:#f1f5f9; }
+.assistant-widget__message--loading::after { content:""; display:inline-block; width:1.1em; text-align:left; animation:assistant-dots 1.1s steps(4,end) infinite; }
+@keyframes assistant-dots { 0% { content:""; } 25% { content:"."; } 50% { content:".."; } 75%,100% { content:"..."; } }
 .assistant-widget__form { display:flex; align-items:flex-end; gap:8px; padding:12px; border-top:1px solid #e2e8f0; }
 .assistant-widget__form textarea { flex:1; resize:vertical; min-height:44px; max-height:110px; border:1px solid #cbd5e1; border-radius:10px; padding:10px; font:inherit; font-size:.9rem; }
 .assistant-widget__form button { border:0; border-radius:10px; padding:11px 14px; color:#fff; background:#2563eb; font-weight:700; cursor:pointer; }

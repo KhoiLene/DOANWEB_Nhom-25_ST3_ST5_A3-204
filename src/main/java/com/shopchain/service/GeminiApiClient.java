@@ -71,12 +71,12 @@ public class GeminiApiClient {
         Object rawEmbedding = response.get("embedding");
         if (!(rawEmbedding instanceof Map<?, ?> embedding) || !(embedding.get("values") instanceof List<?> values)
                 || values.size() != dimensions) {
-            throw new GeminiApiException("Gemini embedding trả về vector không đúng kích thước.");
+            throw new GeminiApiException("Chatbot chưa thể xử lý câu hỏi này. Vui lòng thử lại.");
         }
         float[] vector = new float[values.size()];
         for (int index = 0; index < values.size(); index++) {
             Object value = values.get(index);
-            if (!(value instanceof Number number)) throw new GeminiApiException("Gemini embedding trả về dữ liệu không hợp lệ.");
+            if (!(value instanceof Number number)) throw new GeminiApiException("Chatbot chưa thể xử lý câu hỏi này. Vui lòng thử lại.");
             vector[index] = number.floatValue();
         }
         return vector;
@@ -94,7 +94,7 @@ public class GeminiApiClient {
                 || !(candidates.get(0) instanceof Map<?, ?> candidate)
                 || !(candidate.get("content") instanceof Map<?, ?> content)
                 || !(content.get("parts") instanceof List<?> parts)) {
-            throw new GeminiApiException("Gemini không trả được câu trả lời văn bản.");
+            throw new GeminiApiException("Chatbot chưa tạo được câu trả lời. Vui lòng thử lại.");
         }
         List<String> textParts = new ArrayList<>();
         for (Object part : parts) {
@@ -102,7 +102,7 @@ public class GeminiApiClient {
                 textParts.add(value.trim());
             }
         }
-        if (textParts.isEmpty()) throw new GeminiApiException("Gemini không trả được câu trả lời văn bản.");
+        if (textParts.isEmpty()) throw new GeminiApiException("Chatbot chưa tạo được câu trả lời. Vui lòng thử lại.");
         return String.join("\n", textParts);
     }
 
@@ -114,7 +114,7 @@ public class GeminiApiClient {
                         .body(body)
                         .retrieve()
                         .body(Map.class);
-                if (result == null) throw new GeminiApiException("Gemini trả về phản hồi rỗng.");
+                if (result == null) throw new GeminiApiException("Chatbot chưa tạo được câu trả lời. Vui lòng thử lại.");
                 return result;
             } catch (RestClientResponseException exception) {
                 HttpStatusCode status = exception.getStatusCode();
@@ -127,14 +127,25 @@ public class GeminiApiClient {
                     }
                     continue;
                 }
-                if (status.value() == 429) throw new GeminiApiException("Gemini đã chạm hạn mức miễn phí. Vui lòng thử lại sau.");
-                if (status.value() == 503) throw new GeminiApiException("Gemini đang quá tải tạm thời. Vui lòng thử lại sau ít phút.");
-                throw new GeminiApiException("Gemini trả lỗi HTTP " + status.value() + ".");
+                if (status.value() == 429) throw new GeminiApiException("Chatbot đang bận. Vui lòng thử lại sau ít phút.");
+                if (status.value() == 503) throw new GeminiApiException("Chatbot đang quá tải tạm thời. Vui lòng thử lại sau ít phút.");
+                if (status.value() == 401 || status.value() == 403) throw new GeminiApiException("Chatbot đang tạm gián đoạn. Vui lòng báo quản trị viên.");
+                if (status.value() == 404) throw new GeminiApiException("Mô hình AI hiện không khả dụng. Vui lòng cập nhật cấu hình.");
+                throw new GeminiApiException("Chatbot chưa thể trả lời lúc này. Vui lòng thử lại sau.");
             } catch (RestClientException exception) {
-                throw new GeminiApiException("Không kết nối được tới Gemini API.");
+                if (attempt < 2) {
+                    try {
+                        Thread.sleep(500L << attempt);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw new GeminiApiException("Yêu cầu AI bị gián đoạn. Vui lòng thử lại.");
+                    }
+                    continue;
+                }
+                throw new GeminiApiException("Chatbot đang mất kết nối tạm thời. Vui lòng thử lại sau.");
             }
         }
-        throw new GeminiApiException("Gemini đang quá tải tạm thời. Vui lòng thử lại sau ít phút.");
+        throw new GeminiApiException("Chatbot đang quá tải tạm thời. Vui lòng thử lại sau ít phút.");
     }
 
     private void requireConfigured() {

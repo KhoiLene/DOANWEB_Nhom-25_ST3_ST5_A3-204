@@ -73,6 +73,8 @@ public class OrderServiceImpl implements OrderService {
                 .deliveryCity(deliveryCity == null ? "" : deliveryCity.trim())
                 .fulfillmentType(pickup ? "PICKUP" : (remote ? "WAREHOUSE_SHIP" : "STORE_SHIP"))
                 .fulfillmentWarehouse(warehouse).totalAmount(0d).build();
+        // Initialize explicitly even when Lombok builder defaults differ between build outputs.
+        order.setOrderItems(new java.util.ArrayList<>());
         double total = 0;
         for (CartItem item : cart.getItems()) {
             ProductInventory inventory = warehouse == null

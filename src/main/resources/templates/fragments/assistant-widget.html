@@ -1,22 +1,21 @@
 <div th:fragment="widget" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
     <section class="assistant-widget" id="assistantWidget">
         <button class="assistant-widget__launcher" id="assistantLauncher" type="button" aria-expanded="false" aria-controls="assistantPanel">
-            <span aria-hidden="true">✦</span><span>Trợ lý AI</span>
+            <span aria-hidden="true">✦</span><span>Chatbot AI</span>
         </button>
         <div class="assistant-widget__panel" id="assistantPanel" hidden>
             <header class="assistant-widget__header">
-                <div><strong id="assistantName">Trợ lý Techtra</strong><p id="assistantDescription">Hỗ trợ theo vai trò của bạn</p></div>
+                <div><strong id="assistantName">Chatbot AI thông minh</strong><p id="assistantDescription">Hỗ trợ theo vai trò của bạn</p></div>
                 <button class="assistant-widget__close" id="assistantClose" type="button" aria-label="Đóng trợ lý">×</button>
             </header>
             <div class="assistant-widget__messages" id="assistantMessages" aria-live="polite">
-                <p class="assistant-widget__notice" id="assistantNotice">Đang kết nối trợ lý…</p>
+                <p class="assistant-widget__notice" id="assistantNotice">Đang kết nối…</p>
             </div>
             <form class="assistant-widget__form" id="assistantForm">
                 <label class="sr-only" for="assistantQuestion">Câu hỏi cho trợ lý</label>
-                <textarea id="assistantQuestion" rows="2" maxlength="2000" placeholder="Nhập câu hỏi…" required></textarea>
+                <textarea id="assistantQuestion" rows="2" maxlength="2000" placeholder="Bạn cần hỗ trợ gì?" required></textarea>
                 <button type="submit" id="assistantSend" aria-label="Gửi câu hỏi">Gửi</button>
             </form>
-            <p class="assistant-widget__footnote">Câu trả lời dựa trên tài liệu được cấu hình cho vai trò này.</p>
         </div>
     </section>
 </div>
