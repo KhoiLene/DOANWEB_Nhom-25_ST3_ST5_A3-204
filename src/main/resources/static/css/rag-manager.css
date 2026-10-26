@@ -3,7 +3,7 @@
 .rag-manager__eyebrow { color:#3974c9; font-size:.7rem; letter-spacing:.16em; font-weight:800; }
 .rag-manager__intro h1 { margin:6px 0; font-size:1.65rem; color:#122d4e; }
 .rag-manager__intro p,.rag-globe-card__top p,.rag-section-heading p { margin:0; color:#718198; font-size:.86rem; }
-.rag-manager__metrics { display:flex; gap:10px; }
+.rag-manager__metrics { display:grid; grid-template-columns:repeat(4,minmax(88px,1fr)); gap:8px; }
 .rag-manager__metrics div { display:grid; min-width:105px; gap:3px; padding:12px 14px; border:1px solid #e1eaf4; border-radius:13px; background:#ffffffc9; }
 .rag-manager__metrics strong { font-size:1.35rem; color:#235bb9; }
 .rag-manager__metrics span { font-size:.68rem; color:#718198; }
@@ -47,6 +47,10 @@
 .rag-source-row__role { padding:2px 7px; border-radius:999px; color:#2559a9; background:#eaf2ff; }
 .rag-source-row__status { padding:3px 7px; border-radius:999px; color:#16724b; background:#e9f8f1; font-size:.64rem; font-weight:700; }
 .rag-source-row__status.is-off { color:#8b6370; background:#f7eef1; }
+.rag-source-row__index { padding:3px 7px; border-radius:999px; color:#7355a2; background:#f2edfb; font-size:.64rem; font-weight:700; }
+.rag-source-row__index--indexed { color:#16724b; background:#e9f8f1; }
+.rag-source-row__index--failed { color:#a5303e; background:#fff0f1; }
+.rag-source-row__index--disabled { color:#7c8795; background:#f0f2f5; }
 .rag-source-row__actions { display:flex; gap:6px; }
 .rag-source-row__actions button { border:0; border-radius:7px; padding:7px 8px; color:#34516d; background:#edf2f8; cursor:pointer; font-size:.7rem; }
 .rag-editor-card form { display:grid; gap:8px; padding:0 20px 18px; }
@@ -59,4 +63,4 @@
 .rag-editor-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:7px; }
 .rag-editor-note { margin:0; padding:11px 20px; border-top:1px solid #edf1f6; color:#8592a3; font-size:.68rem; }
 @media(max-width:1100px) { .rag-workbench { grid-template-columns:1fr; } }
-@media(max-width:700px) { .rag-manager__intro { align-items:flex-start; flex-direction:column; } .rag-manager__metrics { width:100%; } .rag-manager__metrics div { flex:1; min-width:0; } .rag-globe { height:320px; } }
+@media(max-width:700px) { .rag-manager__intro { align-items:flex-start; flex-direction:column; } .rag-manager__metrics { width:100%; grid-template-columns:repeat(2,minmax(0,1fr)); } .rag-manager__metrics div { min-width:0; } .rag-globe { height:320px; } }

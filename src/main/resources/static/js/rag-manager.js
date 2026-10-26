@@ -21,6 +21,7 @@
   const formContent = document.getElementById('ragSourceContent');
   const formActive = document.getElementById('ragSourceActive');
   let sources = [];
+  let graphData = { nodes: [], edges: [], vectorAvailable: false, status: 'Đang tải embedding…' };
   let activeFilter = 'all';
   let selectedId = null;
   let graphNodes = [];
@@ -33,7 +34,6 @@
   let hoveredNode = null;
   let pixelRatio = 1;
 
-  const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
   const escapeRole = role => roleInfo[role]?.label || role;
 
   async function request(path = '', options = {}) {
@@ -50,7 +50,8 @@
   function renderMetrics() {
     document.getElementById('ragSourceCount').textContent = sources.length;
     document.getElementById('ragActiveCount').textContent = sources.filter(source => source.active).length;
-    document.getElementById('ragRoleCount').textContent = new Set(sources.filter(source => source.active).map(source => source.roleKey)).size;
+    document.getElementById('ragIndexedCount').textContent = sources.filter(source => source.active && source.indexStatus === 'INDEXED').length;
+    document.getElementById('ragEdgeCount').textContent = graphData.edges.length;
   }
 
   function renderSources() {
@@ -79,7 +80,10 @@
       const state = document.createElement('span');
       state.className = `rag-source-row__status${source.active ? '' : ' is-off'}`;
       state.textContent = source.active ? 'ĐANG DÙNG' : 'ĐÃ TẮT';
-      meta.append(role, state);
+      const indexState = document.createElement('span');
+      indexState.className = `rag-source-row__index rag-source-row__index--${String(source.indexStatus || 'PENDING').toLowerCase()}`;
+      indexState.textContent = `${source.indexStatus || 'PENDING'} · ${source.indexedChunkCount || 0} đoạn`;
+      meta.append(role, state, indexState);
       details.append(title, meta);
       const actions = document.createElement('div');
       actions.className = 'rag-source-row__actions';
@@ -88,7 +92,13 @@
       toggle.dataset.action = 'toggle';
       toggle.textContent = source.active ? 'Tắt' : 'Bật';
       toggle.setAttribute('aria-label', `${source.active ? 'Tắt' : 'Bật'} ${source.title}`);
-      actions.append(toggle);
+      const reindex = document.createElement('button');
+      reindex.type = 'button';
+      reindex.dataset.action = 'reindex';
+      reindex.textContent = 'Index lại';
+      reindex.disabled = !source.active;
+      reindex.setAttribute('aria-label', `Lập chỉ mục Gemini cho ${source.title}`);
+      actions.append(toggle, reindex);
       row.append(details, actions);
       row.addEventListener('click', event => {
         if (event.target.closest('[data-action]')) return;
@@ -103,6 +113,16 @@
           if (selectedId === updated.id) editSource(updated);
           refreshView('Đã cập nhật trạng thái nguồn tri thức.');
         } catch (error) { status.textContent = error.message; }
+      });
+      reindex.addEventListener('click', async event => {
+        event.stopPropagation();
+        try {
+          reindex.disabled = true;
+          status.textContent = `Đang lập chỉ mục Gemini: ${source.title}…`;
+          await request(`/${source.id}/reindex`, { method: 'POST' });
+          await loadData('Đã yêu cầu lập chỉ mục. Trạng thái sẽ tự cập nhật khi Gemini hoàn tất.');
+        } catch (error) { status.textContent = error.message; }
+        finally { reindex.disabled = !source.active; }
       });
       sourceList.append(row);
     });
@@ -132,15 +152,6 @@
     renderSources();
   }
 
-  function topConcepts(source) {
-    const stop = new Set(['huong', 'dan', 'techtra', 'beauty', 'nguon', 'trong', 'duoc', 'khi', 'cho', 'mot', 'nhung', 'theo', 'khong', 'can', 'cua', 'hang', 'nhan', 'vien', 'khach', 'admin', 'role', 'source']);
-    const counts = new Map();
-    const words = normalize(`${source.title} ${source.content}`)
-      .split(/[^a-z0-9]+/).filter(word => word.length >= 4 && !stop.has(word));
-    words.forEach(word => counts.set(word, (counts.get(word) || 0) + 1));
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([word]) => word);
-  }
-
   function normalize3(vector) {
     const length = Math.hypot(...vector) || 1;
     return vector.map(value => value / length);
@@ -151,7 +162,7 @@
   function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
 
   function createGraph() {
-    graphNodes = [{ key: 'core', type: 'core', label: 'RAG', position: [0, 0, 0] }];
+    graphNodes = [{ key: 'core', type: 'core', label: 'Gemini', position: [0, 0, 0] }];
     graphEdges = [];
     const hubByRole = {};
     Object.entries(roleInfo).forEach(([role, info]) => {
@@ -161,35 +172,27 @@
       graphEdges.push({ from: 'core', to: key, role });
     });
 
-    const conceptByRole = new Map();
     for (const [role, info] of Object.entries(roleInfo)) {
-      const roleSources = sources.filter(source => source.roleKey === role).slice(0, 12);
+      const roleSources = graphData.nodes.filter(source => source.roleKey === role).slice(0, 20);
       const center = normalize3(info.position);
       const tangent = normalize3(cross(center, [0, 1, 0]));
       const tangent2 = normalize3(cross(center, tangent));
       roleSources.forEach((source, index) => {
         const angle = index * 2.399963229728653;
-        const offset = add(scale(tangent, Math.cos(angle) * 0.34), scale(tangent2, Math.sin(angle) * 0.34));
-        const docPosition = add(scale(center, 0.86), offset);
+        const ring = 0.20 + Math.sqrt(index + 1) * 0.11;
+        const offset = add(scale(tangent, Math.cos(angle) * ring), scale(tangent2, Math.sin(angle) * ring));
+        const docPosition = add(scale(center, 0.84), offset);
         const docKey = `source:${source.id}`;
-        graphNodes.push({ key: docKey, type: 'source', sourceId: source.id, role, label: source.title, position: docPosition, active: source.active });
+        graphNodes.push({ key: docKey, type: 'source', sourceId: source.id, role, label: source.title,
+          position: docPosition, active: source.active, indexStatus: source.indexStatus, indexedChunkCount: source.indexedChunkCount });
         graphEdges.push({ from: hubByRole[role], to: docKey, role });
-
-        topConcepts(source).forEach((concept, conceptIndex) => {
-          const conceptAngle = angle + conceptIndex * Math.PI + 0.8;
-          const conceptOffset = add(scale(tangent, Math.cos(conceptAngle) * 0.15), scale(tangent2, Math.sin(conceptAngle) * 0.15));
-          const conceptPosition = add(scale(normalize3(docPosition), 1.02), conceptOffset);
-          const conceptKey = `concept:${role}:${concept}`;
-          if (!graphNodes.some(node => node.key === conceptKey)) {
-            graphNodes.push({ key: conceptKey, type: 'concept', role, label: concept, position: conceptPosition });
-          }
-          graphEdges.push({ from: docKey, to: conceptKey, role });
-          const previous = conceptByRole.get(`${role}:${concept}`);
-          if (previous && previous !== docKey) graphEdges.push({ from: previous, to: conceptKey, role, faint: true });
-          conceptByRole.set(`${role}:${concept}`, docKey);
-        });
       });
     }
+    const visible = new Set(graphNodes.filter(node => node.type === 'source').map(node => String(node.sourceId)));
+    graphData.edges.forEach(edge => {
+      if (!visible.has(String(edge.from)) || !visible.has(String(edge.to))) return;
+      graphEdges.push({ from: `source:${edge.from}`, to: `source:${edge.to}`, role: edge.roleKey, type: 'embedding' });
+    });
   }
 
   function resizeCanvas() {
@@ -225,10 +228,10 @@
       ctx.beginPath();
       ctx.moveTo(from.x, from.y);
       ctx.lineTo(to.x, to.y);
-      ctx.strokeStyle = `${color}${edge.faint ? '22' : '70'}`;
-      ctx.lineWidth = edge.faint ? 0.7 : 0.85 + depth * 0.8;
+      ctx.strokeStyle = `${color}${edge.type === 'embedding' ? 'a0' : '24'}`;
+      ctx.lineWidth = edge.type === 'embedding' ? 1.15 + depth * 0.8 : 0.65;
       ctx.stroke();
-      if (!edge.faint && index % 3 === 0) {
+      if (edge.type === 'embedding' && index % 2 === 0) {
         const progress = (time * 0.00008 + index * 0.17) % 1;
         const dotX = from.x + (to.x - from.x) * progress;
         const dotY = from.y + (to.y - from.y) * progress;
@@ -245,12 +248,12 @@
       const roleColor = roleInfo[node.role]?.color || '#eff7ff';
       const depth = Math.max(0.25, Math.min(1, (z + 1.3) / 2.3));
       const isSelected = node.type === 'source' && node.sourceId === selectedId;
-      const radius = node.type === 'core' ? 10 : node.type === 'role' ? 8 : node.type === 'source' ? (isSelected ? 6 : 4.6) : 2.4;
+      const radius = node.type === 'core' ? 10 : node.type === 'role' ? 8 : (isSelected ? 6 : 4.6);
       ctx.beginPath();
       ctx.arc(x, y, radius + (isSelected ? 2 : 0), 0, Math.PI * 2);
       ctx.fillStyle = node.type === 'core' ? '#eff8ff' : node.active === false ? '#728096' : roleColor;
-      ctx.globalAlpha = node.type === 'concept' ? 0.42 + depth * 0.48 : 0.55 + depth * 0.45;
-      ctx.shadowBlur = node.type === 'concept' ? 6 : 14;
+      ctx.globalAlpha = 0.55 + depth * 0.45;
+      ctx.shadowBlur = 12;
       ctx.shadowColor = node.type === 'core' ? '#d2edff' : roleColor;
       ctx.fill();
       ctx.globalAlpha = 1;
@@ -282,6 +285,20 @@
     if (message) status.textContent = message;
   }
 
+  let refreshTimer = null;
+  async function loadData(message = '') {
+    const [sourceResult, graphResult] = await Promise.all([
+      request(), request('/graph').catch(error => ({ nodes: [], edges: [], vectorAvailable: false, status: error.message }))
+    ]);
+    sources = sourceResult;
+    graphData = graphResult;
+    const pending = sources.some(source => source.active && source.indexStatus === 'PENDING');
+    const detail = message || graphData.status || 'Đã tải nguồn tri thức.';
+    refreshView(`${detail}${pending && graphData.vectorAvailable ? ' Đang chờ Gemini index; tự làm mới sau vài giây.' : ''}`);
+    if (refreshTimer) clearTimeout(refreshTimer);
+    if (pending && graphData.vectorAvailable) refreshTimer = setTimeout(() => loadData(), 5000);
+  }
+
   document.querySelectorAll('.rag-role-filter button').forEach(button => {
     button.addEventListener('click', () => setFilter(button.dataset.filter));
   });
@@ -291,6 +308,16 @@
     formName.focus();
   });
   document.getElementById('ragResetForm').addEventListener('click', resetForm);
+  document.getElementById('ragReindexAll').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    try {
+      button.disabled = true;
+      status.textContent = 'Đang lập chỉ mục các nguồn bằng Gemini…';
+      const summary = await request('/reindex', { method: 'POST' });
+      await loadData(`Đã xử lý ${summary.total} nguồn: ${summary.indexed} đã index, ${summary.pending} đang chờ, ${summary.failed} lỗi.`);
+    } catch (error) { status.textContent = error.message; }
+    finally { button.disabled = false; }
+  });
   document.getElementById('ragImportFile').addEventListener('change', async event => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -352,7 +379,7 @@
     hoveredNode = (canvas.__projected || []).slice().reverse().find(item => Math.hypot(item.x - x, item.y - y) < Math.max(9, item.radius + 4)) || null;
     if (hoveredNode) {
       tooltip.textContent = hoveredNode.node.type === 'source'
-        ? `${escapeRole(hoveredNode.node.role)} · ${hoveredNode.node.label}`
+        ? `${escapeRole(hoveredNode.node.role)} · ${hoveredNode.node.label} · ${hoveredNode.node.indexStatus || 'PENDING'} (${hoveredNode.node.indexedChunkCount || 0} đoạn)`
         : hoveredNode.node.type === 'role' ? `Role: ${hoveredNode.node.label}` : hoveredNode.node.label;
       tooltip.hidden = false;
       tooltip.style.left = `${Math.min(bounds.width - 245, Math.max(8, x + 14))}px`;
@@ -378,12 +405,11 @@
   resizeObserver.observe(canvas);
   resizeCanvas();
   requestAnimationFrame(drawFrame);
-  request().then(data => {
-    sources = data;
-    refreshView(`Đã tải ${sources.length} nguồn. Ollama là tùy chọn; RAG vẫn trả lời từ tài liệu khi mô hình cục bộ chưa cài.`);
-  }).catch(error => {
+  loadData('Đang tải nguồn và láng giềng embedding…').catch(error => {
     status.textContent = error.message;
     document.getElementById('ragSourceCount').textContent = '0';
     document.getElementById('ragActiveCount').textContent = '0';
+    document.getElementById('ragIndexedCount').textContent = '0';
+    document.getElementById('ragEdgeCount').textContent = '0';
   });
 })();

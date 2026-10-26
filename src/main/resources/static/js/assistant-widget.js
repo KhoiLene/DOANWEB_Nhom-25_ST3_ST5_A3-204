@@ -51,8 +51,14 @@
         document.getElementById('assistantName').textContent = context.name || 'Trợ lý Techtra';
         document.getElementById('assistantDescription').textContent = context.description || '';
         notice.textContent = context.ready
-          ? `RAG cục bộ đã bật với ${context.sourceCount || 0} nguồn cho role này. ${context.generationMode || 'Câu trả lời dựa trên tài liệu được phép.'}`
-          : 'Role này chưa có nguồn tri thức đang bật. Vui lòng liên hệ quản trị viên.';
+          ? `Gemini RAG đã sẵn sàng với ${context.indexedSourceCount || 0} nguồn đã lập chỉ mục. ${context.generationMode || 'Câu trả lời dựa trên tài liệu được phép.'}`
+          : !context.providerConfigured
+            ? 'Trợ lý Gemini chưa được cấu hình. Quản trị viên cần đặt GEMINI_API_KEY ở backend.'
+            : !context.vectorStoreReady
+              ? 'Kho vector Qdrant chưa sẵn sàng. Vui lòng báo quản trị viên.'
+              : context.indexedSourceCount === 0
+                ? 'Role này chưa có nguồn tri thức Gemini đã lập chỉ mục. Vui lòng liên hệ quản trị viên.'
+                : 'Trợ lý Gemini hiện chưa sẵn sàng. Vui lòng thử lại sau.';
         ready = Boolean(context.ready);
         question.disabled = !ready;
         send.disabled = !ready;
@@ -66,7 +72,7 @@
       addMessage('user', text);
       question.value = '';
       send.disabled = true;
-      notice.textContent = 'Đang tìm tài liệu và soạn câu trả lời…';
+        notice.textContent = 'Đang tìm tài liệu trong kho role và gọi Gemini…';
       try {
         const response = await fetch('/api/assistant/chat', {
           method: 'POST',
@@ -78,7 +84,7 @@
         addMessage('assistant', result.answer, result.sources || []);
         history.push({ role: 'user', content: text }, { role: 'assistant', content: result.answer });
         if (history.length > 10) history.splice(0, history.length - 10);
-        notice.textContent = 'Bạn có thể hỏi tiếp.';
+        notice.textContent = result.retrievalMode === 'GEMINI_VECTOR' ? 'Gemini RAG · Bạn có thể hỏi tiếp.' : 'Bạn có thể hỏi tiếp.';
       } catch (error) {
         addMessage('assistant', error.message || 'Trợ lý đang gặp sự cố. Vui lòng thử lại.');
         notice.textContent = 'Câu hỏi chưa được xử lý.';

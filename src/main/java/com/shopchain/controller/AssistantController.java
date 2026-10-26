@@ -30,6 +30,8 @@ public class AssistantController {
             return ResponseEntity.ok(assistantService.ask(resolveRole(authentication), request.message(), request.history()));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(Map.of("error", exception.getMessage()));
+        } catch (com.shopchain.service.GeminiApiClient.GeminiApiException exception) {
+            return ResponseEntity.status(503).body(Map.of("error", exception.getMessage()));
         }
     }
 

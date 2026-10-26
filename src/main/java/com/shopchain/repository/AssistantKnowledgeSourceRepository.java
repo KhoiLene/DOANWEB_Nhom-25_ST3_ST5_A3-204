@@ -11,4 +11,5 @@ public interface AssistantKnowledgeSourceRepository extends JpaRepository<Assist
     List<AssistantKnowledgeSource> findByRoleKeyAndActiveTrueOrderByUpdatedAtDesc(String roleKey);
     long countByRoleKey(String roleKey);
     long countByRoleKeyAndActiveTrue(String roleKey);
+    long countByRoleKeyAndActiveTrueAndIndexStatus(String roleKey, String indexStatus);
 }

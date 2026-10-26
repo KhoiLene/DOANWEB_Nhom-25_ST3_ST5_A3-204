@@ -32,6 +32,29 @@ public class AssistantKnowledgeSource {
     @Builder.Default
     private boolean active = true;
 
+    @Column(name = "index_status", length = 20)
+    @Builder.Default
+    private String indexStatus = "PENDING";
+
+    @Column(name = "indexed_chunk_count")
+    @Builder.Default
+    private Integer indexedChunkCount = 0;
+
+    @Column(name = "indexed_at")
+    private LocalDateTime indexedAt;
+
+    @Column(name = "index_error", length = 500)
+    private String indexError;
+
+    @Column(name = "content_hash", length = 64)
+    private String contentHash;
+
+    @Column(name = "embedding_model", length = 80)
+    private String embeddingModel;
+
+    @Column(name = "embedding_dimensions")
+    private Integer embeddingDimensions;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -43,6 +66,8 @@ public class AssistantKnowledgeSource {
         LocalDateTime now = LocalDateTime.now();
         if (createdAt == null) createdAt = now;
         updatedAt = now;
+        if (indexStatus == null) indexStatus = "PENDING";
+        if (indexedChunkCount == null) indexedChunkCount = 0;
     }
 
     @PreUpdate

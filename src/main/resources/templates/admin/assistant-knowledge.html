@@ -4,24 +4,25 @@
     <section class="rag-manager" id="ragManager">
         <div class="rag-manager__intro">
             <div>
-                <span class="rag-manager__eyebrow">LOCAL RAG · ROLE SCOPED</span>
+                <span class="rag-manager__eyebrow">GEMINI RAG · ROLE SCOPED</span>
                 <h1>Mạng tri thức trợ lý</h1>
                 <p>Quản lý tài liệu theo từng role. Mỗi trợ lý chỉ truy xuất kho tri thức được gán cho vai trò đang đăng nhập.</p>
             </div>
             <div class="rag-manager__metrics" aria-live="polite">
                 <div><strong id="ragSourceCount">—</strong><span>Nguồn tri thức</span></div>
                 <div><strong id="ragActiveCount">—</strong><span>Đang hoạt động</span></div>
-                <div><strong id="ragRoleCount">4</strong><span>Phạm vi role</span></div>
+                <div><strong id="ragIndexedCount">—</strong><span>Đã lập chỉ mục</span></div>
+                <div><strong id="ragEdgeCount">—</strong><span>Kết nối embedding</span></div>
             </div>
         </div>
 
         <section class="rag-globe-card" aria-label="Bản đồ kết nối kho tri thức">
             <div class="rag-globe-card__top">
-                <div><h2>Quả cầu liên kết</h2><p>Giữ chuột để xoay · chọn nút tài liệu để chỉnh sửa</p></div>
-                <span class="rag-engine-badge"><i></i> RAG cục bộ</span>
+                <div><h2>Quả cầu liên kết</h2><p>Giữ chuột để xoay · đường nối là láng giềng vector trong cùng role</p></div>
+                <span class="rag-engine-badge"><i></i> Gemini + Qdrant</span>
             </div>
             <div class="rag-globe">
-                <canvas id="ragGlobe" aria-label="Đồ thị role, tài liệu và khái niệm trong RAG"></canvas>
+                <canvas id="ragGlobe" aria-label="Đồ thị nguồn tri thức và láng giềng embedding theo role"></canvas>
                 <div class="rag-globe__legend">
                     <span data-role="customer"><i></i>Khách</span>
                     <span data-role="store-staff"><i></i>Cửa hàng</span>
@@ -35,8 +36,11 @@
         <div class="rag-workbench">
             <section class="rag-sources-card">
                 <div class="rag-section-heading">
-                    <div><h2>Nguồn tri thức</h2><p>Tài liệu đang được truy xuất khi trả lời.</p></div>
-                    <button class="rag-button rag-button--primary" id="ragNewSource" type="button">+ Thêm nguồn</button>
+                    <div><h2>Nguồn tri thức</h2><p>Tài liệu được gửi qua Gemini sau khi đã lọc theo role.</p></div>
+                    <div class="rag-editor-actions">
+                        <button class="rag-button rag-button--quiet" id="ragReindexAll" type="button">Lập chỉ mục tất cả</button>
+                        <button class="rag-button rag-button--primary" id="ragNewSource" type="button">+ Thêm nguồn</button>
+                    </div>
                 </div>
                 <div class="rag-role-filter" role="group" aria-label="Lọc theo role">
                     <button type="button" data-filter="all" class="is-active">Tất cả</button>
@@ -73,7 +77,7 @@
                         <button class="rag-button rag-button--danger" id="ragDeleteSource" type="button" hidden>Xóa</button>
                     </div>
                 </form>
-                <p class="rag-editor-note">Lưu trong PostgreSQL của project; không gửi tài liệu ra dịch vụ AI bên ngoài.</p>
+                <p class="rag-editor-note">Nguồn gốc lưu trong PostgreSQL; các đoạn đã lọc được gửi đến Gemini để tạo embedding và trả lời. Chỉ đưa vào tài liệu đã duyệt, đã làm sạch và không chứa thông tin cá nhân hoặc bí mật. Nội dung API miễn phí có thể được Google dùng để cải thiện sản phẩm.</p>
             </section>
         </div>
     </section>

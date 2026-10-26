@@ -3,6 +3,8 @@ package com.shopchain.controller.admin;
 import com.shopchain.service.AssistantKnowledgeManagementService;
 import com.shopchain.service.AssistantKnowledgeManagementService.KnowledgeSourceDto;
 import com.shopchain.service.AssistantKnowledgeManagementService.KnowledgeSourceRequest;
+import com.shopchain.service.AssistantKnowledgeGraphService;
+import com.shopchain.service.AssistantKnowledgeVectorIndexService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -31,13 +33,31 @@ public class AdminAssistantKnowledgeController {
     @RequestMapping("/api/admin/assistant-knowledge")
     public static class KnowledgeApi {
         private final AssistantKnowledgeManagementService knowledgeService;
+        private final AssistantKnowledgeVectorIndexService indexService;
+        private final AssistantKnowledgeGraphService graphService;
 
-        public KnowledgeApi(AssistantKnowledgeManagementService knowledgeService) {
+        public KnowledgeApi(AssistantKnowledgeManagementService knowledgeService,
+                            AssistantKnowledgeVectorIndexService indexService,
+                            AssistantKnowledgeGraphService graphService) {
             this.knowledgeService = knowledgeService;
+            this.indexService = indexService;
+            this.graphService = graphService;
         }
 
         @GetMapping
         public java.util.List<KnowledgeSourceDto> list() { return knowledgeService.list(); }
+
+        @GetMapping("/graph")
+        public AssistantKnowledgeGraphService.KnowledgeGraph graph() { return graphService.graph(); }
+
+        @PostMapping("/reindex")
+        public AssistantKnowledgeVectorIndexService.ReindexSummary reindexAll() { return indexService.reindexAll(); }
+
+        @PostMapping("/{id}/reindex")
+        public ResponseEntity<?> reindex(@PathVariable Long id) {
+            String state = indexService.reindex(id);
+            return ResponseEntity.ok(Map.of("status", state));
+        }
 
         @PostMapping
         public ResponseEntity<?> create(@RequestBody(required = false) KnowledgeSourceRequest request) {
