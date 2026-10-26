@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title} + ' | Admin KL Shop'">Admin KL Shop</title>
+    <title th:text="${title} + ' | Techtra Beauty'">Techtra Beauty</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" th:href="@{/css/admin/style.css}">
+    <link rel="stylesheet" th:href="@{/css/workspace.css}">
 </head>
-<body>
+<body class="workspace-body">
     <div class="admin-wrapper">
         <!-- Sidebar -->
         <aside class="admin-sidebar">
             <div class="admin-sidebar__brand">
-                <i class="fa-solid fa-gauge-high"></i>
-                <span>KL Admin</span>
+                <i class="fa-solid fa-leaf"></i>
+                <span>TECHTRA <strong style="color:#2563eb">BEAUTY</strong></span>
             </div>
 
             <ul class="admin-sidebar__menu">
@@ -73,7 +74,7 @@
             <div class="admin-sidebar__footer">
                 <a th:href="@{/}" class="admin-sidebar__link">
                     <i class="fa-solid fa-arrow-left"></i>
-                    <span>Quay lại Store</span>
+                    <span>Quay lại cửa hàng</span>
                 </a>
             </div>
         </aside>
@@ -88,7 +89,8 @@
                         <span class="admin-topbar__user-name" th:text="${#authentication.name}">Admin User</span>
                         <span class="admin-topbar__user-role">Quản trị viên</span>
                     </div>
-                    <i class="fa-solid fa-circle-user" style="font-size: 1.5rem; color: var(--admin-primary);"></i>
+                    <a class="btn btn-outline" th:href="@{/}">Cửa hàng</a>
+                    <form th:action="@{/logout-process}" method="post"><button class="btn btn-primary" type="submit">Đăng xuất</button></form>
                 </div>
             </header>
 
