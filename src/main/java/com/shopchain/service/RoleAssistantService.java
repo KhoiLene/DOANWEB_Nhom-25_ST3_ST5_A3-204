@@ -52,7 +52,7 @@ public class RoleAssistantService {
             "customer", CUSTOMER_TOPICS,
             "store-staff", List.of("ban tai quay", "ban hang", "hoa don", "thanh toan", "san pham", "khuyen mai", "don hang", "khach hang", "cua hang", "chi nhanh", "doi tra", "in hoa don", "ma giam gia", "giao hang", "ton kho", "ca lam", "nhan vien", "chuc nang", "thao tac"),
             "warehouse", List.of("kho", "ton kho", "nhap", "xuat", "nhap hang", "xuat hang", "dieu chuyen", "phieu", "sku", "don hang", "kiem ke", "chi nhanh", "san pham", "so luong", "nhan hang", "tra hang", "nha cung cap", "chuc nang", "thao tac", "giao hang", "giao xa", "nuoc ngoai", "quoc te", "dat hang", "van chuyen"),
-            "admin", List.of("quan tri", "he thong", "nguoi dung", "vai tro", "nhan su", "san pham", "danh muc", "chi nhanh", "kho", "don hang", "khuyen mai", "bao cao", "doanh thu", "phan quyen", "rag", "chatbot", "tinh nang", "cai dat", "cau hinh", "hoa don", "thao tac"));
+            "admin", List.of("quan tri", "he thong", "nguoi dung", "vai tro", "nhan su", "san pham", "danh muc", "chi nhanh", "kho", "don hang", "khuyen mai", "bao cao", "doanh thu", "phan quyen", "rag", "chatbot", "tinh nang", "chuc nang", "cai dat", "cau hinh", "hoa don", "thao tac", "huong dan", "cach su dung", "quan ly", "cach lam", "lam sao", "chi toi", "giup toi", "van hanh", "cap nhat", "them moi", "chinh sua", "tim kiem", "tai khoan", "dieu chuyen", "ton kho", "nhap hang", "xuat hang", "vi tri", "ban do", "nhan vien", "chi nhanh gan", "kho tri thuc", "nguon tri thuc", "bao mat", "phan quyen", "dang nhap", "cua hang", "phieu", "kiem ke"));
 
     private final AssistantKnowledgeSourceRepository repository;
     private final ProductRepository productRepository;
@@ -124,7 +124,7 @@ public class RoleAssistantService {
         if (vectorStore == null) throw new GeminiApiClient.GeminiApiException("Qdrant chưa sẵn sàng.");
         List<RetrievedSnippet> snippets = retrieve(vectorStore, role, question);
         if (snippets.isEmpty() && suggestedProducts.isEmpty()) {
-            return new AssistantReply(scopeRedirect(role),
+            return new AssistantReply("admin".equals(role) ? adminNavigationFallback() : scopeRedirect(role),
                     List.of(), "GEMINI_VECTOR");
         }
 
@@ -357,6 +357,12 @@ public class RoleAssistantService {
         return "→ Mình chỉ hỗ trợ " + greetingTopics(role) + ". Bạn hãy hỏi về một trong các nội dung này nhé.";
     }
 
+    private String adminNavigationFallback() {
+        return "→ Chọn khu vực cần làm ở thanh bên trái: Người dùng, Sản phẩm, Chi nhánh, Kho, Đơn hàng hoặc Kho tri thức AI.\n"
+                + "→ Mở danh sách, chọn Thêm hoặc Chỉnh sửa, kiểm tra thông tin rồi bấm Lưu.\n"
+                + "→ Bạn muốn mình hướng dẫn cụ thể mục nào?";
+    }
+
     private boolean refersToMissingKnowledge(String answer) {
         if (answer == null) return true;
         String normalized = java.text.Normalizer.normalize(answer.toLowerCase(java.util.Locale.ROOT), java.text.Normalizer.Form.NFD)
@@ -370,7 +376,7 @@ public class RoleAssistantService {
             case "customer" -> "chăm sóc da, tóc, môi, chọn sản phẩm, tìm chi nhánh và đặt hàng";
             case "store-staff" -> "sử dụng chức năng bán hàng, hóa đơn và chương trình khuyến mãi";
             case "warehouse" -> "quản lý tồn kho, nhập hàng và xử lý đơn";
-            case "admin" -> "quản lý hệ thống, nhân sự và chương trình khuyến mãi";
+            case "admin" -> "bảng điều khiển, tài khoản và phân quyền, sản phẩm, chi nhánh, kho, đơn hàng, báo cáo và kho tri thức AI";
             default -> "các nội dung phù hợp với vai trò của bạn";
         };
     }

@@ -11,6 +11,7 @@
 </head>
 <body class="workspace-body">
 <th:block th:replace="~{fragments/portal-header :: header('Trao đổi nội bộ', 'Kết nối các bộ phận')}"></th:block>
+<div class="internal-chat-backbar"><a th:href="${workAreaUrl}" class="internal-chat-back"><span aria-hidden="true">←</span> Quay lại khu vực làm việc</a></div>
 <main class="internal-chat" th:attr="data-current-role=${currentRole}">
     <aside class="internal-chat__sidebar" aria-label="Bộ phận">
         <div class="internal-chat__sidebar-head"><span class="internal-chat__eyebrow">TECHTRA BEAUTY</span><h1>Tin nhắn</h1><p>Trao đổi công việc giữa các bộ phận</p></div>

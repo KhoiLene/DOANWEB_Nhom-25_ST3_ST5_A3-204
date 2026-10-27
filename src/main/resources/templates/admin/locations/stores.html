@@ -1,37 +1,69 @@
-<div th:fragment="stores">
-    <div class="card">
-        <div class="card__header"><h3 th:text="${store.id == null ? 'Thêm chi nhánh' : 'Chỉnh sửa chi nhánh'}">Chi nhánh</h3></div>
-        <div class="card__body">
-            <form th:action="@{/admin/locations/stores/save}" th:object="${store}" method="post">
-                <input type="hidden" th:field="*{id}">
-                <div class="form-group"><label class="form-label">Tên chi nhánh</label><input class="form-control" th:field="*{name}" required></div>
-                <div class="form-group"><label class="form-label">Địa chỉ</label><input class="form-control" th:field="*{address}" required></div>
-                <div class="form-group"><label class="form-label">Phường / quận</label><input class="form-control" th:field="*{district}"></div>
-                <div class="form-group"><label class="form-label">Tỉnh / thành phố</label><input class="form-control" th:field="*{city}"></div>
-                <div class="form-group"><label class="form-label">Điện thoại</label><input class="form-control" th:field="*{phone}"></div>
-                <div class="form-group"><label class="form-label">Vĩ độ</label><input class="form-control" type="number" step="any" th:field="*{latitude}"></div>
-                <div class="form-group"><label class="form-label">Kinh độ</label><input class="form-control" type="number" step="any" th:field="*{longitude}"></div>
-                <div class="form-group branch-map-tools" id="branchMapTools">
-                    <label class="form-label" for="branchMap">Chọn vị trí trên bản đồ</label>
-                    <button class="btn btn-outline" type="button" id="geocodeBranchAddress">Định vị theo địa chỉ</button>
-                    <p id="branchMapMessage" role="status" aria-live="polite">Bản đồ OpenStreetMap không cần API key. Chọn ghim hoặc định vị theo địa chỉ.</p>
-                    <div class="branch-map" id="branchMap" role="region" aria-label="Bản đồ chọn vị trí chi nhánh"></div>
-                </div>
-                <div class="form-group"><label><input type="checkbox" th:field="*{pickupEnabled}"> Cho phép nhận hàng tại đây</label></div>
-                <div class="form-group"><label><input type="checkbox" th:field="*{active}"> Đang hoạt động</label></div>
-                <button class="btn btn-primary" type="submit">Lưu chi nhánh</button>
-            </form>
+<div th:fragment="stores" class="branch-manager">
+    <section class="branch-manager__intro">
+        <div><span class="branch-manager__eyebrow">MẠNG LƯỚI CỬA HÀNG</span>
+            <h1>Quản lý chi nhánh</h1>
+            <p>Thêm cửa hàng bằng cách tìm địa chỉ, chọn ghim trên bản đồ rồi lưu.</p></div>
+        <a class="branch-manager__add" th:href="@{/admin/locations/stores}"><span aria-hidden="true">＋</span> Thêm chi nhánh</a>
+    </section>
+
+    <section class="branch-editor card" id="branchEditor" aria-label="Biểu mẫu chi nhánh">
+        <div class="branch-editor__heading">
+            <div><span class="branch-editor__step">THÔNG TIN ĐIỂM BÁN</span>
+                <h2 th:text="${store.id == null ? 'Tạo chi nhánh mới' : 'Cập nhật chi nhánh'}">Tạo chi nhánh mới</h2>
+                <p>Điền thông tin và kiểm tra vị trí trước khi lưu.</p></div>
+            <a class="branch-editor__cancel" th:if="${store.id != null}" th:href="@{/admin/locations/stores}">＋ Chi nhánh mới</a>
         </div>
-    </div>
-    <div class="card"><div class="card__body"><table class="admin-table">
-        <thead><tr><th>Chi nhánh</th><th>Địa chỉ</th><th>Tọa độ</th><th>Nhận hàng</th><th>Trạng thái</th><th></th></tr></thead>
-        <tbody><tr th:each="item : ${stores}">
-            <td th:text="${item.name}">Techtra</td><td th:text="${item.address}">Địa chỉ</td>
-            <td th:text="${item.latitude != null ? item.latitude + ', ' + item.longitude : 'Chưa có tọa độ'}"></td>
-            <td th:text="${item.pickupEnabled ? 'Có' : 'Không'}"></td><td th:text="${item.active ? 'Đang hoạt động' : 'Tạm ngưng'}"></td>
-            <td><a class="btn btn-outline" th:href="@{/admin/locations/stores(editId=${item.id})}">Sửa</a>
-                <form th:action="@{/admin/locations/stores/{id}/toggle(id=${item.id})}" method="post" style="display:inline"><button class="btn btn-outline" type="submit">Bật/tắt</button></form></td>
-        </tr><tr th:if="${#lists.isEmpty(stores)}"><td colspan="6">Chưa có chi nhánh. Thêm chi nhánh kèm tọa độ để bật tìm cửa hàng gần nhất.</td></tr></tbody>
-    </table></div></div>
+        <form th:action="@{/admin/locations/stores/save}" th:object="${store}" method="post" class="branch-editor__form">
+            <input type="hidden" th:field="*{id}">
+            <div class="branch-editor__fields">
+                <label class="branch-field"><span>Tên chi nhánh <b>*</b></span><input class="form-control" th:field="*{name}" placeholder="Ví dụ: Techtra Beauty Quận 1" required maxlength="150"></label>
+                <label class="branch-field"><span>Số điện thoại</span><input class="form-control" th:field="*{phone}" placeholder="Số liên hệ của chi nhánh" maxlength="30"></label>
+                <div class="branch-field branch-field--wide branch-address-field">
+                    <label for="address">Địa chỉ <b>*</b></label>
+                    <input class="form-control" th:field="*{address}" placeholder="Gõ số nhà, tên đường, quận hoặc tỉnh/thành" autocomplete="street-address" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="branchAddressSuggestions" required maxlength="300">
+                    <div class="branch-address-suggestions" id="branchAddressSuggestions" role="listbox" hidden></div>
+                    <small>Chọn gợi ý để tự ghim đúng vị trí trên bản đồ.</small>
+                </div>
+                <label class="branch-field"><span>Quận / huyện</span><input class="form-control" th:field="*{district}" placeholder="Ví dụ: Quận 1" maxlength="120"></label>
+                <label class="branch-field"><span>Tỉnh / thành phố</span><input class="form-control" th:field="*{city}" placeholder="Ví dụ: Thành phố Hồ Chí Minh" maxlength="120"></label>
+                <div class="branch-field branch-field--wide branch-coordinates">
+                    <label><span>Vĩ độ</span><input class="form-control" type="number" step="any" min="-90" max="90" th:field="*{latitude}" placeholder="Tự điền từ địa chỉ" required></label>
+                    <label><span>Kinh độ</span><input class="form-control" type="number" step="any" min="-180" max="180" th:field="*{longitude}" placeholder="Tự điền từ địa chỉ" required></label>
+                </div>
+                <div class="branch-field branch-field--wide branch-flags">
+                    <label><input type="checkbox" th:field="*{active}"><span><strong>Chi nhánh đang hoạt động</strong><small>Đang mở cửa và phục vụ khách</small></span></label>
+                    <label><input type="checkbox" th:field="*{pickupEnabled}"><span><strong>Cho phép nhận hàng</strong><small>Khách có thể chọn nhận đơn tại đây</small></span></label>
+                </div>
+                <div class="branch-field branch-field--wide branch-map-tools" id="branchMapTools">
+                    <div class="branch-map-tools__heading"><div><span class="branch-editor__step">VỊ TRÍ CHI NHÁNH</span><h3>Đặt ghim trên bản đồ</h3>
+                        <p id="branchMapMessage" role="status" aria-live="polite">Gõ địa chỉ để xem gợi ý hoặc bấm trực tiếp lên bản đồ để chọn vị trí.</p></div>
+                        <button class="branch-map-tools__locate" type="button" id="geocodeBranchAddress">Tìm địa chỉ</button></div>
+                    <div class="branch-map" id="branchMap" role="region" aria-label="Bản đồ chọn vị trí chi nhánh"></div>
+                    <small class="branch-map-note">Bản đồ OpenFreeMap miễn phí · dữ liệu OpenStreetMap. Kéo ghim hoặc bấm lên bản đồ để chỉnh vị trí.</small>
+                </div>
+            </div>
+            <div class="branch-editor__actions"><button class="btn btn-primary" type="submit"><span aria-hidden="true">✓</span> Lưu chi nhánh</button>
+                <a class="branch-editor__cancel" th:href="@{/admin/locations/stores}" th:if="${store.id != null}">Hủy chỉnh sửa</a>
+                <span class="branch-editor__required">* Thông tin bắt buộc</span></div>
+        </form>
+    </section>
+
+    <section class="branch-directory" aria-label="Các chi nhánh đã tạo">
+        <div class="branch-directory__heading"><div><span class="branch-editor__step">DANH SÁCH ĐIỂM BÁN</span><h2>Chi nhánh trên bản đồ</h2></div>
+            <span class="branch-directory__count" th:text="${#lists.size(stores)} + ' chi nhánh'">0 chi nhánh</span></div>
+        <div class="branch-directory__grid" th:if="${!#lists.isEmpty(stores)}">
+            <article class="branch-directory__item" th:each="item : ${stores}"
+                     th:attr="data-branch-marker=${item.latitude != null and item.longitude != null},data-id=${item.id},data-lat=${item.latitude},data-lng=${item.longitude},data-name=${item.name},data-address=${item.address},data-active=${item.active}">
+                <div class="branch-directory__item-head"><span class="branch-directory__pin" aria-hidden="true">⌖</span>
+                    <span class="branch-directory__status" th:classappend="${item.active ? ' is-active' : ''}" th:text="${item.active ? 'Đang hoạt động' : 'Tạm ngưng'}">Đang hoạt động</span></div>
+                <h3 th:text="${item.name}">Chi nhánh</h3><p th:text="${item.address}">Địa chỉ</p>
+                <div class="branch-directory__meta"><span th:text="${item.city != null and !item.city.isBlank() ? item.city : 'Chưa có tỉnh/thành'}">Thành phố</span>
+                    <span th:text="${item.pickupEnabled ? 'Nhận hàng tại cửa hàng' : 'Không nhận pickup'}">Nhận hàng</span></div>
+                <div class="branch-directory__actions"><a class="branch-directory__edit" th:href="@{/admin/locations/stores(editId=${item.id})}">Chỉnh sửa</a>
+                    <form th:action="@{/admin/locations/stores/{id}/toggle(id=${item.id})}" method="post"><button type="submit" th:text="${item.active ? 'Tạm ngưng' : 'Mở lại'}">Tạm ngưng</button></form></div>
+            </article>
+        </div>
+        <div class="branch-directory__empty" th:if="${#lists.isEmpty(stores)}"><span aria-hidden="true">⌖</span><strong>Chưa có chi nhánh nào</strong><p>Thêm chi nhánh đầu tiên bằng biểu mẫu phía trên.</p></div>
+    </section>
 </div>
 <script defer th:src="@{/js/admin-store-map.js}"></script>

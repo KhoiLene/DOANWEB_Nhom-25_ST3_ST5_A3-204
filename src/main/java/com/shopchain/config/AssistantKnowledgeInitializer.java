@@ -29,7 +29,8 @@ public class AssistantKnowledgeInitializer implements CommandLineRunner {
             new KnowledgeSeed("store-staff", "Hướng dẫn giải thích khuyến mãi cho khách", "store-staff-promotion-guide.md"),
             new KnowledgeSeed("warehouse", "Cẩm nang thao tác nhân viên kho", "warehouse-guide.md"),
             new KnowledgeSeed("warehouse", "Đơn giao xa và câu hỏi về giao quốc tế", "warehouse-delivery-guide.md"),
-            new KnowledgeSeed("admin", "Cẩm nang thao tác admin", "admin-guide.md"));
+            new KnowledgeSeed("admin", "Cẩm nang thao tác admin", "admin-guide.md"),
+            new KnowledgeSeed("admin", "Hướng dẫn quản trị hệ thống và chuỗi chi nhánh", "admin-operations-guide.md"));
 
     private final AssistantKnowledgeSourceRepository repository;
 

@@ -1,0 +1,74 @@
+.branch-manager{display:grid;gap:22px;color:#1c2b40}
+.branch-manager__intro,.branch-editor__heading,.branch-directory__heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.branch-manager__intro{padding:4px 2px 2px}
+.branch-manager__eyebrow,.branch-editor__step{color:#2563eb;font-size:.7rem;font-weight:800;letter-spacing:.12em}
+.branch-manager__intro h1{margin:5px 0 3px;font-size:clamp(1.45rem,2.2vw,2rem)}
+.branch-manager__intro p,.branch-editor__heading p,.branch-map-tools__heading p{margin:0;color:#64748b}
+.branch-manager__add,.branch-editor__cancel{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:9px 15px;border:1px solid #cbdaf0;border-radius:11px;background:#fff;color:#2158d9;font-weight:700;white-space:nowrap}
+.branch-manager__add{border-color:#2563eb;background:#2563eb;color:white}
+.branch-manager__add span{font-size:1.2rem;line-height:1}
+.branch-editor.card{overflow:visible;border:1px solid #dbe4f0;border-radius:18px;background:#fff;box-shadow:0 10px 28px #17304d0b}
+.branch-editor__heading{align-items:flex-start;padding:21px 24px;border-bottom:1px solid #e5edf6}
+.branch-editor__heading h2,.branch-directory__heading h2{margin:5px 0;font-size:1.15rem}
+.branch-editor__form{padding:22px 24px 20px}
+.branch-editor__fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 20px}
+.branch-field{position:relative;display:grid;align-content:start;gap:7px;min-width:0;color:#24364b;font-size:.87rem;font-weight:700}
+.branch-field--wide{grid-column:1/-1}
+.branch-field b,.branch-editor__required{color:#d94848}
+.branch-field .form-control{width:100%;min-height:45px;padding:10px 12px;border:1px solid #cfdcee;border-radius:10px;background:#fff;color:#1c2b40;font:500 .9rem 'Plus Jakarta Sans','Be Vietnam Pro',sans-serif}
+.branch-field .form-control:focus{outline:3px solid #dbeafe;border-color:#2563eb}
+.branch-field small{color:#718096;font-size:.76rem;font-weight:400;line-height:1.45}
+.branch-address-field{z-index:5}
+.branch-address-field>label{font-size:.87rem}
+.branch-address-suggestions{position:absolute;top:74px;left:0;right:0;z-index:25;display:grid;max-height:260px;overflow:auto;padding:5px;border:1px solid #d6e1ef;border-radius:12px;background:white;box-shadow:0 14px 32px #19365424}
+.branch-address-suggestions[hidden]{display:none}
+.branch-address-suggestions__option{padding:11px 12px;border:0;border-radius:8px;background:#fff;color:#27384c;text-align:left;font:500 .84rem/1.45 'Plus Jakarta Sans','Be Vietnam Pro',sans-serif;cursor:pointer}
+.branch-address-suggestions__option:hover,.branch-address-suggestions__option:focus{outline:0;background:#eef5ff;color:#1d4ed8}
+.branch-address-suggestions__empty{margin:0;padding:12px;color:#718096;font-size:.83rem;font-weight:500}
+.branch-coordinates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.branch-coordinates label{display:grid;gap:7px}
+.branch-flags{display:flex;flex-wrap:wrap;gap:14px}
+.branch-flags>label{display:flex;flex:1 1 250px;align-items:flex-start;gap:10px;padding:13px;border:1px solid #e0e9f4;border-radius:12px;background:#f9fbfe;cursor:pointer}
+.branch-flags input{width:17px;height:17px;margin:3px 0 0;accent-color:#2563eb}
+.branch-flags span{display:grid;gap:2px}.branch-flags strong{font-size:.84rem}.branch-flags small{font-size:.75rem}
+.branch-map-tools{display:grid;gap:12px;padding-top:4px}
+.branch-map-tools__heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.branch-map-tools__heading h3{margin:4px 0 2px;font-size:1rem}
+.branch-map-tools__heading p{font-size:.8rem}
+.branch-map-tools__locate{flex:none;min-height:39px;padding:8px 13px;border:1px solid #cbdaf0;border-radius:10px;background:#fff;color:#2158d9;font:700 .82rem 'Plus Jakarta Sans','Be Vietnam Pro',sans-serif;cursor:pointer}
+.branch-map-tools__locate:hover,.branch-editor__cancel:hover,.branch-directory__edit:hover{background:#edf4ff}
+.branch-map{width:100%;height:390px;overflow:hidden;border:1px solid #d7e2ef;border-radius:14px;background:#edf2f6}
+.branch-map-note{color:#738198;font-size:.74rem;font-weight:500}
+.branch-map-popup{display:grid;gap:3px;max-width:240px;color:#24364b;font:500 .8rem/1.4 'Plus Jakarta Sans','Be Vietnam Pro',sans-serif}
+.branch-map-popup strong{font-size:.86rem}.branch-map-popup span{color:#5c6b80}
+.branch-editor__actions{display:flex;align-items:center;gap:12px;margin-top:18px;padding-top:18px;border-top:1px solid #e6edf5}
+.branch-editor__actions .btn{min-height:44px;border-radius:10px;font-weight:700}
+.branch-editor__required{margin-left:auto;font-size:.75rem}
+.branch-directory{display:grid;gap:13px}
+.branch-directory__heading{padding:0 2px}
+.branch-directory__count{padding:6px 10px;border-radius:999px;background:#eaf2ff;color:#2358c8;font-size:.76rem;font-weight:700}
+.branch-directory__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:13px}
+.branch-directory__item{display:grid;gap:11px;padding:17px;border:1px solid #dbe4f0;border-radius:14px;background:#fff;box-shadow:0 6px 18px #17304d08}
+.branch-directory__item-head{display:flex;align-items:center;justify-content:space-between}
+.branch-directory__pin{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#edf4ff;color:#2563eb;font-size:1.35rem}
+.branch-directory__status{padding:4px 9px;border-radius:999px;background:#f1f4f8;color:#68778b;font-size:.7rem;font-weight:700}
+.branch-directory__status.is-active{background:#e9f8f0;color:#218451}
+.branch-directory__item h3{margin:0;font-size:.96rem}.branch-directory__item>p{margin:0;color:#64748b;font-size:.82rem;min-height:2.7em}
+.branch-directory__meta{display:flex;flex-wrap:wrap;gap:6px}
+.branch-directory__meta span{padding:4px 8px;border-radius:999px;background:#f3f6fa;color:#5f6f83;font-size:.68rem;font-weight:600}
+.branch-directory__actions{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:10px;border-top:1px solid #edf1f6}
+.branch-directory__actions form{margin:0}.branch-directory__edit,.branch-directory__actions button{display:inline-flex;min-height:34px;align-items:center;padding:6px 10px;border:1px solid #d5e1ef;border-radius:9px;background:white;color:#2358c8;font:700 .76rem 'Plus Jakarta Sans','Be Vietnam Pro',sans-serif;cursor:pointer}
+.branch-directory__actions button{color:#617187}.branch-directory__actions button:hover{background:#f4f7fb}
+.branch-directory__empty{display:grid;justify-items:center;gap:5px;padding:35px 16px;border:1px dashed #cbd9e9;border-radius:14px;background:#fbfdff;text-align:center;color:#64748b}
+.branch-directory__empty>span{font-size:2rem;color:#2563eb}.branch-directory__empty strong{color:#24364b}.branch-directory__empty p{margin:0;font-size:.83rem}
+html[data-theme="dark"] .branch-manager{color:#e7edf6}
+html[data-theme="dark"] .branch-editor.card,html[data-theme="dark"] .branch-directory__item{background:#162235;border-color:#30415a}
+html[data-theme="dark"] .branch-editor__heading,html[data-theme="dark"] .branch-editor__actions,html[data-theme="dark"] .branch-directory__actions{border-color:#30415a}
+html[data-theme="dark"] .branch-field,html[data-theme="dark"] .branch-editor__heading h2,html[data-theme="dark"] .branch-directory__heading h2,html[data-theme="dark"] .branch-directory__item h3,html[data-theme="dark"] .branch-directory__empty strong{color:#e7edf6}
+html[data-theme="dark"] .branch-field .form-control,html[data-theme="dark"] .branch-manager__add:not(:hover),html[data-theme="dark"] .branch-editor__cancel,html[data-theme="dark"] .branch-map-tools__locate,html[data-theme="dark"] .branch-directory__edit,html[data-theme="dark"] .branch-directory__actions button{background:#1d2d43;color:#e7edf6;border-color:#40536e}
+html[data-theme="dark"] .branch-address-suggestions{background:#1d2d43;border-color:#40536e}
+html[data-theme="dark"] .branch-address-suggestions__option{background:#1d2d43;color:#e7edf6}
+html[data-theme="dark"] .branch-address-suggestions__option:hover,html[data-theme="dark"] .branch-address-suggestions__option:focus{background:#29436a}
+html[data-theme="dark"] .branch-flags>label,html[data-theme="dark"] .branch-directory__empty{background:#1d2d43;border-color:#40536e}
+html[data-theme="dark"] .branch-directory__meta span{background:#263951;color:#c5d1df}
+@media(max-width:700px){.branch-manager__intro,.branch-editor__heading{align-items:flex-start;flex-direction:column}.branch-manager__add{width:100%}.branch-editor__form{padding:16px}.branch-editor__heading{padding:17px 16px}.branch-editor__fields{grid-template-columns:1fr;gap:14px}.branch-field--wide{grid-column:auto}.branch-coordinates{grid-template-columns:1fr}.branch-map{height:320px}.branch-map-tools__heading{align-items:flex-start;flex-direction:column}.branch-map-tools__locate{width:100%}.branch-editor__actions{flex-wrap:wrap}.branch-editor__actions .btn{flex:1}.branch-editor__required{flex-basis:100%;margin:0}}

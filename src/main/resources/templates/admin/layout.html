@@ -10,8 +10,9 @@
     <link rel="stylesheet" th:if="${activePage == 'dashboard'}" th:href="@{/css/control-tower.css}">
     <link rel="stylesheet" th:href="@{/css/assistant-widget.css}">
     <link rel="stylesheet" th:href="@{/css/theme.css}">
-    <link rel="stylesheet" th:if="${activePage == 'stores'}" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <script defer th:if="${activePage == 'stores'}" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="preconnect" th:if="${activePage == 'stores'}" href="https://tiles.openfreemap.org" crossorigin>
+    <link rel="stylesheet" th:if="${activePage == 'stores'}" href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
+    <link rel="stylesheet" th:if="${activePage == 'stores'}" th:href="@{/css/admin/branch-management.css}">
     <script defer th:if="${activePage == 'stores'}" th:src="@{/js/nominatim-client.js}"></script>
     <script defer th:src="@{/js/assistant-widget.js}"></script>
     <script defer th:src="@{/js/theme-toggle.js}"></script>

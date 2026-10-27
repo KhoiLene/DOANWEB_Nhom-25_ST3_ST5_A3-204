@@ -7,4 +7,14 @@
     if (!response.ok) throw new Error(result.error || 'Không thể xác định địa chỉ.');
     return result;
   };
+  window.suggestAddresses = async (query, signal) => {
+    const params = new URLSearchParams({ query });
+    const response = await fetch(`/api/locations/suggest?${params}`, {
+      headers: { Accept: 'application/json' },
+      signal
+    });
+    const result = await response.json().catch(() => []);
+    if (!response.ok) throw new Error(result.error || 'Không thể tải gợi ý địa chỉ.');
+    return Array.isArray(result) ? result : [];
+  };
 })();

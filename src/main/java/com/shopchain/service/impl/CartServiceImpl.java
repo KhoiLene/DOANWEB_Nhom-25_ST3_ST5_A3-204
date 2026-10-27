@@ -29,6 +29,7 @@ public class CartServiceImpl implements CartService {
             Cart newCart = Cart.builder().user(user).build();
             return cartRepository.save(newCart);
         });
+        ensureItems(cart);
 
         Product product = productRepository.findById(productId).orElseThrow();
         if (Boolean.FALSE.equals(product.getIsActive())) throw new IllegalArgumentException("Sản phẩm hiện không còn được bán.");
@@ -58,6 +59,7 @@ public class CartServiceImpl implements CartService {
         if (quantity > 99) throw new IllegalArgumentException("Số lượng tối đa là 99.");
         User user = userRepository.findById(userId).orElseThrow();
         Cart cart = cartRepository.findByUser(user).orElseThrow();
+        ensureItems(cart);
 
         CartItem item = cart.getItems().stream()
                 .filter(cartItem -> cartItem.getProduct().getId().equals(productId))
@@ -74,6 +76,7 @@ public class CartServiceImpl implements CartService {
         User user = userRepository.findById(userId).orElseThrow();
         Cart cart = cartRepository.findByUser(user).orElse(null);
         if (cart == null) return;
+        ensureItems(cart);
         cart.getItems().removeIf(item -> item.getProduct().getId().equals(productId));
         cartRepository.save(cart);
     }
@@ -81,7 +84,9 @@ public class CartServiceImpl implements CartService {
     @Override
     public Cart getCart(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
-        return cartRepository.findByUser(user).orElse(Cart.builder().user(user).build());
+        Cart cart = cartRepository.findByUser(user).orElse(Cart.builder().user(user).build());
+        ensureItems(cart);
+        return cart;
     }
 
     @Override
@@ -90,6 +95,7 @@ public class CartServiceImpl implements CartService {
         User user = userRepository.findById(userId).orElseThrow();
         Cart cart = cartRepository.findByUser(user).orElse(null);
         if (cart == null) return;
+        ensureItems(cart);
         cart.getItems().clear();
         cartRepository.save(cart);
     }
@@ -98,5 +104,9 @@ public class CartServiceImpl implements CartService {
         if (quantity == null || quantity <= 0) {
             throw new IllegalArgumentException("Số lượng phải lớn hơn 0.");
         }
+    }
+
+    private void ensureItems(Cart cart) {
+        if (cart.getItems() == null) cart.setItems(new java.util.ArrayList<>());
     }
 }

@@ -1,6 +1,7 @@
 package com.shopchain.controller;
 
 import com.shopchain.entity.Cart;
+import com.shopchain.entity.CartItem;
 import com.shopchain.service.CartService;
 import com.shopchain.repository.UserRepository;
 import org.springframework.security.core.Authentication;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/cart")
@@ -70,10 +72,11 @@ public class CartApiController {
     }
 
     private Map<String, Object> summary(Cart cart, String message) {
-        int count = cart.getItems().stream().mapToInt(item -> item.getQuantity()).sum();
+        List<CartItem> items = cart.getItems() == null ? List.of() : cart.getItems();
+        int count = items.stream().mapToInt(item -> item.getQuantity()).sum();
         int loyaltyPoints = cart.getUser() == null || cart.getUser().getLoyaltyPoints() == null
                 ? 0 : cart.getUser().getLoyaltyPoints();
-        double subtotal = cart.getItems().stream()
+        double subtotal = items.stream()
                 .mapToDouble(item -> item.getProduct().effectivePrice(loyaltyPoints) * item.getQuantity()).sum();
         Map<String, Object> result = new HashMap<>();
         result.put("count", count);
