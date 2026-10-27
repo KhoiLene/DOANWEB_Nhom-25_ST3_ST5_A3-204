@@ -236,6 +236,10 @@ public class WebController {
         model.addAttribute("cart", cart);
         model.addAttribute("cartItems", cart.getItems());
         model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
+        model.addAttribute("deliveryCities", checkoutDeliveryCities());
+        model.addAttribute("selectedDeliveryCountry", "");
+        model.addAttribute("selectedDeliveryCity", "");
+        model.addAttribute("selectedStoreId", null);
         model.addAttribute("customer", userRepository.findById(userId).orElseThrow());
         model.addAttribute("customerLoyaltyPoints", points);
 
@@ -252,12 +256,19 @@ public class WebController {
 
     @PostMapping("/checkout/place-order")
     public String placeOrder(@RequestParam String name, @RequestParam String phone, @RequestParam String address,
-                             @RequestParam String deliveryCity, @RequestParam Long storeId,
+                             @RequestParam(required = false) String deliveryCountry,
+                             @RequestParam(required = false) String deliveryCity, @RequestParam Long storeId,
                              @RequestParam String fulfillmentType, @RequestParam String paymentMethod,
                              @RequestParam(required = false) Double deliveryLatitude,
                              @RequestParam(required = false) Double deliveryLongitude,
                              Authentication authentication, Model model) {
         try {
+            if ("DELIVERY".equals(fulfillmentType)) {
+                if (!"VN".equals(deliveryCountry))
+                    throw new IllegalArgumentException("Vui lòng chọn quốc gia Việt Nam để giao hàng.");
+                if (deliveryCity == null || !checkoutDeliveryCities().contains(deliveryCity.trim()))
+                    throw new IllegalArgumentException("Vui lòng chọn tỉnh/thành phố trong danh sách.");
+            }
             Order order = orderService.placeOnlineOrder(currentUserId(authentication), storeId, name, phone,
                     address, deliveryCity, fulfillmentType, paymentMethod, deliveryLatitude, deliveryLongitude);
             return "redirect:/order-success?orderId=" + order.getId();
@@ -266,6 +277,10 @@ public class WebController {
             model.addAttribute("cart", cart);
             model.addAttribute("cartItems", cart.getItems());
             model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
+            model.addAttribute("deliveryCities", checkoutDeliveryCities());
+            model.addAttribute("selectedDeliveryCountry", deliveryCountry == null ? "" : deliveryCountry);
+            model.addAttribute("selectedDeliveryCity", deliveryCity == null ? "" : deliveryCity);
+            model.addAttribute("selectedStoreId", storeId);
             model.addAttribute("customer", userRepository.findById(currentUserId(authentication)).orElseThrow());
             int points = customerLoyaltyPoints(authentication);
             model.addAttribute("customerLoyaltyPoints", points);
@@ -276,6 +291,16 @@ public class WebController {
             model.addAttribute("checkoutError", ex.getMessage());
             return "checkout";
         }
+    }
+
+    private List<String> checkoutDeliveryCities() {
+        return storeRepository.findByActiveTrueAndPickupEnabledTrue().stream()
+                .map(Store::getCity)
+                .filter(city -> city != null && !city.isBlank())
+                .map(String::trim)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
     }
 
     @GetMapping("/order-success")

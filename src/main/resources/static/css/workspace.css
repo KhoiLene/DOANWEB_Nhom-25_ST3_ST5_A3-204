@@ -182,8 +182,12 @@ html[data-theme="dark"] .pos-member-card { background: #18263a; border-color: #3
 .pos-quantity { display: flex; align-items: center; gap: 6px; }
 .pos-quantity > span { min-width: 18px; text-align: center; font-size: .8rem; font-weight: 700; }
 .workspace-body .pos-quantity .pos-cart__remove { margin-left: 2px; border-color: #f0d2d2; color: #b42318; }
-.workspace-body .pos-customer-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.workspace-body .pos-customer-fields { display: grid; grid-template-columns: minmax(0,1fr); gap: 5px; }
 .workspace-body .pos-customer-fields label { display: block; }
+.workspace-body .pos-customer-fields > label { margin-top: 5px; }
+.pos-member-phone { grid-template-columns: minmax(0,1fr) max-content; align-items: center; }
+.workspace-body .pos-member-phone .btn-outline { min-height: 42px; padding: 8px 12px; white-space: nowrap; }
+#memberLookupStatus, #memberCard { grid-column: 1 / -1; min-width: 0; }
 .pos-customer-fields label span { color: #8491a2; font-size: .72rem; font-weight: 400; }
 .workspace-body .pos-checkout .workspace-field { margin: 4px 0 12px; }
 .pos-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 3px 0 11px; padding-top: 13px; border-top: 1px dashed #dbe4f0; }

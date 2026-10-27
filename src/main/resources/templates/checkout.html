@@ -69,8 +69,40 @@
                   <label for="receiverAddressLine">Địa chỉ chi tiết</label>
                   <input id="receiverAddressLine" name="address" type="text" placeholder="VD: 12 Nguyễn Trãi" autocomplete="street-address" />
                 </div>
-                <div class="field"><label for="deliveryCity">Tỉnh / thành phố nhận hàng</label><input id="deliveryCity" name="deliveryCity" type="text" placeholder="VD: Thành phố Hồ Chí Minh" /></div>
-                <div class="field"><label for="storeId">Chọn chi nhánh</label><select id="storeId" name="storeId" required><option value="">Chọn chi nhánh gần bạn</option><option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name + ' · ' + (store.district ?: '') + ' ' + (store.city ?: '')}">Chi nhánh</option></select><button type="button" class="btn btn-secondary" id="locateStores">Dùng vị trí hiện tại để sắp xếp chi nhánh gần nhất</button><button type="button" class="btn btn-secondary" id="locateByDeliveryAddress">Tìm theo địa chỉ giao hàng</button><a th:href="@{/stores}" class="checkout-store-search">Tìm chi nhánh theo địa chỉ trên bản đồ</a><small id="locationMessage"></small><small>Địa chỉ chỉ gửi tới OpenStreetMap Nominatim khi bạn bấm tìm theo địa chỉ.</small></div>
+                <div class="field">
+                  <label for="deliveryCountry">Quốc gia nhận hàng</label>
+                  <select id="deliveryCountry" name="deliveryCountry" required>
+                    <option value="">Chọn quốc gia</option>
+                    <option value="VN" th:selected="${selectedDeliveryCountry == 'VN'}">Việt Nam</option>
+                  </select>
+                  <small>Hiện hệ thống hỗ trợ giao hàng trong Việt Nam.</small>
+                </div>
+                <div class="field">
+                  <label for="deliveryCity">Tỉnh / thành phố nhận hàng</label>
+                  <select id="deliveryCity" name="deliveryCity" required disabled>
+                    <option value="">Chọn tỉnh/thành phố</option>
+                    <option th:each="city : ${deliveryCities}" th:value="${city}" th:text="${city}"
+                            th:selected="${selectedDeliveryCity == city}">Tỉnh/thành phố</option>
+                  </select>
+                </div>
+                <div class="field field--full">
+                  <label for="storeId">Chọn chi nhánh</label>
+                  <select id="storeId" name="storeId" required>
+                    <option value="">Chọn chi nhánh</option>
+                    <option th:each="store : ${stores}" th:value="${store.id}"
+                            th:attr="data-city=${store.city}"
+                            th:selected="${selectedStoreId != null and selectedStoreId == store.id}"
+                            th:text="${store.name + ' · ' + (store.district ?: '') + ' ' + (store.city ?: '')}">Chi nhánh</option>
+                  </select>
+                  <div class="checkout-location-actions">
+                    <button type="button" class="btn btn-secondary" id="locateStores">Dùng vị trí hiện tại</button>
+                    <button type="button" class="btn btn-secondary" id="locateNearestByCity">Tìm chi nhánh gần thành phố đã chọn</button>
+                    <button type="button" class="btn btn-secondary" id="locateByDeliveryAddress">Tìm theo địa chỉ giao hàng</button>
+                  </div>
+                  <a th:href="@{/stores}" class="checkout-store-search">Mở bản đồ hệ thống chi nhánh</a>
+                  <small id="locationMessage"></small>
+                  <small>Chọn vị trí hoặc thành phố để gợi ý tối đa 5 chi nhánh gần nhất. Địa chỉ chỉ gửi tới OpenStreetMap khi bạn yêu cầu tìm.</small>
+                </div>
                 <div class="field field--full"><label>Cách nhận hàng</label><label><input type="radio" name="fulfillmentType" value="DELIVERY" checked> Giao đến địa chỉ</label> <label><input type="radio" name="fulfillmentType" value="PICKUP"> Nhận tại chi nhánh</label><p class="muted">Nếu địa chỉ giao khác tỉnh/thành phố chi nhánh, hệ thống sẽ chuyển xử lý tồn kho qua kho trung tâm.</p></div>
                 <div class="form-actions">
                   <button type="button" class="btn btn-primary" id="checkoutToStep2">Tiếp tục</button>
@@ -186,7 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const panels = [1, 2, 3].map(number => document.getElementById(`stepPanel${number}`));
   const steps = document.querySelectorAll('.stepper .step');
   const address = document.getElementById('receiverAddressLine');
+  const deliveryCountry = document.getElementById('deliveryCountry');
   const deliveryCity = document.getElementById('deliveryCity');
+  const storeSelect = document.getElementById('storeId');
   const pickupRadios = document.querySelectorAll('input[name="fulfillmentType"]');
   let preferredStoreId = null;
   try { preferredStoreId = localStorage.getItem('preferredStoreId'); } catch (_) { }
@@ -198,13 +232,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateFulfillment() {
     const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
     address.required = !pickup;
+    deliveryCountry.required = !pickup;
+    deliveryCountry.disabled = pickup;
     deliveryCity.required = !pickup;
+    deliveryCity.disabled = pickup || deliveryCountry.value !== 'VN';
     address.placeholder = pickup ? 'Không cần nhập nếu nhận tại cửa hàng' : 'VD: 12 Nguyễn Trãi';
   }
   function validateRecipient() {
     const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
     const fields = [form.elements.name, form.elements.phone, form.elements.storeId];
-    if (!pickup) fields.push(address, deliveryCity);
+    if (!pickup) fields.push(address, deliveryCountry, deliveryCity);
     for (const field of fields) {
       if (!field.checkValidity()) { showStep(1); field.reportValidity(); return false; }
     }
@@ -227,6 +264,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   pickupRadios.forEach(radio => radio.addEventListener('change', updateFulfillment));
+  deliveryCountry.addEventListener('change', () => {
+    deliveryCity.value = '';
+    updateFulfillment();
+  });
+  [...storeSelect.options].slice(1).forEach(option => { option.dataset.originalLabel = option.textContent; });
+  deliveryCity.addEventListener('change', () => {
+    [...storeSelect.options].slice(1).forEach(option => {
+      option.hidden = false;
+      option.textContent = option.dataset.originalLabel || option.textContent;
+    });
+    document.getElementById('locationMessage').textContent = deliveryCity.value
+      ? 'Có thể tìm chi nhánh gần thành phố vừa chọn.' : '';
+  });
   updateFulfillment();
   document.getElementById('checkoutToStep2').addEventListener('click', () => { if (validateRecipient()) showStep(2); });
   document.getElementById('checkoutToStep3').addEventListener('click', () => { fillConfirmation(); showStep(3); });
@@ -241,8 +291,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const response = await fetch(`/api/locations/nearest?${query}`);
     if (!response.ok) throw new Error('Không thể tìm chi nhánh lúc này.');
     const stores = await response.json();
-    const select = document.getElementById('storeId');
+    const select = storeSelect;
     if (!stores.length) { message.textContent = 'Chưa có chi nhánh gần vị trí này. Nếu giao xa, đơn sẽ được chuyển về kho.'; return; }
+    [...select.options].slice(1).forEach(option => {
+      option.hidden = false;
+      option.textContent = option.dataset.originalLabel || option.textContent;
+    });
     const suggestedIds = new Set(stores.map(store => String(store.id)));
     [...select.options].slice(1).forEach(option => { option.hidden = !suggestedIds.has(option.value); });
     stores.forEach(store => {
@@ -270,6 +324,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }, () => { message.textContent = 'Không lấy được vị trí. Bạn có thể nhập địa chỉ hoặc tự chọn chi nhánh.'; }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
   });
 
+  document.getElementById('locateNearestByCity').addEventListener('click', async () => {
+    const message = document.getElementById('locationMessage');
+    if (deliveryCountry.value !== 'VN' || !deliveryCity.value) {
+      message.textContent = 'Hãy chọn quốc gia và tỉnh/thành phố trước.';
+      return;
+    }
+    message.textContent = 'Đang tìm chi nhánh gần thành phố đã chọn…';
+    try {
+      const location = await window.geocodeWithNominatim(deliveryCity.value, 'vn');
+      await suggestNearestStores(location.latitude, location.longitude, false);
+      message.textContent = `Đã sắp xếp tối đa 5 chi nhánh gần ${deliveryCity.value}. Hãy chọn chi nhánh muốn nhận hàng.`;
+    } catch (error) {
+      message.textContent = error.message || 'Không thể tìm chi nhánh gần thành phố này.';
+    }
+  });
+
   document.getElementById('locateByDeliveryAddress').addEventListener('click', async () => {
     const message = document.getElementById('locationMessage');
     if (!address.value.trim() || !deliveryCity.value.trim()) {
@@ -278,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     message.textContent = 'Đang tra địa chỉ với OpenStreetMap…';
     try {
-      const location = await window.geocodeWithNominatim(`${address.value}, ${deliveryCity.value}`);
+      const location = await window.geocodeWithNominatim(`${address.value}, ${deliveryCity.value}`, 'vn');
       await suggestNearestStores(location.latitude, location.longitude, true);
     } catch (error) {
       message.textContent = error.message || 'Không thể xác định địa chỉ giao hàng.';

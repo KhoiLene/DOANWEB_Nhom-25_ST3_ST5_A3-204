@@ -57,6 +57,10 @@ label{color:#000000;font-weight:800;font-size:13px}
   width:100%;
 }
 .checkout-main select:disabled{opacity:.65}
+.checkout-location-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.checkout-location-actions .btn{flex:1 1 210px;min-height:42px}
+.checkout-store-search{display:inline-flex;align-self:flex-start;margin-top:8px;color:#2563eb!important;font-size:13px;font-weight:800}
+#locationMessage{min-height:18px;color:#2563eb!important;font-weight:700}
 
 .checkout-main select[size]{
   padding:8px 0;

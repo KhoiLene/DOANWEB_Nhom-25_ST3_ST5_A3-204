@@ -12,11 +12,14 @@ public class CartServiceImpl implements CartService {
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final ProductInventoryRepository inventoryRepository;
 
-    public CartServiceImpl(CartRepository cartRepository, UserRepository userRepository, ProductRepository productRepository) {
+    public CartServiceImpl(CartRepository cartRepository, UserRepository userRepository,
+                           ProductRepository productRepository, ProductInventoryRepository inventoryRepository) {
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
+        this.inventoryRepository = inventoryRepository;
     }
 
     @Override
@@ -33,6 +36,8 @@ public class CartServiceImpl implements CartService {
 
         Product product = productRepository.findById(productId).orElseThrow();
         if (Boolean.FALSE.equals(product.getIsActive())) throw new IllegalArgumentException("Sản phẩm hiện không còn được bán.");
+        int available = availableStock(productId);
+        if (available <= 0) throw new IllegalArgumentException("Sản phẩm " + product.getName() + " hiện đã hết hàng.");
 
         CartItem existingItem = cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(productId))
@@ -40,8 +45,11 @@ public class CartServiceImpl implements CartService {
 
         if (existingItem != null) {
             if (existingItem.getQuantity() + quantity > 99) throw new IllegalArgumentException("Giỏ hàng giới hạn 99 món cho mỗi sản phẩm.");
+            if (existingItem.getQuantity() + quantity > available)
+                throw new IllegalArgumentException("Chỉ còn " + available + " sản phẩm có thể bán.");
             existingItem.setQuantity(existingItem.getQuantity() + quantity);
         } else {
+            if (quantity > available) throw new IllegalArgumentException("Chỉ còn " + available + " sản phẩm có thể bán.");
             CartItem newItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
@@ -65,6 +73,9 @@ public class CartServiceImpl implements CartService {
                 .filter(cartItem -> cartItem.getProduct().getId().equals(productId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không có trong giỏ hàng."));
+        int available = availableStock(productId);
+        if (available <= 0) throw new IllegalArgumentException("Sản phẩm hiện đã hết hàng.");
+        if (quantity > available) throw new IllegalArgumentException("Chỉ còn " + available + " sản phẩm có thể bán.");
         item.setQuantity(quantity);
 
         return cartRepository.save(cart);
@@ -108,5 +119,13 @@ public class CartServiceImpl implements CartService {
 
     private void ensureItems(Cart cart) {
         if (cart.getItems() == null) cart.setItems(new java.util.ArrayList<>());
+    }
+
+    private int availableStock(Long productId) {
+        return inventoryRepository.findByProductId(productId).stream()
+                .filter(inventory -> (inventory.getStore() != null && inventory.getStore().isActive())
+                        || (inventory.getWarehouse() != null && inventory.getWarehouse().isActive()))
+                .mapToInt(ProductInventory::availableQuantity)
+                .sum();
     }
 }

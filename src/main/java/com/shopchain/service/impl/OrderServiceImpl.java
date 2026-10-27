@@ -86,6 +86,7 @@ public class OrderServiceImpl implements OrderService {
             if (inventory.availableQuantity() < item.getQuantity())
                 throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm " + item.getProduct().getName());
             inventory.setStockQuantity(inventory.getStockQuantity() - item.getQuantity());
+            inventoryRepository.save(inventory);
             double unitPrice = item.getProduct().effectivePrice(inventory.getPrice(), user.getLoyaltyPoints());
             total += unitPrice * item.getQuantity();
             order.getOrderItems().add(OrderItem.builder().order(order).product(item.getProduct())
