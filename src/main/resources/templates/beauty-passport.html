@@ -12,9 +12,9 @@
   <main class="beauty-passport container">
     <a class="passport-back" th:href="@{/profile}">← Hồ sơ tài khoản</a>
     <header class="passport-hero">
-      <span>TECHTRA BEAUTY PASSPORT</span>
-      <h1>Lộ trình chăm sóc của bạn</h1>
-      <p>Chia sẻ nhu cầu cơ bản để xem gợi ý từ sản phẩm đang bán. Bạn có thể sửa hoặc xóa thông tin bất cứ lúc nào.</p>
+      <span>TECHTRA BEAUTY JOURNEY</span>
+      <h1>Hành trình chăm sóc của bạn</h1>
+      <p>Chia sẻ nhu cầu chăm sóc, xem gợi ý từ sản phẩm đang bán và ghi dấu những bước bạn đã hoàn thành mỗi ngày.</p>
     </header>
 
     <div class="passport-grid">
@@ -55,6 +55,11 @@
       <section class="passport-panel passport-routine">
         <div class="passport-routine__heading"><div><h2>Lộ trình gợi ý</h2><p>Chỉ gồm các sản phẩm hiện có trong danh mục.</p></div><button type="button" id="refreshRoutine">Cập nhật gợi ý</button></div>
         <p id="routineIntro" class="passport-privacy">Lưu hồ sơ để cá nhân hóa ngân sách và nhu cầu.</p>
+        <section class="journey-progress" aria-live="polite">
+          <div class="journey-progress__top"><strong id="journeyProgressLabel">Tiến độ hôm nay</strong><span id="journeyStreak">0 ngày duy trì</span></div>
+          <div class="journey-progress__track" role="progressbar" aria-label="Tiến độ lộ trình hôm nay" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="journeyProgressBar"></span></div>
+          <p id="journeyProgressText">Đang tải lộ trình…</p>
+        </section>
         <div id="routineGroups" class="routine-groups" aria-live="polite"></div>
       </section>
     </div>
@@ -85,28 +90,36 @@
     };
     const renderRoutine = async () => {
       try {
-        const routine = await api('/api/customer/beauty-profile/routine');
-        document.getElementById('routineIntro').textContent = routine.introduction;
+        const journey = await api('/api/customer/beauty-profile/journey');
+        document.getElementById('routineIntro').textContent = journey.introduction;
+        const percent = journey.totalSteps ? Math.round(journey.completedSteps * 100 / journey.totalSteps) : 0;
+        const progress = document.querySelector('.journey-progress__track');
+        progress.setAttribute('aria-valuenow', String(percent));
+        document.getElementById('journeyProgressBar').style.width = `${percent}%`;
+        document.getElementById('journeyProgressLabel').textContent = `Tiến độ hôm nay · ${journey.completedSteps}/${journey.totalSteps} bước`;
+        document.getElementById('journeyStreak').textContent = `${journey.streakDays} ngày duy trì`;
+        document.getElementById('journeyProgressText').textContent = journey.totalSteps
+          ? (percent === 100 ? 'Bạn đã hoàn thành lộ trình hôm nay.' : 'Đánh dấu một bước sau khi bạn hoàn thành để theo dõi thói quen.')
+          : 'Hãy lưu hồ sơ hoặc thử tăng ngân sách để tìm thêm sản phẩm phù hợp.';
         groups.replaceChildren();
-        const sections = [
-          ['Buổi sáng', [['Làm sạch nhẹ', routine.cleanser], ['Dưỡng ẩm', routine.moisturizer], ['Chống nắng', routine.sunscreen]]],
-          ['Buổi tối', [['Làm sạch', routine.cleanser], ['Dưỡng bổ sung', routine.serum], ['Dưỡng ẩm', routine.moisturizer]]],
-          ['Chăm sóc tóc và môi', [['Dầu gội', routine.shampoo], ['Dầu xả', routine.conditioner], ['Dưỡng môi', routine.lipCare]]]
-        ];
-        sections.forEach(([title, items]) => {
+        const sections = ['Buổi sáng', 'Buổi tối', 'Chăm sóc thêm · theo tần suất riêng'];
+        sections.forEach(title => {
           const section = document.createElement('section'); section.className = 'routine-group';
           const heading = document.createElement('h3'); heading.textContent = title; section.append(heading);
           let count = 0;
-          items.forEach(([label, product]) => {
-            if (!product) return;
+          journey.steps.filter(step => step.period === title).forEach(stepData => {
             const row = document.createElement('div'); row.className = 'routine-step';
-            const step = document.createElement('span'); step.textContent = label;
-            row.append(step, renderProduct(product)); section.append(row); count++;
+            const label = document.createElement('label'); label.className = 'routine-step__check';
+            const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = stepData.completed;
+            checkbox.dataset.stepKey = stepData.key; checkbox.setAttribute('aria-label', `Đã hoàn thành: ${stepData.label}`);
+            const stepTitle = document.createElement('span'); stepTitle.textContent = stepData.label;
+            label.append(checkbox, stepTitle);
+            row.append(label, renderProduct(stepData.product)); section.append(row); count++;
           });
           if (count) groups.append(section);
         });
         if (!groups.children.length) groups.textContent = 'Chưa có đủ sản phẩm phù hợp trong danh mục để tạo gợi ý.';
-      } catch (error) { groups.textContent = error.message; }
+      } catch (error) { groups.textContent = error.message; document.getElementById('journeyProgressText').textContent = 'Không tải được lộ trình lúc này.'; }
     };
     const loadProfile = async () => {
       try {
@@ -130,6 +143,22 @@
         await api('/api/customer/beauty-profile', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(values)});
         message.textContent = 'Đã lưu hồ sơ.'; await renderRoutine();
       } catch (error) { message.textContent = error.message; }
+    });
+    groups.addEventListener('change', async event => {
+      const checkbox = event.target.closest('input[data-step-key]');
+      if (!checkbox) return;
+      checkbox.disabled = true;
+      try {
+        await api('/api/customer/beauty-profile/journey/steps', {
+          method: 'PUT', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({stepKey: checkbox.dataset.stepKey, completed: checkbox.checked})
+        });
+        await renderRoutine();
+      } catch (error) {
+        checkbox.checked = !checkbox.checked;
+        checkbox.disabled = false;
+        document.getElementById('journeyProgressText').textContent = error.message;
+      }
     });
     document.getElementById('refreshRoutine').addEventListener('click', renderRoutine);
     loadProfile().then(renderRoutine);

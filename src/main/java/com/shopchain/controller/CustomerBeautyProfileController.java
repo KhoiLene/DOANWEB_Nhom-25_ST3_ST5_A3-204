@@ -37,6 +37,21 @@ public class CustomerBeautyProfileController {
         return profileService.routine(currentUser(authentication).getId());
     }
 
+    @GetMapping("/journey")
+    public BeautyProfileService.CareJourney journey(Authentication authentication) {
+        return profileService.journey(currentUser(authentication).getId());
+    }
+
+    @PutMapping("/journey/steps")
+    public ResponseEntity<?> updateJourneyStep(@RequestBody BeautyProfileService.StepUpdate update,
+                                               Authentication authentication) {
+        try {
+            return ResponseEntity.ok(profileService.updateStep(currentUser(authentication), update));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", exception.getMessage()));
+        }
+    }
+
     private User currentUser(Authentication authentication) {
         return userRepository.findByUsername(authentication.getName())
                 .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản."));
