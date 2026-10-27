@@ -6,6 +6,7 @@ import com.shopchain.service.PointOfSaleService;
 import com.shopchain.service.InvoiceService;
 import com.shopchain.service.OrderService;
 import com.shopchain.service.StoreReservationService;
+import com.shopchain.service.SystemSettingService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -25,13 +26,14 @@ public class StoreStaffController {
     private final InvoiceService invoiceService;
     private final OrderService orderService;
     private final StoreReservationService reservationService;
+    private final SystemSettingService systemSettingService;
 
     public StoreStaffController(UserRepository userRepository, ProductInventoryRepository inventoryRepository,
                                 InventoryMovementRepository movementRepository, StockTransferRepository transferRepository,
                                 InventoryOperationsService inventoryOperationsService,
                                 PointOfSaleService pointOfSaleService, OrderRepository orderRepository,
                                 InvoiceService invoiceService, OrderService orderService,
-                                StoreReservationService reservationService) {
+                                StoreReservationService reservationService, SystemSettingService systemSettingService) {
         this.userRepository = userRepository;
         this.inventoryRepository = inventoryRepository;
         this.movementRepository = movementRepository;
@@ -42,6 +44,7 @@ public class StoreStaffController {
         this.invoiceService = invoiceService;
         this.orderService = orderService;
         this.reservationService = reservationService;
+        this.systemSettingService = systemSettingService;
     }
 
     @GetMapping({"/orders", "/inventory"})
@@ -97,6 +100,16 @@ public class StoreStaffController {
         if (user.getStore() == null) throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
         model.addAttribute("store", user.getStore());
         model.addAttribute("inventory", inventoryRepository.findByStoreId(user.getStore().getId()));
+        String qrBankCode = java.util.Objects.toString(systemSettingService.getSetting("payment.qrBankCode", ""), "").trim();
+        String qrAccountNumber = java.util.Objects.toString(systemSettingService.getSetting("payment.qrAccountNumber", ""), "").trim();
+        String qrAccountName = java.util.Objects.toString(systemSettingService.getSetting("payment.qrAccountName", ""), "").trim();
+        boolean bankQrConfigured = qrBankCode.matches("[A-Za-z0-9]{3,12}")
+                && qrAccountNumber.matches("[A-Za-z0-9]{4,19}")
+                && qrAccountName.length() <= 100;
+        model.addAttribute("bankQrConfigured", bankQrConfigured);
+        model.addAttribute("qrBankCode", qrBankCode);
+        model.addAttribute("qrAccountNumber", qrAccountNumber);
+        model.addAttribute("qrAccountName", qrAccountName);
         return "staff/pos";
     }
 
@@ -146,7 +159,7 @@ public class StoreStaffController {
         }
         try {
             var invoice = pointOfSaleService.sell(authentication.getName(), request.customerName(), request.customerPhone(),
-                    request.paymentMethod(), request.lines().stream()
+                    request.paymentMethod(), request.paymentReference(), request.lines().stream()
                             .map(line -> new PointOfSaleService.SaleLine(line.productId(), line.quantity())).toList());
             return org.springframework.http.ResponseEntity.ok(java.util.Map.of(
                     "invoiceUrl", "/staff/invoices/" + invoice.getId(), "invoiceNumber", invoice.getInvoiceNumber()));
@@ -159,6 +172,7 @@ public class StoreStaffController {
         }
     }
 
-    public record SaleRequest(String customerName, String customerPhone, String paymentMethod, java.util.List<SaleRequestLine> lines) {}
+    public record SaleRequest(String customerName, String customerPhone, String paymentMethod, String paymentReference,
+                              java.util.List<SaleRequestLine> lines) {}
     public record SaleRequestLine(Long productId, Integer quantity) {}
 }

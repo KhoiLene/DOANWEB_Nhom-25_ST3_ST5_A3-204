@@ -29,6 +29,20 @@
                 <div id="cart" class="pos-cart" aria-live="polite"><p class="workspace-muted pos-cart__empty">Chưa có sản phẩm. Chọn sản phẩm ở danh sách bên trái.</p></div>
                 <div class="pos-customer-fields"><label for="customerName">Tên khách <span>(không bắt buộc)</span></label><input class="workspace-field" id="customerName" autocomplete="name" placeholder="Khách lẻ"><label for="customerPhone">Số điện thoại <span>(không bắt buộc)</span></label><div class="pos-member-phone"><input class="workspace-field" id="customerPhone" autocomplete="tel" inputmode="tel" placeholder="Số điện thoại"><button type="button" class="btn-outline" id="lookupMember">Tra cứu thành viên</button></div><p id="memberLookupStatus" class="workspace-muted" role="status" aria-live="polite"></p><section id="memberCard" class="pos-member-card" hidden aria-label="Thông tin thành viên"></section></div>
                 <label for="payment">Phương thức thanh toán</label><select id="payment" class="workspace-field"><option value="CASH">Tiền mặt</option><option value="CARD">Thẻ</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="OTHER">Khác</option></select>
+                <section id="bankTransferQrPanel" class="pos-bank-qr" hidden
+                         th:if="${bankQrConfigured}"
+                         th:attr="data-bank-code=${qrBankCode},data-account-number=${qrAccountNumber},data-account-name=${qrAccountName}">
+                    <h3><i class="fa-solid fa-qrcode"></i> Quét QR để chuyển khoản</h3>
+                    <img id="bankTransferQrImage" alt="Mã QR chuyển khoản" hidden>
+                    <p id="bankTransferQrInstruction" class="pos-bank-qr__instruction">Thêm sản phẩm vào hóa đơn để tạo mã QR theo đúng số tiền.</p>
+                    <div class="pos-bank-qr__details"><span>Tên tài khoản</span><strong th:text="${qrAccountName}">Tên chủ tài khoản</strong><span>Số tài khoản</span><strong th:text="${qrAccountNumber}">Số tài khoản</strong><span>Số tiền</span><strong id="bankTransferQrAmount">0 ₫</strong><span>Nội dung</span><strong id="bankTransferQrReference">—</strong></div>
+                    <p>Đối chiếu đúng tên người nhận, số tiền và nội dung. Chỉ hoàn tất hóa đơn sau khi xác nhận tiền đã vào tài khoản.</p>
+                    <small>Mã QR được tạo qua VietQR.</small>
+                </section>
+                <section id="bankTransferQrSetupNotice" class="pos-bank-qr pos-bank-qr--notice" hidden th:unless="${bankQrConfigured}">
+                    <strong>Chưa cấu hình tài khoản nhận tiền.</strong>
+                    <p>Nhờ quản trị viên thêm mã ngân hàng, số tài khoản và tên chủ tài khoản tại Cài đặt hệ thống.</p>
+                </section>
                 <div class="pos-total"><span>Tổng thanh toán</span><strong id="total">0 ₫</strong></div><p class="workspace-error" id="error" role="status" aria-live="polite"></p><button class="pos-submit" type="button" id="checkoutButton">Hoàn tất &amp; xuất biên nhận</button><p class="pos-hint">Kiểm tra số lượng và phương thức thanh toán trước khi xác nhận.</p>
             </div>
         </aside>
@@ -43,11 +57,60 @@
   const error = document.getElementById('error');
   const search = document.getElementById('productSearch');
   const checkoutButton = document.getElementById('checkoutButton');
+  const paymentMethod = document.getElementById('payment');
+  const bankQrPanel = document.getElementById('bankTransferQrPanel');
+  const bankQrSetupNotice = document.getElementById('bankTransferQrSetupNotice');
+  const transferReference = `TT${Date.now().toString().slice(-10)}`;
+  let bankQrUpdateTimer = null;
+  let lastBankQrUrl = '';
   const memberPhone = document.getElementById('customerPhone');
   const memberCard = document.getElementById('memberCard');
   const memberStatus = document.getElementById('memberLookupStatus');
   const lookupButton = document.getElementById('lookupMember');
   let memberLookupForPhone = '';
+
+  function updateBankQr(total = Number(document.getElementById('total').textContent.replace(/[^0-9]/g, ''))) {
+    const transferSelected = paymentMethod.value === 'BANK_TRANSFER';
+    if (bankQrPanel) bankQrPanel.hidden = !transferSelected;
+    if (bankQrSetupNotice) bankQrSetupNotice.hidden = !transferSelected;
+    if (!transferSelected || !bankQrPanel) {
+      clearTimeout(bankQrUpdateTimer);
+      return;
+    }
+
+    document.getElementById('bankTransferQrAmount').textContent = fmt(total);
+    document.getElementById('bankTransferQrReference').textContent = transferReference;
+    const image = document.getElementById('bankTransferQrImage');
+    const instruction = document.getElementById('bankTransferQrInstruction');
+    if (!Number.isFinite(total) || total <= 0) {
+      clearTimeout(bankQrUpdateTimer);
+      image.hidden = true;
+      image.removeAttribute('src');
+      lastBankQrUrl = '';
+      instruction.textContent = 'Thêm sản phẩm vào hóa đơn để tạo mã QR theo đúng số tiền.';
+      return;
+    }
+    const { bankCode, accountNumber, accountName } = bankQrPanel.dataset;
+    const url = new URL(`https://img.vietqr.io/image/${encodeURIComponent(bankCode)}-${encodeURIComponent(accountNumber)}-qr_only.svg`);
+    url.searchParams.set('amount', String(Math.round(total)));
+    url.searchParams.set('addInfo', transferReference);
+    url.searchParams.set('accountName', accountName);
+    image.hidden = true;
+    instruction.textContent = 'Đang cập nhật mã theo số tiền hóa đơn…';
+    image.onerror = () => { image.hidden = true; instruction.textContent = 'Chưa tải được mã QR. Kiểm tra kết nối mạng hoặc thông tin ngân hàng trong Cài đặt hệ thống.'; };
+    const qrUrl = url.toString();
+    if (qrUrl === lastBankQrUrl && image.complete && image.naturalWidth > 0) {
+      image.hidden = false;
+      instruction.textContent = 'Quét mã bằng ứng dụng ngân hàng và kiểm tra thông tin trước khi chuyển.';
+      return;
+    }
+    clearTimeout(bankQrUpdateTimer);
+    bankQrUpdateTimer = setTimeout(() => {
+      lastBankQrUrl = qrUrl;
+      image.onload = () => { image.hidden = false; instruction.textContent = 'Quét mã bằng ứng dụng ngân hàng và kiểm tra thông tin trước khi chuyển.'; };
+      image.src = qrUrl;
+    }, 700);
+  }
 
   function refreshMemberPrices(points = 0) {
     products.forEach(product => {
@@ -187,6 +250,7 @@
     if (!basket.size) { const empty = document.createElement('p'); empty.className = 'workspace-muted pos-cart__empty'; empty.textContent = 'Chưa có sản phẩm. Chọn sản phẩm ở danh sách bên trái.'; cart.append(empty); }
     document.getElementById('total').textContent = fmt(total);
     document.getElementById('cartCount').textContent = itemCount;
+    updateBankQr(total);
   }
 
   document.querySelectorAll('.add-item').forEach(button => button.addEventListener('click', () => addProduct(button.closest('.pos-product'))));
@@ -198,9 +262,14 @@
     if (visible.length === 1) { event.preventDefault(); addProduct(visible[0]); }
   });
   document.getElementById('clearCart').addEventListener('click', () => { basket.clear(); error.textContent = ''; renderCart(); search.focus(); });
+  paymentMethod.addEventListener('change', () => updateBankQr());
   checkoutButton.addEventListener('click', async () => {
     error.textContent = '';
     if (!basket.size) { error.textContent = 'Vui lòng thêm sản phẩm vào hóa đơn.'; search.focus(); return; }
+    if (paymentMethod.value === 'BANK_TRANSFER') {
+      if (!bankQrPanel) { error.textContent = 'Chưa cấu hình tài khoản nhận tiền. Vui lòng nhờ quản trị viên cấu hình QR trước khi bán.'; return; }
+      if (!window.confirm('Chỉ hoàn tất hóa đơn sau khi đã kiểm tra tiền chuyển khoản vào tài khoản. Bạn đã xác nhận chưa?')) return;
+    }
     const phone = memberPhone.value.trim();
     if (phone && memberLookupForPhone !== phone) {
       try { await loadMember(phone); }
@@ -209,7 +278,7 @@
     checkoutButton.disabled = true;
     checkoutButton.textContent = 'Đang tạo biên nhận…';
     try {
-      const response = await fetch('/staff/sales', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ customerName: document.getElementById('customerName').value, customerPhone: document.getElementById('customerPhone').value, paymentMethod: document.getElementById('payment').value, lines: [...basket.values()].map(({ productId, quantity }) => ({ productId, quantity })) }) });
+      const response = await fetch('/staff/sales', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ customerName: document.getElementById('customerName').value, customerPhone: document.getElementById('customerPhone').value, paymentMethod: paymentMethod.value, paymentReference: paymentMethod.value === 'BANK_TRANSFER' ? transferReference : null, lines: [...basket.values()].map(({ productId, quantity }) => ({ productId, quantity })) }) });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || result.message || 'Không thể hoàn tất giao dịch.');
       location.href = result.invoiceUrl;

@@ -30,7 +30,7 @@ public class PointOfSaleService {
 
     @Transactional
     public SalesInvoice sell(String username, String customerName, String customerPhone,
-                             String paymentMethod, List<SaleLine> requestedLines) {
+                             String paymentMethod, String paymentReference, List<SaleLine> requestedLines) {
         User cashier = userRepository.findByUsername(username).orElseThrow();
         if (cashier.getStore() == null) throw new IllegalStateException("Tài khoản chưa được gán chi nhánh.");
         if (requestedLines == null || requestedLines.isEmpty() || requestedLines.size() > 100)
@@ -39,6 +39,10 @@ public class PointOfSaleService {
             throw new IllegalArgumentException("Thông tin khách hàng quá dài.");
         if (paymentMethod == null || !List.of("CASH", "CARD", "BANK_TRANSFER", "OTHER").contains(paymentMethod)) {
             throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
+        }
+        if ("BANK_TRANSFER".equals(paymentMethod)
+                && (paymentReference == null || !paymentReference.matches("[A-Z0-9-]{4,64}"))) {
+            throw new IllegalArgumentException("Mã nội dung chuyển khoản chưa hợp lệ.");
         }
 
         Order order = Order.builder().user(cashier).store(cashier.getStore()).orderDate(LocalDateTime.now())
@@ -90,6 +94,7 @@ public class PointOfSaleService {
         LocalDateTime now = LocalDateTime.now();
         SalesInvoice invoice = SalesInvoice.builder().order(savedOrder).issuedBy(cashier)
                 .customerName(blankToNull(customerName)).customerPhone(blankToNull(customerPhone))
+                .paymentReference("BANK_TRANSFER".equals(paymentMethod) ? paymentReference : null)
                 .subtotal(subtotal).taxAmount(0d).totalAmount(subtotal).paymentMethod(paymentMethod)
                 .status("ISSUED").issuedAt(now).invoiceNumber("POS-" + now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + "-" + savedOrder.getId())
                 .build();

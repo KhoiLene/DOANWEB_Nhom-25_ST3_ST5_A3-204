@@ -44,6 +44,9 @@ public class SalesInvoice {
     @Column(nullable = false)
     private String paymentMethod;
 
+    @Column(name = "payment_reference", length = 64)
+    private String paymentReference;
+
     @Column(nullable = false)
     private String status;
 

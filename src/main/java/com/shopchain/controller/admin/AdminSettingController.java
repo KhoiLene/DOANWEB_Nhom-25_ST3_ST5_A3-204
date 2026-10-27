@@ -15,7 +15,8 @@ import java.util.Set;
 public class AdminSettingController {
     private static final Set<String> EDITABLE_SETTINGS = Set.of(
             "smtp.host", "smtp.port", "smtp.user", "smtp.pass",
-            "zalo.accessToken", "zalo.appId", "vnpay.tmnCode", "vnpay.hashSecret");
+            "zalo.accessToken", "zalo.appId", "vnpay.tmnCode", "vnpay.hashSecret",
+            "payment.qrBankCode", "payment.qrAccountNumber", "payment.qrAccountName");
     private static final Set<String> SECRET_SETTINGS = Set.of("smtp.pass", "zalo.accessToken", "vnpay.hashSecret");
 
     private final SystemSettingRepository settingRepository;
