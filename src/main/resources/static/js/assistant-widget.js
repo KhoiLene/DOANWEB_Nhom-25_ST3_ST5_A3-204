@@ -38,7 +38,7 @@
         transcript = Array.isArray(saved.messages)
           ? saved.messages.filter(item => item && ['user', 'assistant'].includes(item.role) && typeof item.text === 'string').slice(-40)
           : [];
-        transcript.forEach(item => addMessage(item.role, item.text, false));
+        transcript.forEach(item => addMessage(item.role, item.text, false, item.products));
         if (saved.open === true) setOpen(true, false);
       } catch (_) { history = []; transcript = []; }
     }
@@ -62,16 +62,54 @@
       }).join('\n');
     }
 
-    function addMessage(role, text, persist = true) {
+    function addMessage(role, text, persist = true, products = []) {
       const item = document.createElement('article');
       item.className = `assistant-widget__message assistant-widget__message--${role}`;
       const content = document.createElement('p');
       content.textContent = role === 'assistant' ? formatAnswer(text) : text;
       item.append(content);
+      if (role === 'assistant' && Array.isArray(products) && products.length) {
+        const list = document.createElement('div');
+        list.className = 'assistant-widget__products';
+        products.slice(0, 3).forEach(product => {
+          if (!Number.isInteger(Number(product.id))) return;
+          const link = document.createElement('a');
+          link.className = 'assistant-widget__product';
+          link.href = `/product/${Number(product.id)}`;
+          if (product.imageUrl) {
+            const img = document.createElement('img');
+            img.src = product.imageUrl;
+            img.alt = product.name || 'Sản phẩm';
+            img.loading = 'lazy';
+            img.onerror = () => img.remove();
+            link.append(img);
+          }
+          const details = document.createElement('span');
+          const name = document.createElement('strong');
+          name.textContent = product.name || 'Xem sản phẩm';
+          const price = document.createElement('small');
+          const amount = product.salePrice ?? product.price;
+          price.textContent = (product.campaignAudience === 'VIP' ? 'Giá thường ' : '')
+            + Number(amount).toLocaleString('vi-VN') + ' đ';
+          details.append(name);
+          if (product.salePrice != null) {
+            const original = document.createElement('del');
+            original.textContent = Number(product.price).toLocaleString('vi-VN') + ' đ';
+            details.append(original);
+          }
+          if (product.discountPercent) {
+            price.textContent += ` · Giảm ${product.discountPercent}%${product.campaignAudience === 'VIP' ? ' VIP khi đủ điểm' : ''}`;
+          }
+          details.append(price);
+          link.append(details);
+          list.append(link);
+        });
+        item.append(list);
+      }
       messages.append(item);
       messages.scrollTop = messages.scrollHeight;
       if (persist && ['user', 'assistant'].includes(role)) {
-        transcript.push({ role, text: String(text || '') });
+        transcript.push({ role, text: String(text || ''), products: Array.isArray(products) ? products.slice(0, 3) : [] });
         transcript = transcript.slice(-40);
         saveState();
       }
@@ -140,7 +178,7 @@
         }
         if (!response.ok) throw new Error(result.error || 'Trợ lý đang gặp sự cố.');
         loadingMessage.remove();
-        addMessage('assistant', result.answer);
+        addMessage('assistant', result.answer, true, result.products);
         history.push({ role: 'user', content: text }, { role: 'assistant', content: result.answer });
         if (history.length > 10) history.splice(0, history.length - 10);
         saveState();

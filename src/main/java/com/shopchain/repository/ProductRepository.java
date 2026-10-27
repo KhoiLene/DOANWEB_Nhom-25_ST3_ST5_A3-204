@@ -15,7 +15,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(COALESCE(p.sku, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:saleOnly = false OR p.isFlashSale = true)")
+            "AND (:saleOnly = false OR (p.discountPercent > 0 AND p.discountPercent < 100 " +
+            "AND (p.campaignStartAt IS NULL OR p.campaignStartAt <= CURRENT_TIMESTAMP) " +
+            "AND (p.campaignEndAt IS NULL OR p.campaignEndAt >= CURRENT_TIMESTAMP)))")
     Page<Product> searchActiveProducts(@Param("keyword") String keyword,
                                        @Param("categoryId") Long categoryId,
                                        @Param("saleOnly") boolean saleOnly,
@@ -27,7 +29,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(COALESCE(p.sku, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:saleOnly = false OR p.isFlashSale = true) " +
+            "AND (:saleOnly = false OR (p.discountPercent > 0 AND p.discountPercent < 100 " +
+            "AND (p.campaignStartAt IS NULL OR p.campaignStartAt <= CURRENT_TIMESTAMP) " +
+            "AND (p.campaignEndAt IS NULL OR p.campaignEndAt >= CURRENT_TIMESTAMP))) " +
             "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
             "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
             "AND (:storeId IS NULL OR EXISTS (SELECT inventory.id FROM ProductInventory inventory " +
@@ -51,7 +55,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "LOWER(COALESCE(p.name, '')) LIKE CONCAT('%', LOWER(CAST(:keyword AS TEXT)), '%') OR " +
             "LOWER(COALESCE(p.description, '')) LIKE CONCAT('%', LOWER(CAST(:keyword AS TEXT)), '%') OR " +
             "LOWER(COALESCE(p.sku, '')) LIKE CONCAT('%', LOWER(CAST(:keyword AS TEXT)), '%')) " +
-            "AND (:saleOnly = false OR p.is_flash_sale = true) " +
+            "AND (:saleOnly = false OR (p.discount_percent > 0 AND p.discount_percent < 100 " +
+            "AND (p.campaign_start_at IS NULL OR p.campaign_start_at <= CURRENT_TIMESTAMP) " +
+            "AND (p.campaign_end_at IS NULL OR p.campaign_end_at >= CURRENT_TIMESTAMP))) " +
             "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
             "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
             "AND (:storeId IS NULL OR EXISTS (SELECT 1 FROM product_inventory inventory " +
@@ -63,7 +69,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                     "LOWER(COALESCE(p.name, '')) LIKE CONCAT('%', LOWER(CAST(:keyword AS TEXT)), '%') OR " +
                     "LOWER(COALESCE(p.description, '')) LIKE CONCAT('%', LOWER(CAST(:keyword AS TEXT)), '%') OR " +
                     "LOWER(COALESCE(p.sku, '')) LIKE CONCAT('%', LOWER(CAST(:keyword AS TEXT)), '%')) " +
-                    "AND (:saleOnly = false OR p.is_flash_sale = true) " +
+                    "AND (:saleOnly = false OR (p.discount_percent > 0 AND p.discount_percent < 100 " +
+                    "AND (p.campaign_start_at IS NULL OR p.campaign_start_at <= CURRENT_TIMESTAMP) " +
+                    "AND (p.campaign_end_at IS NULL OR p.campaign_end_at >= CURRENT_TIMESTAMP))) " +
                     "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                     "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                     "AND (:storeId IS NULL OR EXISTS (SELECT 1 FROM product_inventory inventory " +
@@ -84,6 +92,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 
+    @Query("SELECT p FROM Product p WHERE p.isActive = true AND p.discountPercent > 0 AND p.discountPercent < 100 " +
+            "AND (p.campaignStartAt IS NULL OR p.campaignStartAt <= CURRENT_TIMESTAMP) " +
+            "AND (p.campaignEndAt IS NULL OR p.campaignEndAt >= CURRENT_TIMESTAMP)")
     List<Product> findByIsFlashSaleTrueAndIsActiveTrue();
 
     List<Product> findByIsFeaturedTrueAndIsActiveTrue();

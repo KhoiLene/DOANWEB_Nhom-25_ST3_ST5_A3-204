@@ -43,7 +43,13 @@
                             <option value="VIP">Khách VIP (từ 500 điểm)</option>
                         </select>
                     </div>
+                    <div class="form-group"><label class="form-label">Bắt đầu ưu đãi</label><input type="datetime-local" th:field="*{campaignStartAt}" class="form-control"></div>
+                    <div class="form-group"><label class="form-label">Kết thúc ưu đãi</label><input type="datetime-local" th:field="*{campaignEndAt}" class="form-control"></div>
                 </div>
+
+                <div class="form-group"><label class="form-label">Hãng / nhãn hàng</label><input type="text" maxlength="120" th:field="*{brandName}" class="form-control" placeholder="Tên hãng in trên bao bì"></div>
+                <div class="form-group"><label class="form-label">Phù hợp với</label><input type="text" maxlength="300" th:field="*{suitableFor}" class="form-control" placeholder="Ví dụ: da khô, tóc dễ rối"></div>
+                <div class="form-group"><label class="form-label">Cách sử dụng</label><textarea th:field="*{usageInstructions}" class="form-control" rows="3" placeholder="Ghi đúng hướng dẫn trên nhãn sản phẩm"></textarea></div>
 
                 <div class="form-group">
                     <label class="form-label">Mô tả</label>

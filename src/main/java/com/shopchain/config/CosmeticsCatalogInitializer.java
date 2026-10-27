@@ -80,6 +80,9 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
                         .discountPercent(seed.flashSale() ? 10d : null)
                         .campaignName(seed.flashSale() ? "Flash Sale Techtra" : null)
                         .campaignAudience("ALL")
+                        .brandName("Techtra Beauty (sản phẩm minh họa)")
+                        .suitableFor(suitableFor(seed.category()))
+                        .usageInstructions(usageFor(seed.name(), seed.category()))
                         .category(categories.get(seed.category()))
                         .build();
             }
@@ -95,6 +98,12 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
             if (product.getSku() == null || product.getSku().isBlank()) {
                 product.setSku("TECH-" + String.format("%04d", productIndex));
             }
+            if (product.getBrandName() == null || product.getBrandName().isBlank())
+                product.setBrandName("Techtra Beauty (sản phẩm minh họa)");
+            if (product.getSuitableFor() == null || product.getSuitableFor().isBlank())
+                product.setSuitableFor(suitableFor(seed.category()));
+            if (product.getUsageInstructions() == null || product.getUsageInstructions().isBlank())
+                product.setUsageInstructions(usageFor(seed.name(), seed.category()));
             productRepository.save(product);
             productIndex++;
         }
@@ -192,6 +201,31 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
                 new ProductSeed("Kem dưỡng da tay", "Kem dưỡng dùng cho da tay khi có cảm giác khô; thoa lại theo nhu cầu.", 119000, "Chăm sóc cơ thể", false, false, "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=900&q=85"),
                 new ProductSeed("Tẩy tế bào chết cơ thể", "Sản phẩm chăm sóc cơ thể bổ sung; dùng nhẹ nhàng và theo đúng tần suất trên nhãn.", 219000, "Chăm sóc cơ thể", false, false, "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=900&q=85")
         );
+    }
+
+    private String suitableFor(String category) {
+        return switch (category) {
+            case "Chăm sóc tóc", "Chăm sóc tóc & cơ thể" -> "Chăm sóc tóc hoặc cơ thể hằng ngày; chọn theo nhu cầu và nhãn sản phẩm.";
+            case "Dưỡng môi" -> "Chăm sóc môi hằng ngày.";
+            case "Chống nắng" -> "Bước bảo vệ da ban ngày.";
+            case "Trang điểm" -> "Trang điểm cá nhân; chọn màu và chất liệu phù hợp.";
+            default -> "Chăm sóc da hằng ngày; thử ở vùng da nhỏ nếu da nhạy cảm.";
+        };
+    }
+
+    private String usageFor(String name, String category) {
+        String lower = name.toLowerCase(Locale.ROOT);
+        if (lower.contains("sữa rửa mặt")) return "Làm ướt da, dùng lượng vừa đủ, mát-xa nhẹ rồi rửa sạch. Đọc hướng dẫn trên bao bì.";
+        if (lower.contains("tẩy trang")) return "Dùng ở bước làm sạch đầu tiên theo hướng dẫn trên nhãn, sau đó tiếp tục bước rửa mặt.";
+        if (lower.contains("chống nắng")) return "Thoa ở bước cuối của chu trình buổi sáng; thoa lại theo hướng dẫn trên nhãn.";
+        if (lower.contains("serum") || lower.contains("tinh chất")) return "Dùng sau bước làm sạch và trước kem dưỡng; bắt đầu với lượng nhỏ.";
+        if (lower.contains("mặt nạ")) return "Sử dụng theo đúng thời gian và tần suất in trên bao bì; không để quá lâu.";
+        if (lower.contains("dầu gội")) return "Làm ướt tóc, thoa lên da đầu, mát-xa nhẹ rồi xả sạch.";
+        if (lower.contains("dầu xả") || lower.contains("ủ tóc")) return "Thoa lên thân và ngọn tóc sau khi gội, tránh da đầu nếu nhãn không hướng dẫn khác; xả sạch.";
+        if (lower.contains("dưỡng tóc")) return "Dùng lượng nhỏ ở thân hoặc ngọn tóc theo hướng dẫn trên bao bì.";
+        if (lower.contains("son") || category.equals("Dưỡng môi")) return "Thoa lượng vừa đủ lên môi; dùng lại theo nhu cầu và hướng dẫn trên nhãn.";
+        if (lower.contains("kem dưỡng") || lower.contains("gel dưỡng") || lower.contains("sữa dưỡng")) return "Dùng sau bước làm sạch, thoa lớp mỏng và điều chỉnh theo nhu cầu.";
+        return "Sử dụng theo hướng dẫn trên nhãn sản phẩm; thử ở vùng nhỏ nếu da nhạy cảm.";
     }
 
     private record CategorySeed(String name, String description, String imageUrl) { }

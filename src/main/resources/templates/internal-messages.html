@@ -1,35 +1,44 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tin nhắn nội bộ | Techtra Beauty</title><link rel="stylesheet" th:href="@{/css/workspace.css}"><link rel="stylesheet" th:href="@{/css/assistant-widget.css}"><script defer th:src="@{/js/assistant-widget.js}"></script></head>
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tin nhắn nội bộ | Techtra Beauty</title>
+    <link rel="stylesheet" th:href="@{/css/workspace.css}">
+    <link rel="stylesheet" th:href="@{/css/assistant-widget.css}">
+    <link rel="stylesheet" th:href="@{/css/internal-messages.css}">
+    <script defer th:src="@{/js/assistant-widget.js}"></script>
+    <script defer th:src="@{/js/internal-messages.js}"></script>
+</head>
 <body class="workspace-body">
 <th:block th:replace="~{fragments/portal-header :: header('Trao đổi nội bộ', 'Kết nối các bộ phận')}"></th:block>
-<main class="workspace-page messages-page">
-    <div class="workspace-page__heading"><div><h1>Tin nhắn nội bộ</h1><p>Trao đổi công việc giữa quản trị viên, cửa hàng và kho.</p></div><span class="workspace-status">Tối đa 100 tin gần nhất</span></div>
-    <div class="messages-layout">
-        <section class="card messages-compose">
-            <div class="card__header"><h2>Gửi tin nhắn</h2></div>
-            <form class="card__body" th:action="@{/messages}" method="post">
-                <label for="recipientRole">Gửi tới</label>
-                <select class="workspace-field" id="recipientRole" name="recipientRole" required><option th:each="department : ${departments}" th:value="${department.role}" th:text="${department.label}">Bộ phận</option></select>
-                <label for="messageBody">Nội dung</label>
-                <textarea class="workspace-field" id="messageBody" name="body" rows="5" maxlength="1500" placeholder="Nhập nội dung cần trao đổi…" required></textarea>
-                <p class="workspace-error" th:if="${messageError}" th:text="${messageError}" role="alert"></p>
-                <p class="messages-success" th:if="${messageSent}" th:text="${messageSent}" role="status"></p>
-                <button type="submit">Gửi tin nhắn</button>
-            </form>
-        </section>
-        <section class="card messages-inbox">
-            <div class="card__header"><h2>Hộp thư bộ phận</h2></div>
-            <div class="card__body messages-list" th:if="${!#lists.isEmpty(messages)}">
-                <article class="messages-item" th:each="message : ${messages}">
-                    <div class="messages-item__meta"><strong th:text="${message.sender.fullName ?: message.sender.username}">Người gửi</strong><span th:text="${message.recipientRole == 'ROLE_ADMIN' ? 'Quản trị viên' : (message.recipientRole == 'ROLE_STORE_STAFF' ? 'Nhân viên cửa hàng' : 'Nhân viên kho')}">Bộ phận nhận</span></div>
-                    <p th:text="${message.body}">Nội dung tin nhắn</p>
-                    <time th:text="${#temporals.format(message.createdAt, 'dd/MM/yyyy HH:mm')}">Thời gian</time>
-                </article>
-            </div>
-            <div class="card__body messages-empty" th:if="${#lists.isEmpty(messages)}"><span aria-hidden="true">✉</span><strong>Chưa có tin nhắn</strong><p>Tin gửi tới bộ phận của bạn sẽ hiển thị tại đây.</p></div>
-        </section>
-    </div>
+<main class="internal-chat" th:attr="data-current-role=${currentRole}">
+    <aside class="internal-chat__sidebar" aria-label="Bộ phận">
+        <div class="internal-chat__sidebar-head"><span class="internal-chat__eyebrow">TECHTRA BEAUTY</span><h1>Tin nhắn</h1><p>Trao đổi công việc giữa các bộ phận</p></div>
+        <nav class="internal-chat__departments">
+            <button type="button" class="internal-chat__department" th:each="department, stat : ${departments}"
+                    th:classappend="${stat.first} ? ' is-active' : ''" th:attr="data-role=${department.role}"
+                    th:aria-label="${'Mở hội thoại với ' + department.label}">
+                <span class="internal-chat__avatar" th:text="${#strings.substring(department.label, 0, 1)}">B</span>
+                <span class="internal-chat__department-text"><strong th:text="${department.label}">Bộ phận</strong><small>Nhắn tin nội bộ</small></span>
+                <span class="internal-chat__unread" hidden></span>
+            </button>
+        </nav>
+    </aside>
+    <section class="internal-chat__main" aria-label="Hội thoại">
+        <header class="internal-chat__topbar">
+            <span class="internal-chat__avatar internal-chat__avatar--small" id="chatAvatar">B</span>
+            <div><h2 id="chatTitle">Chọn bộ phận</h2><p id="chatConnection">Đang kết nối…</p></div>
+        </header>
+        <div class="internal-chat__timeline" id="chatTimeline" role="log" aria-live="polite" aria-relevant="additions"></div>
+        <form class="internal-chat__composer" id="chatForm" th:action="@{/messages}" method="post">
+            <input type="hidden" id="chatRecipient" name="recipientRole">
+            <label class="sr-only" for="chatBody">Nội dung tin nhắn</label>
+            <textarea id="chatBody" name="body" rows="2" maxlength="1500" placeholder="Nhập tin nhắn cho bộ phận…" required></textarea>
+            <button type="submit" aria-label="Gửi tin nhắn">Gửi <span aria-hidden="true">➤</span></button>
+            <p id="chatError" class="internal-chat__error" role="alert" hidden></p>
+            <p th:if="${messageError}" th:text="${messageError}" class="internal-chat__error" role="alert"></p>
+        </form>
+    </section>
 </main>
-<div th:replace="~{fragments/assistant-widget :: widget}"></div>
-</body></html>
+</body>
+</html>

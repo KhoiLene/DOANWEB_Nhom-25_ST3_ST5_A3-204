@@ -1240,3 +1240,9 @@ button { font-family: inherit; }
   color: #6b7280;
   margin-top: 4px;
 }
+.product-facts { display:grid; gap:10px; margin:16px 0 20px; padding:16px; border:1px solid #dce7f7; border-radius:16px; background:#f8fbff; }
+.product-facts > div { display:grid; grid-template-columns:96px minmax(0,1fr); gap:12px; line-height:1.5; }
+.product-facts strong { color:#284c7b; }
+.product-facts span { color:#334155; overflow-wrap:anywhere; }
+html[data-theme="dark"] .product-facts { background:#1c2b40; border-color:#30415a; }
+html[data-theme="dark"] .product-facts strong,html[data-theme="dark"] .product-facts span { color:#e7edf6; }

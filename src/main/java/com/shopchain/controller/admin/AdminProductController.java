@@ -47,6 +47,15 @@ public class AdminProductController {
                               @RequestParam Long categoryId,
                               @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
                               Model model) {
+        if (product.getCampaignStartAt() != null && product.getCampaignEndAt() != null
+                && !product.getCampaignEndAt().isAfter(product.getCampaignStartAt())) {
+            model.addAttribute("categories", categoryRepository.findAll());
+            model.addAttribute("title", "Chỉnh sửa sản phẩm");
+            model.addAttribute("activePage", "products");
+            model.addAttribute("content", "admin/products/form");
+            model.addAttribute("productFormError", "Thời gian kết thúc ưu đãi phải sau thời gian bắt đầu.");
+            return "admin/layout";
+        }
         if (product.getDiscountPercent() != null && (product.getDiscountPercent() <= 0 || product.getDiscountPercent() >= 100)) {
             model.addAttribute("categories", categoryRepository.findAll());
             model.addAttribute("title", product.getId() == null ? "Thêm sản phẩm mới" : "Chỉnh sửa sản phẩm");
@@ -59,6 +68,8 @@ public class AdminProductController {
             product.setCampaignName(null);
             product.setCampaignAudience("ALL");
             product.setIsFlashSale(false);
+            product.setCampaignStartAt(null);
+            product.setCampaignEndAt(null);
         } else {
             product.setIsFlashSale(true);
             if (product.getCampaignName() == null || product.getCampaignName().isBlank())

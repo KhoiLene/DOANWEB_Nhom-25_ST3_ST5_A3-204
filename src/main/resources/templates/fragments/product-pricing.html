@@ -20,6 +20,7 @@
       <span aria-hidden="true">·</span>
       <span th:if="${product.campaignAudience == 'VIP'}">Dành riêng cho khách VIP</span>
       <span th:unless="${product.campaignAudience == 'VIP'}">Áp dụng cho mọi khách hàng</span>
+      <span th:if="${product.campaignEndAt != null}" th:text="${'· Đến ' + #temporals.format(product.campaignEndAt, 'dd/MM HH:mm')}">Hạn ưu đãi</span>
     </div>
   </div>
 </th:block>

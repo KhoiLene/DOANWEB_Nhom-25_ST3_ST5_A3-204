@@ -3,6 +3,7 @@ package com.shopchain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "products")
@@ -45,6 +46,21 @@ public class Product {
     @Builder.Default
     private String campaignAudience = "ALL";
 
+    @Column(name = "campaign_start_at")
+    private LocalDateTime campaignStartAt;
+
+    @Column(name = "campaign_end_at")
+    private LocalDateTime campaignEndAt;
+
+    @Column(name = "brand_name", length = 120)
+    private String brandName;
+
+    @Column(name = "suitable_for", length = 300)
+    private String suitableFor;
+
+    @Column(name = "usage_instructions", columnDefinition = "TEXT")
+    private String usageInstructions;
+
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;
@@ -53,7 +69,10 @@ public class Product {
     private List<ProductInventory> inventories = new ArrayList<>();
 
     public boolean hasDiscountCampaign() {
-        return discountPercent != null && discountPercent > 0 && discountPercent < 100;
+        LocalDateTime now = LocalDateTime.now();
+        return discountPercent != null && discountPercent > 0 && discountPercent < 100
+                && (campaignStartAt == null || !now.isBefore(campaignStartAt))
+                && (campaignEndAt == null || !now.isAfter(campaignEndAt));
     }
 
     public boolean campaignEligibleFor(Integer loyaltyPoints) {

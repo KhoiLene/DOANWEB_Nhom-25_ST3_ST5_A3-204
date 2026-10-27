@@ -14,6 +14,15 @@
 .assistant-widget__message small { display:block; margin-top:8px; color:#64748b; font-size:.72rem; }
 .assistant-widget__message--user { align-self:flex-end; color:#fff; background:#2563eb; }
 .assistant-widget__message--assistant { align-self:flex-start; color:#1e293b; background:#f1f5f9; }
+.assistant-widget__message:has(.assistant-widget__products) { max-width:100%; width:100%; }
+.assistant-widget__products { display:grid; gap:7px; margin-top:12px; }
+.assistant-widget__product { display:flex; align-items:center; gap:10px; padding:7px; border:1px solid #dbe5ef; border-radius:10px; background:#fff; color:#17304d; text-decoration:none; }
+.assistant-widget__product:hover { border-color:#2563eb; }
+.assistant-widget__product img { width:48px; height:48px; object-fit:cover; border-radius:8px; flex:none; }
+.assistant-widget__product span { display:grid; gap:3px; min-width:0; }
+.assistant-widget__product strong { font-size:.78rem; line-height:1.25; }
+.assistant-widget__product del { font-size:.68rem; color:#8b97a8; }
+.assistant-widget__product small { font-size:.7rem; color:#2563eb; }
 .assistant-widget__message--loading::after { content:""; display:inline-block; width:1.1em; text-align:left; animation:assistant-dots 1.1s steps(4,end) infinite; }
 @keyframes assistant-dots { 0% { content:""; } 25% { content:"."; } 50% { content:".."; } 75%,100% { content:"..."; } }
 .assistant-widget__form { display:flex; align-items:flex-end; gap:8px; padding:12px; border-top:1px solid #e2e8f0; }
@@ -29,6 +38,7 @@ html[data-theme="dark"] .assistant-widget__notice,
 html[data-theme="dark"] .assistant-widget__footnote { color:#aebbd0; }
 html[data-theme="dark"] .assistant-widget__close { color:#bdc8d8; }
 html[data-theme="dark"] .assistant-widget__message--assistant { color:#e7edf6; background:#243651; }
+html[data-theme="dark"] .assistant-widget__product { color:#e7edf6; background:#162235; border-color:#40536e; }
 html[data-theme="dark"] .assistant-widget__form { border-color:#30415a; }
 html[data-theme="dark"] .assistant-widget__form textarea { color:#e7edf6; background:#101b2b; border-color:#40536e; }
 @media print { .assistant-widget { display:none!important; } }
