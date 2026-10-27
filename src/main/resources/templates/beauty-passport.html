@@ -40,6 +40,12 @@
             <input name="maxBudget" type="number" min="0" max="100000000" step="10000" placeholder="Không giới hạn">
           </label>
           <label class="passport-consent"><input name="assistantConsent" type="checkbox"><span>Cho phép chatbot dùng các thông tin trên để cá nhân hóa câu trả lời. Mặc định tắt.</span></label>
+          <div class="passport-sharing">
+            <strong>Chia sẻ với nhân viên tại cửa hàng</strong>
+            <p>Từng mục đều tùy chọn và mặc định tắt. Chỉ nhân viên tại chi nhánh đang phục vụ bạn mới xem được mục đã bật.</p>
+            <label class="passport-consent"><input name="shareBeautyProfileWithStore" type="checkbox"><span>Cho phép xem loại da, loại tóc và nhu cầu chăm sóc khi tra cứu thành viên.</span></label>
+            <label class="passport-consent"><input name="sharePurchaseHistoryWithStore" type="checkbox"><span>Cho phép xem tối đa 4 sản phẩm đã mua tại chính chi nhánh đó.</span></label>
+          </div>
           <p class="passport-privacy">Không nhập thông tin sức khỏe nhạy cảm. Hồ sơ này chỉ phục vụ gợi ý chăm sóc cá nhân.</p>
           <p class="passport-message" id="profileMessage" role="status" aria-live="polite"></p>
           <button class="passport-save" type="submit">Lưu hồ sơ</button>
@@ -117,6 +123,8 @@
       event.preventDefault(); message.textContent = 'Đang lưu…';
       const values = Object.fromEntries(new FormData(form).entries());
       values.assistantConsent = form.elements.assistantConsent.checked;
+      values.shareBeautyProfileWithStore = form.elements.shareBeautyProfileWithStore.checked;
+      values.sharePurchaseHistoryWithStore = form.elements.sharePurchaseHistoryWithStore.checked;
       values.maxBudget = values.maxBudget === '' ? null : Number(values.maxBudget);
       try {
         await api('/api/customer/beauty-profile', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(values)});

@@ -39,9 +39,20 @@ public class PointOfSaleService {
                 .status("COMPLETED").paymentMethod(paymentMethod).paymentStatus("PAID").totalAmount(0d).build();
         List<OrderItem> items = new ArrayList<>();
         List<SalesInvoiceLine> invoiceLines = new ArrayList<>();
-        int customerPoints = blankToNull(customerPhone) == null ? 0
-                : userRepository.findByPhone(blankToNull(customerPhone)).stream()
-                    .findFirst().map(user -> user.getLoyaltyPoints() == null ? 0 : user.getLoyaltyPoints()).orElse(0);
+        String phoneForLookup = blankToNull(customerPhone);
+        java.util.Map<Long, User> customerMatches = new java.util.LinkedHashMap<>();
+        if (phoneForLookup != null) {
+            userRepository.findByPhone(phoneForLookup).forEach(user -> customerMatches.put(user.getId(), user));
+            String normalizedPhone = phoneForLookup.replaceAll("[\\s().-]", "");
+            if (!normalizedPhone.equals(phoneForLookup))
+                userRepository.findByPhone(normalizedPhone).forEach(user -> customerMatches.put(user.getId(), user));
+        }
+        List<User> matchingCustomers = customerMatches.values().stream()
+                .filter(User::isEnabled)
+                .filter(user -> user.getRole() != null && "ROLE_USER".equals(user.getRole().getName()))
+                .toList();
+        int customerPoints = matchingCustomers.size() == 1 && matchingCustomers.get(0).getLoyaltyPoints() != null
+                ? matchingCustomers.get(0).getLoyaltyPoints() : 0;
         double subtotal = 0;
         for (SaleLine requested : requestedLines) {
             if (requested.productId() == null || requested.quantity() == null || requested.quantity() <= 0)

@@ -25,7 +25,7 @@ public class BeautyProfileService {
     @Transactional(readOnly = true)
     public BeautyProfileView get(Long userId) {
         return profileRepository.findByUserId(userId).map(this::toView)
-                .orElseGet(() -> new BeautyProfileView(null, null, null, null, null, null, false));
+                .orElseGet(() -> new BeautyProfileView(null, null, null, null, null, null, false, false, false));
     }
 
     @Transactional
@@ -42,6 +42,8 @@ public class BeautyProfileService {
         profile.setSensitivities(clean(input.sensitivities(), 300));
         profile.setMaxBudget(input.maxBudget());
         profile.setAssistantConsent(input.assistantConsent());
+        profile.setShareBeautyProfileWithStore(input.shareBeautyProfileWithStore());
+        profile.setSharePurchaseHistoryWithStore(input.sharePurchaseHistoryWithStore());
         return toView(profileRepository.save(profile));
     }
 
@@ -134,13 +136,16 @@ public class BeautyProfileService {
 
     private BeautyProfileView toView(BeautyProfile profile) {
         return new BeautyProfileView(profile.getSkinType(), profile.getHairType(), profile.getSkinConcerns(),
-                profile.getHairConcerns(), profile.getSensitivities(), profile.getMaxBudget(), profile.isAssistantConsent());
+                profile.getHairConcerns(), profile.getSensitivities(), profile.getMaxBudget(), profile.isAssistantConsent(),
+                profile.isShareBeautyProfileWithStore(), profile.isSharePurchaseHistoryWithStore());
     }
 
     public record ProfileUpdate(String skinType, String hairType, String skinConcerns, String hairConcerns,
-                                String sensitivities, Double maxBudget, boolean assistantConsent) { }
+                                String sensitivities, Double maxBudget, boolean assistantConsent,
+                                boolean shareBeautyProfileWithStore, boolean sharePurchaseHistoryWithStore) { }
     public record BeautyProfileView(String skinType, String hairType, String skinConcerns, String hairConcerns,
-                                    String sensitivities, Double maxBudget, boolean assistantConsent) { }
+                                    String sensitivities, Double maxBudget, boolean assistantConsent,
+                                    boolean shareBeautyProfileWithStore, boolean sharePurchaseHistoryWithStore) { }
     public record RoutineProduct(Long id, String name, String imageUrl, Double price, String category, String usage) { }
     public record CareRoutine(String introduction, RoutineProduct cleanser, RoutineProduct moisturizer,
                               RoutineProduct sunscreen, RoutineProduct serum, RoutineProduct shampoo,

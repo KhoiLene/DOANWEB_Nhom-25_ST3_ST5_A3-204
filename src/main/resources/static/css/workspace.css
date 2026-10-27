@@ -100,6 +100,18 @@ body.workspace-body {
 .workspace-body .workspace-total { font: 700 1.35rem Montserrat, sans-serif; color: var(--brand-blue); }
 .workspace-body .workspace-error { color: #b42318; }
 .workspace-body .workspace-error:empty { display: none; }
+.pos-member-phone { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 8px; }
+.pos-member-phone .workspace-field { min-width: 0; }
+.pos-member-card { display: grid; gap: 7px; margin: 6px 0 14px; padding: 13px; border: 1px solid var(--workspace-border); border-radius: 12px; background: #f8fbff; }
+.pos-member-card[hidden] { display: none; }
+.pos-member-card p { margin: 0; color: var(--workspace-muted); font-size: .86rem; }
+.pos-member-card__heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pos-member-card__heading span { padding: 4px 9px; border-radius: 999px; background: var(--brand-blue-soft); color: var(--brand-blue); font-size: .78rem; font-weight: 700; }
+.pos-member-card__section-title { margin-top: 8px; }
+.pos-member-purchase { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--workspace-border); color: var(--workspace-text); font-size: .82rem; }
+.workspace-body .pos-member-purchase button { flex: 0 0 auto; min-height: 32px; padding: 5px 9px; font-size: .78rem; }
+.workspace-body .pos-member-purchase button:disabled { opacity: .55; cursor: not-allowed; }
+html[data-theme="dark"] .pos-member-card { background: #18263a; border-color: #34445c; }
 
 @media (max-width: 760px) {
   .portal-header__inner { width: min(100% - 28px, 1280px); min-height: 66px; gap: 12px; }
@@ -112,6 +124,8 @@ body.workspace-body {
   .workspace-product-row button { padding: 8px 10px; }
   .workspace-body .workspace-form-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .workspace-body .workspace-form-grid__wide { grid-column: span 2; }
+  .pos-member-phone { grid-template-columns: 1fr; }
+  .pos-member-purchase { align-items: flex-start; flex-direction: column; }
 }
 
 .portal-profile-menu, .admin-profile-menu { position: relative; }

@@ -42,6 +42,14 @@ public class BeautyProfile {
     @Column(name = "assistant_consent", nullable = false)
     private boolean assistantConsent = false;
 
+    @Builder.Default
+    @Column(name = "share_beauty_profile_with_store", nullable = false, columnDefinition = "boolean default false")
+    private boolean shareBeautyProfileWithStore = false;
+
+    @Builder.Default
+    @Column(name = "share_purchase_history_with_store", nullable = false, columnDefinition = "boolean default false")
+    private boolean sharePurchaseHistoryWithStore = false;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 

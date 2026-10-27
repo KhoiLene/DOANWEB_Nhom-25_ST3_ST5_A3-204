@@ -12,11 +12,11 @@
             <div class="card__header pos-products__header"><div><h2>Chọn sản phẩm</h2><span class="workspace-muted" th:text="${store.name}">Chi nhánh</span></div><span class="pos-count" id="visibleCount">0 sản phẩm</span></div>
             <div class="pos-search"><label class="sr-only" for="productSearch">Tìm theo tên hoặc mã sản phẩm</label><span aria-hidden="true">⌕</span><input id="productSearch" type="search" placeholder="Quét mã hoặc tìm tên sản phẩm…" autocomplete="off" autofocus><button type="button" id="clearSearch" aria-label="Xóa tìm kiếm">×</button></div>
             <div class="pos-product-grid" id="productGrid">
-                <article th:each="row : ${inventory}" class="pos-product" th:attr="data-id=${row.product.id},data-name=${row.product.name},data-sku=${row.product.sku},data-category=${row.product.category?.name},data-price=${row.price},data-stock=${row.availableQuantity}">
+                <article th:each="row : ${inventory}" class="pos-product" th:attr="data-id=${row.product.id},data-name=${row.product.name},data-sku=${row.product.sku},data-category=${row.product.category?.name},data-price=${row.product.effectivePrice(row.price,0)},data-public-price=${row.product.effectivePrice(row.price,0)},data-vip-price=${row.product.effectivePrice(row.price,500)},data-list-price=${row.price},data-campaign-name=${row.product.campaignName},data-campaign-audience=${row.product.campaignAudience},data-discount-percent=${row.product.discountPercent},data-stock=${row.availableQuantity}">
                     <div class="pos-product__top"><span class="pos-product__category" th:text="${row.product.category?.name ?: 'Sản phẩm'}">Danh mục</span><span class="pos-product__stock" th:text="${row.availableQuantity} + ' có thể bán'">Kho</span></div>
                     <h3 th:text="${row.product.name}">Sản phẩm</h3>
                     <small th:text="'Mã: ' + ${row.product.sku ?: row.product.id}">Mã SKU</small>
-                    <div class="pos-product__bottom"><strong th:text="${#numbers.formatDecimal(row.price,1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</strong><button type="button" class="add-item" th:disabled="${row.availableQuantity < 1}" aria-label="Thêm sản phẩm vào hóa đơn">Thêm <span aria-hidden="true">＋</span></button></div>
+                    <div class="pos-product__bottom"><span class="pos-product__pricing"><del hidden></del><strong th:text="${#numbers.formatDecimal(row.product.effectivePrice(row.price,0),1,'COMMA',0,'POINT')} + ' ₫'">0 ₫</strong><small hidden></small></span><button type="button" class="add-item" th:disabled="${row.availableQuantity < 1}" aria-label="Thêm sản phẩm vào hóa đơn">Thêm <span aria-hidden="true">＋</span></button></div>
                 </article>
                 <p class="workspace-empty" th:if="${#lists.isEmpty(inventory)}">Chi nhánh chưa có hàng. Nhân viên kho cần điều chuyển hàng đến trước khi bán.</p>
                 <p class="workspace-empty" id="noProducts" hidden>Không tìm thấy sản phẩm phù hợp.</p>
@@ -27,7 +27,7 @@
             <div class="card__header"><div><h2>Hóa đơn hiện tại</h2><span class="workspace-muted"><span id="cartCount">0</span> sản phẩm</span></div><button type="button" class="pos-clear" id="clearCart">Xóa giỏ</button></div>
             <div class="card__body">
                 <div id="cart" class="pos-cart" aria-live="polite"><p class="workspace-muted pos-cart__empty">Chưa có sản phẩm. Chọn sản phẩm ở danh sách bên trái.</p></div>
-                <div class="pos-customer-fields"><label for="customerName">Tên khách <span>(không bắt buộc)</span></label><input class="workspace-field" id="customerName" autocomplete="name" placeholder="Khách lẻ"><label for="customerPhone">Số điện thoại <span>(không bắt buộc)</span></label><input class="workspace-field" id="customerPhone" autocomplete="tel" inputmode="tel" placeholder="Số điện thoại"></div>
+                <div class="pos-customer-fields"><label for="customerName">Tên khách <span>(không bắt buộc)</span></label><input class="workspace-field" id="customerName" autocomplete="name" placeholder="Khách lẻ"><label for="customerPhone">Số điện thoại <span>(không bắt buộc)</span></label><div class="pos-member-phone"><input class="workspace-field" id="customerPhone" autocomplete="tel" inputmode="tel" placeholder="Số điện thoại"><button type="button" class="btn-outline" id="lookupMember">Tra cứu thành viên</button></div><p id="memberLookupStatus" class="workspace-muted" role="status" aria-live="polite"></p><section id="memberCard" class="pos-member-card" hidden aria-label="Thông tin thành viên"></section></div>
                 <label for="payment">Phương thức thanh toán</label><select id="payment" class="workspace-field"><option value="CASH">Tiền mặt</option><option value="CARD">Thẻ</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="OTHER">Khác</option></select>
                 <div class="pos-total"><span>Tổng thanh toán</span><strong id="total">0 ₫</strong></div><p class="workspace-error" id="error" role="status" aria-live="polite"></p><button class="pos-submit" type="button" id="checkoutButton">Hoàn tất &amp; xuất biên nhận</button><p class="pos-hint">Kiểm tra số lượng và phương thức thanh toán trước khi xác nhận.</p>
             </div>
@@ -43,6 +43,103 @@
   const error = document.getElementById('error');
   const search = document.getElementById('productSearch');
   const checkoutButton = document.getElementById('checkoutButton');
+  const memberPhone = document.getElementById('customerPhone');
+  const memberCard = document.getElementById('memberCard');
+  const memberStatus = document.getElementById('memberLookupStatus');
+  const lookupButton = document.getElementById('lookupMember');
+  let memberLookupForPhone = '';
+
+  function refreshMemberPrices(points = 0) {
+    products.forEach(product => {
+      const base = Number(product.dataset.listPrice);
+      const price = Number(points >= 500 ? product.dataset.vipPrice : product.dataset.publicPrice);
+      product.dataset.price = String(price);
+      const current = product.querySelector('.pos-product__pricing strong');
+      const original = product.querySelector('.pos-product__pricing del');
+      const badge = product.querySelector('.pos-product__pricing small');
+      current.textContent = fmt(price);
+      if (price < base) {
+        original.hidden = false; original.textContent = fmt(base);
+        badge.hidden = false;
+        const discount = Math.round((base - price) * 100 / base);
+        const vipOnly = product.dataset.campaignAudience === 'VIP';
+        badge.textContent = `${vipOnly ? 'VIP · ' : ''}${product.dataset.campaignName || 'Ưu đãi'} · giảm ${discount}%`;
+      } else {
+        original.hidden = true; badge.hidden = true;
+      }
+    });
+    basket.forEach(item => {
+      const product = products.find(candidate => candidate.dataset.id === String(item.productId));
+      if (product) item.price = Number(product.dataset.price);
+    });
+    if (typeof renderCart === 'function') renderCart();
+  }
+
+  function addTextRow(parent, labelText, valueText) {
+    if (!valueText) return;
+    const row = document.createElement('p');
+    const label = document.createElement('strong'); label.textContent = `${labelText}: `;
+    row.append(label, document.createTextNode(valueText)); parent.append(row);
+  }
+
+  function renderMember(member) {
+    memberCard.replaceChildren(); memberCard.hidden = false;
+    const heading = document.createElement('div'); heading.className = 'pos-member-card__heading';
+    const name = document.createElement('strong'); name.textContent = member.name || 'Thành viên Techtra';
+    const tier = document.createElement('span'); tier.textContent = member.tier;
+    heading.append(name, tier); memberCard.append(heading);
+    addTextRow(memberCard, 'Điểm hiện có', new Intl.NumberFormat('vi-VN').format(member.loyaltyPoints));
+    addTextRow(memberCard, 'Số điện thoại', member.maskedPhone);
+    if (member.sharedPreferences) {
+      const preferences = member.sharedPreferences;
+      const details = [preferences.skinType && `Da: ${preferences.skinType}`, preferences.hairType && `Tóc: ${preferences.hairType}`,
+        preferences.skinConcerns && `Quan tâm về da: ${preferences.skinConcerns}`, preferences.hairConcerns && `Quan tâm về tóc: ${preferences.hairConcerns}`].filter(Boolean).join(' · ');
+      addTextRow(memberCard, 'Khách đã cho phép chia sẻ', details);
+    }
+    if (member.recentPurchases?.length) {
+      const title = document.createElement('strong'); title.className = 'pos-member-card__section-title'; title.textContent = 'Mua gần đây tại chi nhánh này'; memberCard.append(title);
+      member.recentPurchases.forEach(purchase => {
+        const row = document.createElement('div'); row.className = 'pos-member-purchase';
+        const label = document.createElement('span'); label.textContent = `${purchase.productName} · đã mua ${purchase.previousQuantity}`;
+        row.append(label);
+        const product = products.find(item => item.dataset.id === String(purchase.productId));
+        const action = document.createElement('button'); action.type = 'button'; action.className = 'btn-outline';
+        action.textContent = purchase.availableAtThisStore > 0 ? 'Mua lại' : 'Hết hàng';
+        action.disabled = purchase.availableAtThisStore < 1 || !product;
+        if (!action.disabled) action.addEventListener('click', () => addProduct(product));
+        row.append(action); memberCard.append(row);
+      });
+    }
+  }
+
+  async function loadMember(phone) {
+    const response = await fetch(`/api/staff/customers/lookup?phone=${encodeURIComponent(phone)}`, {headers: {Accept: 'application/json'}});
+    const result = await response.json().catch(() => ({}));
+    if (response.status === 404) {
+      memberLookupForPhone = phone;
+      memberCard.hidden = true;
+      refreshMemberPrices(0);
+      return null;
+    }
+    if (!response.ok) throw new Error(result.error || 'Chưa tra cứu được thành viên.');
+    memberLookupForPhone = phone;
+    refreshMemberPrices(result.loyaltyPoints || 0);
+    if (!document.getElementById('customerName').value.trim() && result.name)
+      document.getElementById('customerName').value = result.name;
+    renderMember(result);
+    return result;
+  }
+
+  lookupButton.addEventListener('click', async () => {
+    memberCard.hidden = true; memberStatus.textContent = '';
+    lookupButton.disabled = true; lookupButton.textContent = 'Đang tra cứu…';
+    try {
+      const member = await loadMember(memberPhone.value);
+      memberStatus.textContent = member ? 'Đã tìm thấy thành viên. Giá bán đã cập nhật theo hạng; dữ liệu riêng chỉ hiện khi khách cho phép.' : 'Không tìm thấy thành viên. Có thể tiếp tục bán như khách lẻ.';
+    } catch (exception) { memberStatus.textContent = exception.message || 'Chưa tra cứu được thành viên.'; }
+    finally { lookupButton.disabled = false; lookupButton.textContent = 'Tra cứu thành viên'; }
+  });
+  memberPhone.addEventListener('input', () => { memberCard.hidden = true; memberStatus.textContent = ''; memberLookupForPhone = ''; refreshMemberPrices(0); });
 
   function updateSearch() {
     const term = search.value.trim().toLocaleLowerCase('vi');
@@ -104,6 +201,11 @@
   checkoutButton.addEventListener('click', async () => {
     error.textContent = '';
     if (!basket.size) { error.textContent = 'Vui lòng thêm sản phẩm vào hóa đơn.'; search.focus(); return; }
+    const phone = memberPhone.value.trim();
+    if (phone && memberLookupForPhone !== phone) {
+      try { await loadMember(phone); }
+      catch (exception) { error.textContent = exception.message || 'Không xác minh được hạng thành viên. Hãy kiểm tra số hoặc xóa số để bán như khách lẻ.'; return; }
+    }
     checkoutButton.disabled = true;
     checkoutButton.textContent = 'Đang tạo biên nhận…';
     try {
@@ -114,6 +216,7 @@
     } catch (exception) { error.textContent = exception.message || 'Không thể hoàn tất giao dịch.'; }
     finally { checkoutButton.disabled = false; checkoutButton.textContent = 'Hoàn tất & xuất biên nhận'; }
   });
+  refreshMemberPrices(0);
   updateSearch();
 })();
 </script></body></html>
