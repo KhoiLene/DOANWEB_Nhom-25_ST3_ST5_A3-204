@@ -77,33 +77,38 @@ Started WebApplication in XX.XXX seconds
 
 ---
 
-## 🔐 Tài khoản Admin
+## 🔐 Tài khoản và dữ liệu database
 
-Database được tạo trống khi chạy lần đầu. Để có tài khoản Admin, làm một trong hai cách sau:
+Ứng dụng tạo schema, vai trò, sản phẩm demo, chi nhánh và dữ liệu hướng dẫn khi khởi động. Các tài khoản đã đăng ký, mật khẩu đã mã hóa, đơn hàng và thay đổi quản trị được lưu trong volume PostgreSQL trên từng máy; chúng không tự đi theo Git khi clone hoặc pull.
 
-**Cách 1 — Tạo tài khoản User rồi nâng cấp lên Admin qua SQL:**
-```bash
-# Mở terminal trong container PostgreSQL
-docker exec -it shop-chain-db psql -U postgres -d shop_chain_db
+Để tạo admin mới trên máy local, cấu hình `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_EMAIL` và `BOOTSTRAP_ADMIN_PASSWORD` trong biến môi trường của cấu hình Run trong IntelliJ rồi khởi động ứng dụng. Mật khẩu phải dài ít nhất 12 ký tự. Không lưu mật khẩu admin vào GitHub. Khách hàng có thể đăng ký tại `/register`; các role nhân viên cần được tạo/gán quyền từ tài khoản admin.
 
-# Sau đó chạy lệnh SQL này để tạo Role và User admin:
-INSERT INTO roles (name) VALUES ('ROLE_ADMIN'), ('ROLE_USER') ON CONFLICT DO NOTHING;
+### Sao chép nguyên dữ liệu sang máy khác
 
-INSERT INTO users (username, email, password_hash, full_name, is_active, role_id)
-VALUES (
-  'admin',
-  'admin@techtra.vn',
-  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LPVyc0PHMXW',
-  'Admin',
-  true,
-  (SELECT id FROM roles WHERE name = 'ROLE_ADMIN')
-);
--- Mật khẩu mặc định ở trên là: password123
-\q
+Nếu muốn máy mới có cùng tài khoản, mật khẩu hoạt động, đơn hàng, tồn kho và các chỉnh sửa như máy hiện tại, cần chuyển một bản sao PostgreSQL riêng. Dump chứa dữ liệu tài khoản, hash mật khẩu và thông tin đơn hàng/khách hàng, vì vậy không đưa file dump lên repo GitHub. Script sao lưu nằm trong `scripts/backup-local-db.ps1`, file đầu ra nằm trong `local-backups/` và đã được Git bỏ qua.
+
+Máy hiện tại:
+
+```powershell
+docker compose up -d postgres
+.\scripts\backup-local-db.ps1
 ```
 
-**Cách 2 — Đăng ký tài khoản User bình thường:**
-Vào http://localhost:8080/register, đăng ký tài khoản rồi dùng để test chức năng mua hàng (không có quyền Admin).
+Chép file `.sql` vừa tạo qua USB hoặc kho lưu trữ riêng tư có kiểm soát quyền truy cập. Máy mới cần Docker Desktop và source mới nhất:
+
+```powershell
+git clone https://github.com/KhoiLene/DOANWEB_Nhom-25_ST3_ST5_A3-204.git
+cd DOANWEB_Nhom-25_ST3_ST5_A3-204
+docker compose up -d postgres
+```
+
+Đặt file dump vào thư mục `local-backups` (tạo thư mục nếu cần), sau đó khôi phục **trước khi chạy ứng dụng lần đầu**:
+
+```powershell
+.\scripts\restore-local-db.ps1 -BackupPath .\local-backups\shop_chain_db_YYYYMMDD_HHMMSS.sql
+```
+
+Script hỏi xác nhận vì sẽ thay thế database `shop_chain_db` trên máy đích. Sau đó chạy project như bình thường. Database là ảnh chụp tại thời điểm sao lưu; thao tác phát sinh sau đó trên hai máy sẽ không tự đồng bộ. Qdrant không nằm trong SQL dump; dữ liệu tri thức dạng tài liệu nằm trong repo và được ứng dụng nạp lại khi khởi động.
 
 ---
 
