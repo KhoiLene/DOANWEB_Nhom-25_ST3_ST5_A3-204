@@ -2,6 +2,8 @@ package com.shopchain.config;
 
 import com.shopchain.entity.AssistantKnowledgeSource;
 import com.shopchain.repository.AssistantKnowledgeSourceRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -12,6 +14,8 @@ import java.util.Map;
 
 @Component
 public class AssistantKnowledgeInitializer implements CommandLineRunner {
+    private static final Logger log = LoggerFactory.getLogger(AssistantKnowledgeInitializer.class);
+
     private static final Map<String, String> SEED_FILES = Map.of(
             "customer", "customer.md",
             "store-staff", "store-staff.md",
@@ -39,7 +43,15 @@ public class AssistantKnowledgeInitializer implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
+        try {
+            seedKnowledge();
+        } catch (Exception e) {
+            log.warn("Could not complete initial assistant knowledge seeding: {}", e.getMessage());
+        }
+    }
+
+    private void seedKnowledge() throws Exception {
         for (var seed : SEED_FILES.entrySet()) {
             if (repository.countByRoleKey(seed.getKey()) > 0) continue;
             String content;

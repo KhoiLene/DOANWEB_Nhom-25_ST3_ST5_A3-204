@@ -834,10 +834,16 @@ update orders
    and (receiver_name is not null or receiver_phone is not null or receiver_address is not null);
 
 create table if not exists categories (
-  id   serial primary key,
-  name varchar(255) not null,
-  slug varchar(255) unique not null
+  id          serial primary key,
+  name        varchar(255) not null,
+  slug        varchar(255) unique,
+  description text,
+  image_url   text
 );
+
+alter table categories
+  add column if not exists description text,
+  add column if not exists image_url text;
 
 alter table products
   add column if not exists category_id bigint references categories(id) on delete set null;

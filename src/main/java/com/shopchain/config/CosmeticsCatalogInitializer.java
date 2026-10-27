@@ -10,6 +10,8 @@ import com.shopchain.repository.HomepageValueRepository;
 import com.shopchain.repository.HomepagePromoBannerRepository;
 import com.shopchain.repository.HomepageBlogRepository;
 import com.shopchain.repository.ProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -22,6 +24,8 @@ import java.util.Map;
 @Component
 @Order(10)
 public class CosmeticsCatalogInitializer implements CommandLineRunner {
+    private static final Logger log = LoggerFactory.getLogger(CosmeticsCatalogInitializer.class);
+
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final HomepageValueRepository homepageValueRepository;
@@ -42,6 +46,14 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        try {
+            seedCatalog();
+        } catch (Exception e) {
+            log.warn("Could not complete initial cosmetics catalog seeding: {}", e.getMessage());
+        }
+    }
+
+    private void seedCatalog() {
         Map<String, Category> categories = new HashMap<>();
         Map<String, Category> existingCategories = new HashMap<>();
         categoryRepository.findAll().forEach(category -> existingCategories.put(

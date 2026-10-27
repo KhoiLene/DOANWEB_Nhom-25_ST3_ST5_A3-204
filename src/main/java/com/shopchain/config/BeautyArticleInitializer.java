@@ -4,6 +4,8 @@ import com.shopchain.entity.NewsCategory;
 import com.shopchain.entity.Post;
 import com.shopchain.repository.NewsCategoryRepository;
 import com.shopchain.repository.PostRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,8 @@ import java.util.Map;
 @Component
 @Order(15)
 public class BeautyArticleInitializer implements CommandLineRunner {
+    private static final Logger log = LoggerFactory.getLogger(BeautyArticleInitializer.class);
+
     private final NewsCategoryRepository categoryRepository;
     private final PostRepository postRepository;
 
@@ -29,6 +33,14 @@ public class BeautyArticleInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        try {
+            seedArticles();
+        } catch (Exception e) {
+            log.warn("Could not complete beauty articles seeding: {}", e.getMessage());
+        }
+    }
+
+    private void seedArticles() {
         Map<String, NewsCategory> categories = new HashMap<>();
         categoryRepository.findAll().forEach(category -> categories.put(category.getSlug(), category));
         for (CategorySeed seed : categorySeeds()) {

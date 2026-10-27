@@ -6,6 +6,8 @@ import com.shopchain.entity.Store;
 import com.shopchain.repository.ProductInventoryRepository;
 import com.shopchain.repository.ProductRepository;
 import com.shopchain.repository.StoreRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 @Component
 @Order(20)
 public class DemoStoreInitializer implements CommandLineRunner {
+    private static final Logger log = LoggerFactory.getLogger(DemoStoreInitializer.class);
     private static final int INITIAL_DEMO_STOCK = 5;
 
     private final StoreRepository storeRepository;
@@ -38,6 +41,14 @@ public class DemoStoreInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        try {
+            seedStores();
+        } catch (Exception e) {
+            log.warn("Could not complete demo store seeding: {}", e.getMessage());
+        }
+    }
+
+    private void seedStores() {
         Map<String, Store> existingStores = storeRepository.findAll().stream()
                 .collect(Collectors.toMap(store -> key(store.getName()), Function.identity(), (first, ignored) -> first));
         List<Product> demoProducts = productRepository.findAll().stream()
