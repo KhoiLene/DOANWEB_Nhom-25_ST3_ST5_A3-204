@@ -10,6 +10,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -29,7 +32,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public String createVnPayPaymentUrl(Long orderId, Double amount) {
+    public String createVnPayPaymentUrl(Long orderId, Double amount, String clientIp) {
         String tmnCode = settingService.getSetting("vnpay.tmnCode", "");
         String hashSecret = settingService.getSetting("vnpay.hashSecret", "");
         if (tmnCode.isBlank() || hashSecret.isBlank()) {
@@ -46,6 +49,8 @@ public class PaymentServiceImpl implements PaymentService {
         String vnp_CurrCode = "VND";
         String vnp_Version = "2.1.0";
         String vnp_OrderInfo = "Payment for Order ID: " + orderId;
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        DateTimeFormatter vnpDateFormat = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
         Map<String, String> params = new HashMap<>();
         params.put("vnp_TxnRef", vnp_TxnRef);
@@ -56,6 +61,12 @@ public class PaymentServiceImpl implements PaymentService {
         params.put("vnp_TmnCode", tmnCode);
         params.put("vnp_OrderInfo", vnp_OrderInfo);
         params.put("vnp_ReturnUrl", returnUrl);
+        params.put("vnp_BankCode", "VNPAYQR");
+        params.put("vnp_CreateDate", now.format(vnpDateFormat));
+        params.put("vnp_ExpireDate", now.plusMinutes(15).format(vnpDateFormat));
+        params.put("vnp_IpAddr", normalizeIpAddress(clientIp));
+        params.put("vnp_Locale", "vn");
+        params.put("vnp_OrderType", "other");
 
         // Sắp xếp tham số theo alphabet (yêu cầu của VNPay)
         List<String> sortedKeys = new ArrayList<>(params.keySet());
@@ -71,6 +82,13 @@ public class PaymentServiceImpl implements PaymentService {
 
         String vnp_SecureHash = hmacSHA512(query.toString(), hashSecret);
         return vnpUrl + "?" + query.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
+    }
+
+    private String normalizeIpAddress(String clientIp) {
+        if (clientIp == null || clientIp.isBlank()) return "127.0.0.1";
+        String candidate = clientIp.trim();
+        if (candidate.length() > 45 || !candidate.matches("[0-9a-fA-F:.]+")) return "127.0.0.1";
+        return candidate;
     }
 
     @Override

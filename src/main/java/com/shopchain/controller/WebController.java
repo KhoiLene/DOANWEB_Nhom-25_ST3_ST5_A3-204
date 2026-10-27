@@ -311,8 +311,26 @@ public class WebController {
     }
 
     @GetMapping("/order-success")
-    public String orderSuccess(@RequestParam(required = false) Long orderId, Model model) {
+    public String orderSuccess(@RequestParam(required = false) Long orderId,
+                               @RequestParam(required = false) String payment,
+                               Authentication authentication, Model model) {
         model.addAttribute("orderId", orderId);
+        model.addAttribute("canPayWithVnPay", false);
+        if (orderId != null && authentication != null && authentication.isAuthenticated()) {
+            userRepository.findByUsername(authentication.getName()).ifPresent(user ->
+                    orderRepository.findById(orderId)
+                            .filter(order -> order.getUser() != null && order.getUser().getId().equals(user.getId()))
+                            .ifPresent(order -> {
+                                model.addAttribute("orderPaymentMethod", order.getPaymentMethod());
+                                model.addAttribute("orderPaymentStatus", order.getPaymentStatus());
+                                model.addAttribute("canPayWithVnPay", "VNPAY".equalsIgnoreCase(order.getPaymentMethod())
+                                        && !"PAID".equalsIgnoreCase(order.getPaymentStatus())
+                                        && !"CANCELLED".equalsIgnoreCase(order.getStatus())
+                                        && !"RETURNED".equalsIgnoreCase(order.getStatus()));
+                                model.addAttribute("paymentFailed", "failed".equalsIgnoreCase(payment)
+                                        && !"PAID".equalsIgnoreCase(order.getPaymentStatus()));
+                            }));
+        }
         return "order-success";
     }
 

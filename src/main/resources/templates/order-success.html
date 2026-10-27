@@ -13,6 +13,11 @@
     .order-success h1{margin:0;color:#1c2b40;font:700 clamp(1.5rem,4vw,2rem) Montserrat,'Plus Jakarta Sans',sans-serif}
     .order-success p{color:#5a6b7d;line-height:1.7}
     .order-success__number{margin:18px 0;padding:13px;border-radius:10px;background:#f6f8fb;color:#1c2b40;font-weight:700}
+    .order-success__payment{margin:22px 0;padding:18px;border:1px solid #bfd5ff;border-radius:14px;background:#f5f8ff}
+    .order-success__payment p{margin:0 0 14px}
+    .order-success__payment button{padding:12px 18px;border:0;border-radius:10px;background:#2563eb;color:#fff;font:700 15px 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+    .order-success__payment button:disabled{opacity:.65;cursor:wait}
+    .order-success__payment-message{min-height:1.5em;margin-top:10px!important;color:#a83228}
     .order-success__actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:24px}
     .order-success__actions a{padding:11px 16px;border-radius:9px;background:#2563eb;color:#fff;font-weight:700}
     .order-success__actions a.secondary{border:1px solid #dbe4f0;background:#fff;color:#2563eb}
@@ -25,11 +30,37 @@
     <h1>Đơn hàng đã được ghi nhận</h1>
     <p>Techtra Beauty đã nhận được đơn hàng của bạn. Bạn có thể theo dõi trạng thái trong tài khoản; điểm thưởng sẽ được cộng khi thanh toán thành công.</p>
     <div class="order-success__number" th:if="${orderId != null}" th:text="${'Mã đơn hàng: #' + orderId}">Mã đơn hàng</div>
+    <section class="order-success__payment" th:if="${canPayWithVnPay}">
+      <p th:if="${paymentFailed}" role="alert">Giao dịch chưa hoàn tất. Bạn có thể thử thanh toán lại.</p>
+      <p>Đơn hàng đang chờ thanh toán. Nhấn nút để mở trang VNPay và quét mã QR bằng ứng dụng ngân hàng hoặc Ví VNPAY.</p>
+      <button id="vnpayQrButton" type="button" th:data-order-id="${orderId}"><i class="fa-solid fa-qrcode"></i> Mở mã QR thanh toán VNPay</button>
+      <p id="vnpayPaymentMessage" class="order-success__payment-message" role="status" aria-live="polite"></p>
+    </section>
+    <p th:if="${orderPaymentStatus == 'PAID'}" role="status">VNPay đã xác nhận thanh toán thành công.</p>
     <div class="order-success__actions">
       <a th:href="@{/profile}">Theo dõi đơn hàng</a>
       <a class="secondary" th:href="@{/products}">Tiếp tục mua sắm</a>
     </div>
   </main>
+  <script>
+    document.getElementById('vnpayQrButton')?.addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      const message = document.getElementById('vnpayPaymentMessage');
+      button.disabled = true;
+      message.textContent = 'Đang kết nối VNPay…';
+      try {
+        const response = await fetch(`/api/payment/vnpay?orderId=${encodeURIComponent(button.dataset.orderId)}`, {
+          headers: { Accept: 'application/json' }, credentials: 'same-origin'
+        });
+        const result = await response.json();
+        if (!response.ok || !result.paymentUrl) throw new Error(result.error || 'Chưa tạo được mã QR VNPay.');
+        window.location.assign(result.paymentUrl);
+      } catch (error) {
+        message.textContent = error.message || 'Không kết nối được VNPay. Vui lòng thử lại.';
+        button.disabled = false;
+      }
+    });
+  </script>
   <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

@@ -8,9 +8,12 @@ import com.shopchain.service.PaymentService;
 import com.shopchain.service.InvoiceService;
 import com.shopchain.service.LoyaltyService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Map;
 import java.math.BigDecimal;
@@ -37,7 +40,8 @@ public class PaymentController {
     }
 
     @GetMapping("/vnpay")
-    public ResponseEntity<?> createVnPayPayment(@RequestParam Long orderId, Authentication authentication) {
+    public ResponseEntity<?> createVnPayPayment(@RequestParam Long orderId, Authentication authentication,
+                                                 HttpServletRequest request) {
         if (orderId == null || orderId <= 0) return ResponseEntity.badRequest().body(Map.of("error", "Mã đơn hàng không hợp lệ."));
         Order order = orderRepository.findById(orderId).orElse(null);
         if (order == null) return ResponseEntity.notFound().build();
@@ -58,18 +62,23 @@ public class PaymentController {
             return ResponseEntity.badRequest().body(Map.of("error", "Đơn hàng không thể thanh toán qua VNPay."));
         }
 
-        String paymentUrl = paymentService.createVnPayPaymentUrl(order.getId(), order.getTotalAmount());
+        String paymentUrl;
+        try {
+            paymentUrl = paymentService.createVnPayPaymentUrl(order.getId(), order.getTotalAmount(), request.getRemoteAddr());
+        } catch (IllegalStateException | IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(Map.of("error", exception.getMessage()));
+        }
 
         return ResponseEntity.ok(PaymentResponse.builder()
                 .status("SUCCESS")
-                .message("Payment URL generated")
+                .message("Đang mở thanh toán QR VNPay")
                 .paymentUrl(paymentUrl)
                 .build());
     }
 
     @GetMapping("/vnpay-return")
     @Transactional
-    public ResponseEntity<String> vnpayReturn(@RequestParam Map<String, String> params) {
+    public ResponseEntity<?> vnpayReturn(@RequestParam Map<String, String> params) {
         if (params == null || !paymentService.verifyVnPayPayment(params)) {
             return ResponseEntity.badRequest().body("Payment Failed!");
         }
@@ -86,11 +95,12 @@ public class PaymentController {
                 return ResponseEntity.badRequest().body("Payment Failed!");
             }
 
-            if (!"00".equals(params.get("vnp_ResponseCode"))) {
-                return ResponseEntity.badRequest().body("Payment Failed!");
+            if (!"00".equals(params.get("vnp_ResponseCode"))
+                    || !"00".equals(params.get("vnp_TransactionStatus"))) {
+                return orderResultRedirect(order.getId(), "failed");
             }
             if ("PAID".equalsIgnoreCase(order.getPaymentStatus())) {
-                return ResponseEntity.ok("Payment Successful! Your order is being processed.");
+                return orderResultRedirect(order.getId(), "success");
             }
             if ("CANCELLED".equalsIgnoreCase(order.getStatus()) || "RETURNED".equalsIgnoreCase(order.getStatus())) {
                 return ResponseEntity.badRequest().body("Payment Failed!");
@@ -101,10 +111,16 @@ public class PaymentController {
             orderRepository.save(order);
             loyaltyService.awardForPaidOrder(order.getId());
             invoiceService.issueForPaidOrder(order.getId());
-            return ResponseEntity.ok("Payment Successful! Your order is being processed.");
+            return orderResultRedirect(order.getId(), "success");
         } catch (NumberFormatException | ArithmeticException exception) {
             return ResponseEntity.badRequest().body("Payment Failed!");
         }
+    }
+
+    private ResponseEntity<?> orderResultRedirect(Long orderId, String result) {
+        return ResponseEntity.status(HttpStatus.SEE_OTHER)
+                .header(HttpHeaders.LOCATION, "/order-success?orderId=" + orderId + "&payment=" + result)
+                .build();
     }
 
     private boolean matchesAmount(String callbackAmount, Double orderAmount) {

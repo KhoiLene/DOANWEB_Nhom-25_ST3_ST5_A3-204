@@ -68,11 +68,33 @@
                 </div>
 
                 <div style="margin-top: 30px;">
-                    <button class="btn btn-primary" style="width: 100%; justify-content: center;">
-                        <i class="fa-solid fa-qrcode">i</i> Tạo mã thanh toán VNPay
+                    <button id="adminVnpayQrButton" class="btn btn-primary" type="button" style="width: 100%; justify-content: center;"
+                            th:if="${order.paymentMethod != null and #strings.toUpperCase(order.paymentMethod) == 'VNPAY' and order.paymentStatus != 'PAID' and order.status != 'CANCELLED' and order.status != 'RETURNED'}"
+                            th:data-order-id="${order.id}">
+                        <i class="fa-solid fa-qrcode"></i> Mở mã QR thanh toán VNPay
                     </button>
+                    <p id="adminVnpayQrMessage" role="status" aria-live="polite"></p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+<script>
+  document.getElementById('adminVnpayQrButton')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const message = document.getElementById('adminVnpayQrMessage');
+    button.disabled = true;
+    message.textContent = 'Đang kết nối VNPay…';
+    try {
+      const response = await fetch(`/api/payment/vnpay?orderId=${encodeURIComponent(button.dataset.orderId)}`, {
+        headers: { Accept: 'application/json' }, credentials: 'same-origin'
+      });
+      const result = await response.json();
+      if (!response.ok || !result.paymentUrl) throw new Error(result.error || 'Chưa tạo được mã QR VNPay.');
+      window.location.assign(result.paymentUrl);
+    } catch (error) {
+      message.textContent = error.message || 'Không kết nối được VNPay. Vui lòng thử lại.';
+      button.disabled = false;
+    }
+  });
+</script>
