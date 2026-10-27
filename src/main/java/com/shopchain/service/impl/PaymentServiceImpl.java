@@ -20,9 +20,9 @@ import javax.crypto.spec.SecretKeySpec;
 @Service
 public class PaymentServiceImpl implements PaymentService {
 
-    @Value("${vnpay.vnp_url}")
+    @Value("${vnpay.vnp_url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")
     private String vnpUrl;
-    @Value("${vnpay.return_url}")
+    @Value("${vnpay.return_url:http://localhost:8080/api/payment/vnpay-return}")
     private String returnUrl;
 
     private final SystemSettingService settingService;
