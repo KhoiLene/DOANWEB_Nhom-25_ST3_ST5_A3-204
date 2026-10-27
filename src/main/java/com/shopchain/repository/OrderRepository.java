@@ -4,7 +4,9 @@ import com.shopchain.entity.Order;
 import com.shopchain.entity.User;
 import com.shopchain.entity.Store;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
@@ -17,6 +19,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByIdForUpdate(@Param("id") Long id);
 
     List<Order> findByUserOrderByOrderDateDesc(User user);
+    @EntityGraph(attributePaths = {"store", "orderItems", "orderItems.product"})
+    List<Order> findByUserIdAndFulfillmentTypeOrderByOrderDateDesc(Long userId, String fulfillmentType, Pageable pageable);
+
+    @Query("select coalesce(sum(o.totalAmount), 0.0) from Order o "
+            + "where o.user.id = :userId and ("
+            + "(upper(coalesce(o.paymentStatus, '')) = 'PAID' and upper(coalesce(o.status, '')) not in ('CANCELLED', 'RETURNED')) "
+            + "or (upper(coalesce(o.paymentMethod, '')) = 'COD' and upper(coalesce(o.status, '')) = 'DELIVERED'))")
+    Double sumCompletedPaidSpendForUser(@Param("userId") Long userId);
+
     List<Order> findByStoreId(Long storeId);
     List<Order> findByStoreIdAndFulfillmentWarehouseIsNullOrderByOrderDateDesc(Long storeId);
     List<Order> findByStatus(String status);

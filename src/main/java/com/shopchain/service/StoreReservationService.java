@@ -2,6 +2,7 @@ package com.shopchain.service;
 
 import com.shopchain.entity.*;
 import com.shopchain.repository.*;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -17,17 +18,20 @@ public class StoreReservationService {
     private final ProductRepository productRepository;
     private final ProductInventoryRepository inventoryRepository;
     private final StoreReservationRepository reservationRepository;
+    private final OrderRepository orderRepository;
     private final int holdMinutes;
 
     public StoreReservationService(StoreRepository storeRepository, UserRepository userRepository,
                                    ProductRepository productRepository, ProductInventoryRepository inventoryRepository,
                                    StoreReservationRepository reservationRepository,
+                                   OrderRepository orderRepository,
                                    @Value("${reservation.hold-minutes:30}") int holdMinutes) {
         this.storeRepository = storeRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.inventoryRepository = inventoryRepository;
         this.reservationRepository = reservationRepository;
+        this.orderRepository = orderRepository;
         this.holdMinutes = Math.max(10, Math.min(holdMinutes, 120));
     }
 
@@ -88,6 +92,23 @@ public class StoreReservationService {
         expireReservations();
         User user = userRepository.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản."));
         return reservationRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream().map(this::toView).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PickupOrderView> customerPickupOrders(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản."));
+        return orderRepository.findByUserIdAndFulfillmentTypeOrderByOrderDateDesc(
+                        user.getId(), "PICKUP", PageRequest.of(0, 20))
+                .stream()
+                .map(order -> new PickupOrderView(order.getId(), order.getStatus(), order.getPaymentStatus(),
+                        order.getStore() == null ? "Chi nhánh" : order.getStore().getName(),
+                        order.getStore() == null ? "" : order.getStore().getAddress(), order.getOrderDate(),
+                        order.getTotalAmount(), order.getOrderItems() == null ? List.of() : order.getOrderItems().stream()
+                        .map(item -> new PickupOrderItemView(item.getProduct() == null
+                                ? "Sản phẩm đã ngừng kinh doanh" : item.getProduct().getName(), item.getQuantity()))
+                        .toList()))
+                .toList();
     }
 
     @Transactional
@@ -193,4 +214,7 @@ public class StoreReservationService {
     public record ReservationView(Long id, String code, String status, Long storeId, String storeName, String storeAddress,
                                   String customerName, String customerPhone, LocalDateTime createdAt, LocalDateTime expiresAt,
                                   LocalDateTime pickedUpAt, List<ReservationItemView> items) { }
+    public record PickupOrderItemView(String productName, Integer quantity) { }
+    public record PickupOrderView(Long id, String status, String paymentStatus, String storeName, String storeAddress,
+                                  LocalDateTime createdAt, Double totalAmount, List<PickupOrderItemView> items) { }
 }

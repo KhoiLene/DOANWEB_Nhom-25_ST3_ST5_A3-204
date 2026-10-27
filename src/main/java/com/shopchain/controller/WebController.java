@@ -34,6 +34,7 @@ public class WebController {
     private final UserRepository userRepository;
     private final StoreRepository storeRepository;
     private final OrderService orderService;
+    private final OrderRepository orderRepository;
     private final SalesInvoiceRepository salesInvoiceRepository;
     private final CustomerProgramService customerProgramService;
 
@@ -42,7 +43,8 @@ public class WebController {
                          HomepagePromoBannerRepository promoBannerRepository, HomepageBlogRepository homepageBlogRepository,
                          CategoryRepository categoryRepository, ReviewService reviewService,
                          UserRepository userRepository, StoreRepository storeRepository, OrderService orderService,
-                         SalesInvoiceRepository salesInvoiceRepository, CustomerProgramService customerProgramService) {
+                         OrderRepository orderRepository, SalesInvoiceRepository salesInvoiceRepository,
+                         CustomerProgramService customerProgramService) {
         this.productService = productService;
         this.newsService = newsService;
         this.aboutService = aboutService;
@@ -56,6 +58,7 @@ public class WebController {
         this.userRepository = userRepository;
         this.storeRepository = storeRepository;
         this.orderService = orderService;
+        this.orderRepository = orderRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.customerProgramService = customerProgramService;
     }
@@ -435,10 +438,7 @@ public class WebController {
     public String profile(Model model, Authentication authentication) {
         User user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         List<Order> orders = orderService.getUserOrders(user.getId(), PageRequest.of(0, 50)).getContent();
-        double totalSpent = orders.stream()
-                .filter(order -> "PAID".equalsIgnoreCase(order.getPaymentStatus()))
-                .filter(order -> !"CANCELLED".equalsIgnoreCase(order.getStatus()))
-                .mapToDouble(Order::getTotalAmount).sum();
+        double totalSpent = orderRepository.sumCompletedPaidSpendForUser(user.getId());
         int points = user.getLoyaltyPoints() == null ? 0 : user.getLoyaltyPoints();
         model.addAttribute("customer", user);
         model.addAttribute("customerOrders", orders);

@@ -21,6 +21,11 @@ public class CustomerReservationController {
         return reservationService.customerReservations(authentication.getName());
     }
 
+    @GetMapping("/pickup-orders")
+    public java.util.List<StoreReservationService.PickupOrderView> pickupOrders(Authentication authentication) {
+        return reservationService.customerPickupOrders(authentication.getName());
+    }
+
     @PostMapping
     public ResponseEntity<?> reserve(@RequestBody StoreReservationService.CreateReservationRequest request,
                                      Authentication authentication) {

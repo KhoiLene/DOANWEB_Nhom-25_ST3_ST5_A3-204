@@ -28,14 +28,14 @@
     </a>
 
     <section class="account-panel reservation-account-panel">
-      <div class="account-panel__heading"><div><span class="account-eyebrow">NHẬN TẠI CỬA HÀNG</span><h2>Phiếu giữ hàng của tôi</h2></div><span class="account-panel__hint">Hàng được giữ tối đa 30 phút</span></div>
+      <div class="account-panel__heading"><div><span class="account-eyebrow">NHẬN TẠI CỬA HÀNG</span><h2>Phiếu giữ & đơn nhận tại cửa hàng</h2></div><span class="account-panel__hint">Phiếu giữ hàng có hiệu lực tối đa 30 phút</span></div>
       <div id="customerReservations" class="customer-reservations"><p class="account-empty">Đang tải phiếu giữ hàng…</p></div>
     </section>
 
     <section class="account-stats" aria-label="Tóm tắt thành viên">
       <article class="account-stat account-stat--points"><span>Điểm Techtra</span><strong th:text="${customer.loyaltyPoints != null ? customer.loyaltyPoints : 0}">0</strong><small>1 điểm cho mỗi 10.000đ đã thanh toán</small></article>
       <article class="account-stat"><span>Hạng thành viên</span><strong th:text="${loyaltyTier}">Thành viên</strong><small>Tích thêm để mở khóa hạng tiếp theo</small></article>
-      <article class="account-stat"><span>Đã chi tiêu</span><strong th:text="${#numbers.formatDecimal(totalSpent, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong><small>Tính từ các đơn đã thanh toán</small></article>
+      <article class="account-stat"><span>Đã chi tiêu</span><strong th:text="${#numbers.formatDecimal(totalSpent, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong><small>Đơn đã trả tiền hoặc COD đã giao; trừ đơn hủy/hoàn</small></article>
       <article class="account-stat"><span>Tài khoản</span><strong th:text="${customer.username}">username</strong><small th:text="${customer.email}">email</small></article>
     </section>
 
@@ -93,10 +93,15 @@
     const root = document.getElementById('customerReservations');
     const render = async () => {
       try {
-        const response = await fetch('/api/customer/reservations', {credentials: 'same-origin'});
-        if (!response.ok) throw new Error('Chưa tải được phiếu giữ hàng.');
-        const reservations = await response.json(); root.replaceChildren();
-        if (!reservations.length) { const empty = document.createElement('p'); empty.className = 'account-empty'; empty.textContent = 'Bạn chưa có phiếu giữ hàng nào.'; root.append(empty); return; }
+        const [response, pickupResponse] = await Promise.all([
+          fetch('/api/customer/reservations', {credentials: 'same-origin'}),
+          fetch('/api/customer/reservations/pickup-orders', {credentials: 'same-origin'})
+        ]);
+        if (!response.ok || !pickupResponse.ok) throw new Error('Chưa tải được thông tin nhận hàng. Vui lòng làm mới trang.');
+        const reservations = await response.json();
+        const pickupOrders = await pickupResponse.json();
+        root.replaceChildren();
+        if (!reservations.length && !pickupOrders.length) { const empty = document.createElement('p'); empty.className = 'account-empty'; empty.textContent = 'Bạn chưa có phiếu giữ hàng hoặc đơn nhận tại cửa hàng.'; root.append(empty); return; }
         reservations.forEach(item => {
           const card = document.createElement('article'); card.className = 'customer-reservation';
           const heading = document.createElement('div'); heading.className = 'customer-reservation__heading';
@@ -114,6 +119,28 @@
               if (result.ok) render(); else { cancel.disabled = false; cancel.textContent = 'Chưa hủy được'; }
             }); card.append(cancel);
           }
+          root.append(card);
+        });
+        if (pickupOrders.length) {
+          const subheading = document.createElement('h3');
+          subheading.className = 'pickup-orders-heading';
+          subheading.textContent = 'Đơn hàng đã chọn nhận tại chi nhánh';
+          root.append(subheading);
+        }
+        pickupOrders.forEach(item => {
+          const card = document.createElement('article'); card.className = 'customer-reservation customer-pickup-order';
+          const heading = document.createElement('div'); heading.className = 'customer-reservation__heading';
+          const code = document.createElement('strong'); code.textContent = `Đơn hàng #${item.id} · ${item.storeName}`;
+          const status = document.createElement('span');
+          status.textContent = ({PENDING:'Chờ xác nhận',CONFIRMED:'Đã xác nhận',PROCESSING:'Đang chuẩn bị',SHIPPING:'Đang giao đến chi nhánh',DELIVERED:'Đã nhận',CANCELLED:'Đã hủy',RETURNED:'Đã hoàn trả'})[String(item.status || '').toUpperCase()] || item.status || 'Đang xử lý';
+          heading.append(code, status); card.append(heading);
+          const address = document.createElement('p'); address.textContent = item.storeAddress || 'Chi nhánh nhận hàng'; card.append(address);
+          const lines = document.createElement('p');
+          lines.textContent = (item.items || []).map(line => `${line.productName} × ${line.quantity}`).join(' · ') || 'Không có thông tin sản phẩm';
+          card.append(lines);
+          const details = document.createElement('small');
+          details.textContent = `Đặt lúc ${new Date(item.createdAt).toLocaleString('vi-VN')} · ${Number(item.totalAmount || 0).toLocaleString('vi-VN')} đ · ${String(item.paymentStatus || 'UNPAID').toUpperCase() === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}`;
+          card.append(details);
           root.append(card);
         });
       } catch (error) { root.textContent = error.message; }
