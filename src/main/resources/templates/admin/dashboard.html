@@ -17,20 +17,21 @@
     </section>
 
     <section class="control-panel" id="stock-alerts">
-        <div class="control-panel__heading"><div><span class="control-panel__kicker">CẦN ƯU TIÊN</span><h2>Cảnh báo tồn kho chi nhánh</h2><p>Ngưỡng cảnh báo hiện tại: còn tối đa <b th:text="${operations.lowStockThreshold}">3</b> sản phẩm khả dụng. Mức đề xuất sau điều chuyển: <b th:text="${operations.targetStockLevel}">5</b>.</p></div><a class="control-tower__text-link" th:href="@{/admin/locations/warehouses}">Quản lý nguồn hàng <i class="fa-solid fa-arrow-right"></i></a></div>
-        <div class="control-table-wrap"><table class="control-table"><thead><tr><th>Mức độ</th><th>Sản phẩm</th><th>Chi nhánh</th><th>Tồn khả dụng</th><th>Nguồn kho đề xuất</th><th>Phê duyệt hành động</th></tr></thead><tbody>
+        <div class="control-panel__heading"><div><span class="control-panel__kicker">CẦN ƯU TIÊN</span><h2>Cảnh báo tồn kho chi nhánh</h2><p>Dựa trên bán hàng 30 ngày gần nhất, thời gian bổ sung dự kiến <b th:text="${operations.replenishmentLeadTimeDays}">7</b> ngày, mục tiêu duy trì <b th:text="${operations.targetCoverDays}">14</b> ngày hàng và mức dự trữ cơ bản <b th:text="${operations.baseReorderPoint}">3</b> sản phẩm.</p></div><a class="control-tower__text-link" th:href="@{/admin/locations/warehouses}">Quản lý nguồn hàng <i class="fa-solid fa-arrow-right"></i></a></div>
+        <div class="control-table-wrap"><table class="control-table"><thead><tr><th>Mức độ</th><th>Sản phẩm</th><th>Chi nhánh</th><th>Tồn khả dụng</th><th>Bán 30 ngày / ngày tồn</th><th>Nguồn kho đề xuất</th><th>Phê duyệt hành động</th></tr></thead><tbody>
             <tr th:each="alert : ${operations.stockAlerts}">
                 <td><span class="control-badge" th:classappend="${alert.availableQuantity == 0 ? 'control-badge--critical' : 'control-badge--warning'}" th:text="${alert.availableQuantity == 0 ? 'Hết hàng' : 'Sắp hết'}">Sắp hết</span></td>
                 <td><strong th:text="${alert.productName}">Sản phẩm</strong><small>Mã SP <span th:text="${alert.productId}">0</span></small></td>
-                <td th:text="${alert.storeName}">Chi nhánh</td><td><strong th:text="${alert.availableQuantity}">0</strong> sản phẩm</td>
+                <td th:text="${alert.storeName}">Chi nhánh</td><td><strong th:text="${alert.availableQuantity}">0</strong> sản phẩm<small>Điểm đặt lại: <span th:text="${alert.reorderPoint}">3</span></small></td>
+                <td><strong th:text="${alert.unitsSoldLast30Days}">0</strong> đã bán<small>Còn khoảng <span th:text="${alert.daysOfCover == null ? '—' : alert.daysOfCover}">—</span> ngày hàng</small></td>
                 <td th:if="${alert.sourceWarehouseId != null}"><strong th:text="${alert.sourceWarehouseName}">Kho</strong><small>Có thể chuyển tối đa <span th:text="${alert.sourceWarehouseAvailable}">0</span></small></td>
                 <td th:unless="${alert.sourceWarehouseId != null}" class="control-table__muted">Chưa có nguồn khả dụng</td>
                 <td th:if="${alert.sourceWarehouseId != null and alert.proposedQuantity > 0}"><form class="control-transfer-form" th:action="@{/admin/operations/transfers}" method="post"><input type="hidden" name="productId" th:value="${alert.productId}"><input type="hidden" name="sourceWarehouseId" th:value="${alert.sourceWarehouseId}"><input type="hidden" name="destinationStoreId" th:value="${alert.storeId}"><label><span class="visually-hidden">Số lượng điều chuyển</span><input type="number" name="quantity" min="1" th:max="${alert.sourceWarehouseAvailable}" th:value="${alert.proposedQuantity}" required></label><button type="submit" th:text="${'Duyệt chuyển ' + alert.proposedQuantity}">Duyệt điều chuyển</button></form></td>
                 <td th:unless="${alert.sourceWarehouseId != null and alert.proposedQuantity > 0}"><a class="control-tower__text-link" th:href="@{/admin/locations/warehouses}">Kiểm tra nguồn hàng</a></td>
             </tr>
-            <tr th:if="${#lists.isEmpty(operations.stockAlerts)}"><td colspan="6" class="control-table__empty"><i class="fa-solid fa-circle-check"></i><strong>Không có cảnh báo tồn thấp</strong><span>Các mặt hàng đã ghi nhận đều cao hơn ngưỡng hiện tại.</span></td></tr>
+            <tr th:if="${#lists.isEmpty(operations.stockAlerts)}"><td colspan="7" class="control-table__empty"><i class="fa-solid fa-circle-check"></i><strong>Không có cảnh báo tồn thấp</strong><span>Các mặt hàng đã ghi nhận đều cao hơn ngưỡng tính theo nhu cầu hiện tại.</span></td></tr>
         </tbody></table></div>
-        <p class="control-panel__footnote">Điều chuyển chỉ được tạo sau khi bạn bấm duyệt. Chi nhánh xác nhận thực nhận tại mục hoạt động chi nhánh.</p>
+        <p class="control-panel__footnote">Mức tồn mục tiêu dựa trên nhu cầu 14 ngày và dự trữ an toàn. Với sản phẩm chưa bán trong 30 ngày, hệ thống dùng ngưỡng cơ bản. Điều chuyển chỉ tạo sau khi bạn bấm duyệt; chi nhánh xác nhận khi nhận hàng.</p>
     </section>
 
     <div class="control-tower__lower-grid">

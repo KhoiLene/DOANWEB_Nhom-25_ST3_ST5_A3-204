@@ -6,6 +6,7 @@ import com.shopchain.entity.StockTransfer;
 import com.shopchain.entity.Store;
 import com.shopchain.entity.Warehouse;
 import com.shopchain.repository.OrderRepository;
+import com.shopchain.repository.OrderItemRepository;
 import com.shopchain.repository.ProductInventoryRepository;
 import com.shopchain.repository.StockTransferRepository;
 import com.shopchain.repository.StoreRepository;
@@ -15,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -25,23 +28,29 @@ import java.util.stream.Collectors;
 
 @Service
 public class OperationsControlTowerService {
-    private static final int LOW_STOCK_THRESHOLD = 3;
-    private static final int TARGET_STOCK_LEVEL = 5;
+    private static final int BASE_REORDER_POINT = 3;
+    private static final int LEAD_TIME_DAYS = 7;
+    private static final int TARGET_COVER_DAYS = 14;
+    private static final int SAFETY_STOCK_UNITS = 2;
+    private static final int SALES_LOOKBACK_DAYS = 30;
     private static final Set<String> ACTION_ORDER_STATUSES = Set.of("PENDING", "CONFIRMED");
     private static final Set<String> OPEN_ORDER_STATUSES = Set.of("PENDING", "CONFIRMED", "PROCESSING", "SHIPPING");
 
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ProductInventoryRepository inventoryRepository;
     private final StoreRepository storeRepository;
     private final WarehouseRepository warehouseRepository;
     private final StockTransferRepository transferRepository;
 
     public OperationsControlTowerService(OrderRepository orderRepository,
+                                         OrderItemRepository orderItemRepository,
                                          ProductInventoryRepository inventoryRepository,
                                          StoreRepository storeRepository,
                                          WarehouseRepository warehouseRepository,
                                          StockTransferRepository transferRepository) {
         this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
         this.inventoryRepository = inventoryRepository;
         this.storeRepository = storeRepository;
         this.warehouseRepository = warehouseRepository;
@@ -55,6 +64,10 @@ public class OperationsControlTowerService {
         List<Order> orders = orderRepository.findAll();
         List<ProductInventory> inventories = inventoryRepository.findAll();
         List<StockTransfer> transfers = transferRepository.findAll();
+        Map<String, Long> salesByProductStore = orderItemRepository
+                .findStoreProductSalesSince(LocalDateTime.now().minusDays(SALES_LOOKBACK_DAYS)).stream()
+                .collect(Collectors.toMap(sales -> key(sales.getProductId(), sales.getStoreId()),
+                        sales -> sales.getUnitsSold() == null ? 0L : sales.getUnitsSold()));
 
         Map<Long, Store> storesById = activeStores.stream().collect(Collectors.toMap(Store::getId, store -> store));
         Set<Long> activeWarehouseIds = activeWarehouses.stream().map(Warehouse::getId).collect(Collectors.toSet());
@@ -67,8 +80,10 @@ public class OperationsControlTowerService {
         List<StockAlert> stockAlerts = inventories.stream()
                 .filter(row -> row.getStore() != null && storesById.containsKey(row.getStore().getId()))
                 .filter(OperationsControlTowerService::isActive)
-                .filter(row -> row.availableQuantity() <= LOW_STOCK_THRESHOLD)
-                .map(row -> toAlert(row, warehouseStocksByProduct.getOrDefault(row.getProduct().getId(), List.of())))
+                .filter(row -> row.availableQuantity() <= reorderPoint(salesByProductStore.getOrDefault(
+                        key(row.getProduct().getId(), row.getStore().getId()), 0L)))
+                .map(row -> toAlert(row, warehouseStocksByProduct.getOrDefault(row.getProduct().getId(), List.of()),
+                        salesByProductStore.getOrDefault(key(row.getProduct().getId(), row.getStore().getId()), 0L)))
                 .sorted(Comparator.comparingInt((StockAlert alert) -> alert.availableQuantity() == 0 ? 0 : 1)
                         .thenComparingInt(StockAlert::availableQuantity)
                         .thenComparing(StockAlert::storeName)
@@ -85,7 +100,8 @@ public class OperationsControlTowerService {
         long lowStockCount = inventories.stream()
                 .filter(row -> row.getStore() != null && storesById.containsKey(row.getStore().getId()))
                 .filter(OperationsControlTowerService::isActive)
-                .filter(row -> row.availableQuantity() <= LOW_STOCK_THRESHOLD).count();
+                .filter(row -> row.availableQuantity() <= reorderPoint(salesByProductStore.getOrDefault(
+                        key(row.getProduct().getId(), row.getStore().getId()), 0L))).count();
         long outOfStockCount = inventories.stream()
                 .filter(row -> row.getStore() != null && storesById.containsKey(row.getStore().getId()))
                 .filter(OperationsControlTowerService::isActive)
@@ -103,7 +119,8 @@ public class OperationsControlTowerService {
         Map<Long, Long> stockIssuesByStore = inventories.stream()
                 .filter(row -> row.getStore() != null && storesById.containsKey(row.getStore().getId()))
                 .filter(OperationsControlTowerService::isActive)
-                .filter(row -> row.availableQuantity() <= LOW_STOCK_THRESHOLD)
+                .filter(row -> row.availableQuantity() <= reorderPoint(salesByProductStore.getOrDefault(
+                        key(row.getProduct().getId(), row.getStore().getId()), 0L)))
                 .collect(Collectors.groupingBy(row -> row.getStore().getId(), Collectors.counting()));
         Map<Long, Long> transfersByStore = transfers.stream()
                 .filter(transfer -> "IN_TRANSIT".equalsIgnoreCase(transfer.getStatus()))
@@ -134,21 +151,44 @@ public class OperationsControlTowerService {
                 .toList();
 
         return new Overview(activeStores.size(), activeWarehouses.size(), ordersNeedingAction, openOrders,
-                lowStockCount, outOfStockCount, transfersWaiting, monthRevenue, LOW_STOCK_THRESHOLD,
-                TARGET_STOCK_LEVEL, actionOrders.stream().map(order -> new OrderPulse(order.getId(),
+                lowStockCount, outOfStockCount, transfersWaiting, monthRevenue, BASE_REORDER_POINT,
+                LEAD_TIME_DAYS, TARGET_COVER_DAYS, actionOrders.stream().map(order -> new OrderPulse(order.getId(),
                         order.getCustomerName(), order.getStore() == null ? "Chưa gán điểm bán" : order.getStore().getName(),
                         order.getStatus(), order.getTotalAmount(), order.getOrderDate())).toList(),
                 stockAlerts, branches, pendingTransfers, LocalDateTime.now());
     }
 
-    private StockAlert toAlert(ProductInventory row, List<ProductInventory> warehouseRows) {
+    private StockAlert toAlert(ProductInventory row, List<ProductInventory> warehouseRows, long unitsSoldLast30Days) {
         ProductInventory source = warehouseRows.stream().filter(stock -> stock.availableQuantity() > 0)
                 .max(Comparator.comparingInt(ProductInventory::availableQuantity)).orElse(null);
         int availableAtStore = row.availableQuantity();
-        int proposed = source == null ? 0 : Math.min(Math.max(1, TARGET_STOCK_LEVEL - availableAtStore), source.availableQuantity());
+        int reorderPoint = reorderPoint(unitsSoldLast30Days);
+        int targetStock = targetStock(unitsSoldLast30Days);
+        int proposed = source == null ? 0 : Math.min(Math.max(1, targetStock - availableAtStore), source.availableQuantity());
+        double averageDailySales = unitsSoldLast30Days / (double) SALES_LOOKBACK_DAYS;
+        Integer daysOfCover = averageDailySales <= 0 ? null : (int) Math.floor(availableAtStore / averageDailySales);
         return new StockAlert(row.getProduct().getId(), row.getProduct().getName(), row.getStore().getId(),
                 row.getStore().getName(), availableAtStore, source == null ? null : source.getWarehouse().getId(),
-                source == null ? null : source.getWarehouse().getName(), source == null ? 0 : source.availableQuantity(), proposed);
+                source == null ? null : source.getWarehouse().getName(), source == null ? 0 : source.availableQuantity(),
+                proposed, unitsSoldLast30Days, averageDailySales, daysOfCover, reorderPoint, targetStock);
+    }
+
+    private int reorderPoint(long unitsSoldLast30Days) {
+        double dailyDemand = Math.max(0, unitsSoldLast30Days) / (double) SALES_LOOKBACK_DAYS;
+        return Math.max(BASE_REORDER_POINT,
+                BigDecimal.valueOf(dailyDemand * LEAD_TIME_DAYS + SAFETY_STOCK_UNITS)
+                        .setScale(0, RoundingMode.CEILING).intValue());
+    }
+
+    private int targetStock(long unitsSoldLast30Days) {
+        double dailyDemand = Math.max(0, unitsSoldLast30Days) / (double) SALES_LOOKBACK_DAYS;
+        return Math.max(reorderPoint(unitsSoldLast30Days) + 1,
+                BigDecimal.valueOf(dailyDemand * TARGET_COVER_DAYS + SAFETY_STOCK_UNITS)
+                        .setScale(0, RoundingMode.CEILING).intValue());
+    }
+
+    private static String key(Long productId, Long storeId) {
+        return productId + ":" + storeId;
     }
 
     private static boolean isActive(ProductInventory row) {
@@ -161,14 +201,16 @@ public class OperationsControlTowerService {
 
     public record Overview(int activeStores, int activeWarehouses, long ordersNeedingAction, long openOrders,
                            long lowStockCount, long outOfStockCount, long transfersWaiting, double monthRevenue,
-                           int lowStockThreshold, int targetStockLevel, List<OrderPulse> actionOrders,
+                           int baseReorderPoint, int replenishmentLeadTimeDays, int targetCoverDays,
+                           List<OrderPulse> actionOrders,
                            List<StockAlert> stockAlerts, List<BranchPulse> branches,
                            List<TransferPulse> pendingTransfers, LocalDateTime refreshedAt) { }
     public record OrderPulse(Long id, String customerName, String storeName, String status,
                              Double totalAmount, LocalDateTime orderDate) { }
     public record StockAlert(Long productId, String productName, Long storeId, String storeName,
                              int availableQuantity, Long sourceWarehouseId, String sourceWarehouseName,
-                             int sourceWarehouseAvailable, int proposedQuantity) { }
+                             int sourceWarehouseAvailable, int proposedQuantity, long unitsSoldLast30Days,
+                             double averageDailySales, Integer daysOfCover, int reorderPoint, int targetStock) { }
     public record BranchPulse(Long id, String name, String city, long ordersNeedingAction,
                               long openOrders, long stockAlerts, long transfersWaiting) { }
     public record TransferPulse(Long id, String productName, String sourceWarehouseName,
