@@ -49,7 +49,7 @@
             <h2 class="auth-form__heading">Đăng nhập</h2>
             <p class="auth-form__sub">
                 Chưa có tài khoản?
-                <a th:href="@{/register}">Đăng ký ngay</a>
+                <a th:href="@{/register(returnTo=${returnTo})}">Đăng ký ngay</a>
             </p>
 
             <div th:if="${error}" class="auth-message error is-show" role="alert" th:text="${error}"></div>

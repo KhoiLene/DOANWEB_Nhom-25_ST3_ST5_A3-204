@@ -41,13 +41,14 @@
     <!-- Right: form -->
     <section class="auth-form-wrap">
         <form class="auth-form register-form" th:action="@{/register-process}" method="post">
+            <input type="hidden" name="returnTo" th:value="${returnTo}">
             <a th:href="@{/}" class="auth-form__back">
                 <i class="fa-solid fa-arrow-left"></i> Về cửa hàng
             </a>
 
             <span class="auth-form__eyebrow">TẠO TÀI KHOẢN MIỄN PHÍ</span>
             <h2 class="auth-form__heading">Đăng ký khách hàng</h2>
-            <p class="auth-form__sub">Bạn đã có tài khoản? <a th:href="@{/login}">Đăng nhập</a></p>
+            <p class="auth-form__sub">Bạn đã có tài khoản? <a th:href="@{/login(returnTo=${returnTo})}">Đăng nhập</a></p>
 
             <div th:if="${error}" class="auth-message error is-show" role="alert" th:text="${error}"></div>
 

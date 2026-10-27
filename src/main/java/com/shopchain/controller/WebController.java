@@ -350,20 +350,23 @@ public class WebController {
     }
 
     @GetMapping("/register")
-    public String register() {
+    public String register(@RequestParam(required = false) String returnTo, Model model) {
+        model.addAttribute("returnTo", safeLocalReturnTo(returnTo));
         return "register";
     }
 
     @PostMapping("/register-process")
     public String registerProcess(@RequestParam String username, @RequestParam String password,
                                   @RequestParam String email, @RequestParam String fullName,
-                                  @RequestParam String phone, @RequestParam String confirmPassword, Model model) {
+                                  @RequestParam String phone, @RequestParam String confirmPassword,
+                                  @RequestParam(required = false) String returnTo, Model model) {
         try {
             if (!password.equals(confirmPassword))
                 throw new IllegalArgumentException("Mật khẩu xác nhận chưa khớp.");
             RegisterRequest request = new RegisterRequest(username, password, email, fullName, phone);
             String message = authService.register(request);
             model.addAttribute("message", message);
+            model.addAttribute("returnTo", safeLocalReturnTo(returnTo));
             return "register-success";
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage() == null ? "Không thể tạo tài khoản. Vui lòng kiểm tra lại thông tin." : e.getMessage());
@@ -371,6 +374,7 @@ public class WebController {
             model.addAttribute("registerEmail", email);
             model.addAttribute("registerFullName", fullName);
             model.addAttribute("registerPhone", phone);
+            model.addAttribute("returnTo", safeLocalReturnTo(returnTo));
             return "register";
         }
     }

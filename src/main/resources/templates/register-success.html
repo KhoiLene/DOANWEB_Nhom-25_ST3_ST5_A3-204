@@ -21,7 +21,7 @@
         <span class="auth-form__eyebrow">HOÀN TẤT ĐĂNG KÝ</span>
         <h1 class="auth-form__heading">Tài khoản đã sẵn sàng</h1>
         <p class="auth-form__sub" th:text="${message}">Bạn có thể đăng nhập ngay bằng tên đăng nhập hoặc email.</p>
-        <a th:href="@{/login}" class="btn btn-primary"><span>Đăng nhập</span><i class="fa-solid fa-arrow-right"></i></a>
+        <a th:href="@{/login(returnTo=${returnTo})}" class="btn btn-primary"><span>Đăng nhập</span><i class="fa-solid fa-arrow-right"></i></a>
         <a th:href="@{/products}" class="auth-success-card__browse">Tiếp tục xem sản phẩm</a>
       </div>
     </section>
