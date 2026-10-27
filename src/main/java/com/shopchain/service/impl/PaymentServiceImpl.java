@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -30,9 +32,16 @@ public class PaymentServiceImpl implements PaymentService {
     public String createVnPayPaymentUrl(Long orderId, Double amount) {
         String tmnCode = settingService.getSetting("vnpay.tmnCode", "");
         String hashSecret = settingService.getSetting("vnpay.hashSecret", "");
+        if (tmnCode.isBlank() || hashSecret.isBlank()) {
+            throw new IllegalStateException("Chưa cấu hình thông tin kết nối VNPay.");
+        }
+        if (orderId == null || orderId <= 0 || amount == null || !Double.isFinite(amount) || amount <= 0) {
+            throw new IllegalArgumentException("Thông tin thanh toán không hợp lệ.");
+        }
 
         String vnp_TxnRef = String.valueOf(orderId);
-        String vnp_Amount = String.valueOf((long)(amount * 100)); // VNPay tính đơn vị đồng, nhân 100
+        String vnp_Amount = String.valueOf(BigDecimal.valueOf(amount).movePointRight(2)
+                .setScale(0, RoundingMode.HALF_UP).longValueExact());
         String vnp_Command = "pay";
         String vnp_CurrCode = "VND";
         String vnp_Version = "2.1.0";
@@ -67,8 +76,13 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public boolean verifyVnPayPayment(Map<String, String> params) {
         String hashSecret = settingService.getSetting("vnpay.hashSecret", "");
+        String expectedMerchantCode = settingService.getSetting("vnpay.tmnCode", "");
+        if (hashSecret.isBlank() || expectedMerchantCode.isBlank() || params == null
+                || !expectedMerchantCode.equals(params.get("vnp_TmnCode"))) {
+            return false;
+        }
         String vnp_SecureHash = params.get("vnp_SecureHash");
-        if (vnp_SecureHash == null || vnp_SecureHash.isBlank()) {
+        if (vnp_SecureHash == null || !vnp_SecureHash.matches("[a-fA-F0-9]{128}")) {
             return false;
         }
 

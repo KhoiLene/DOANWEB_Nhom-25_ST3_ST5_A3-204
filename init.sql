@@ -18,16 +18,25 @@ begin
 end$$;
 
 grant usage on schema public to anon, authenticated, service_role;
-grant all privileges on all tables    in schema public to anon, authenticated, service_role;
-grant all privileges on all sequences in schema public to anon, authenticated, service_role;
-grant all privileges on all functions in schema public to anon, authenticated, service_role;
+revoke all privileges on all tables in schema public from anon, authenticated;
+grant all privileges on all tables in schema public to service_role;
+revoke all privileges on all sequences in schema public from anon, authenticated;
+grant all privileges on all sequences in schema public to service_role;
+revoke execute on all functions in schema public from public, anon, authenticated;
+grant execute on all functions in schema public to service_role;
 
 alter default privileges in schema public
-  grant all privileges on tables    to anon, authenticated, service_role;
+  revoke all privileges on tables from anon, authenticated;
 alter default privileges in schema public
-  grant all privileges on sequences to anon, authenticated, service_role;
+  grant all privileges on tables to service_role;
 alter default privileges in schema public
-  grant all privileges on functions to anon, authenticated, service_role;
+  revoke all privileges on sequences from anon, authenticated;
+alter default privileges in schema public
+  grant all privileges on sequences to service_role;
+alter default privileges in schema public
+  revoke execute on functions from public, anon, authenticated;
+alter default privileges in schema public
+  grant execute on functions to service_role;
 
 create table if not exists product_groups (
   id             serial primary key,
@@ -747,35 +756,6 @@ from customer_vouchers v
 left join customers c on c.id = v.customer_id
 where v.is_active = true;
 
-do $$
-declare
-  t text;
-  tbls text[] := array[
-    'products','product_groups','price_list','product_shipping_services',
-    'customers','orders','order_items','admins','users','posts','news_categories',
-    'homepage_banners','homepage_sections','homepage_section_products','homepage_config',
-    'homepage_values','homepage_promo_banners','homepage_articles','homepage_blog','homepage_picks',
-    'transactions','product_reviews','upload_groups','about_content','videos',
-    'customer_stats','customer_vouchers'
-  ];
-begin
-  foreach t in array tbls loop
-    execute format('alter table %I enable row level security', t);
-    execute format('drop policy if exists "allow_all_%s" on %I', t, t);
-    execute format('create policy "allow_all_%s" on %I for all using (true) with check (true)', t, t);
-  end loop;
-end $$;
-
-alter table site_settings enable row level security;
-drop policy if exists p_anon_read_site_settings on site_settings;
-create policy p_anon_read_site_settings on site_settings for select to anon, authenticated using (true);
-drop policy if exists p_anon_write_site_settings on site_settings;
-create policy p_anon_write_site_settings on site_settings for insert to anon, authenticated with check (true);
-drop policy if exists p_anon_update_site_settings on site_settings;
-create policy p_anon_update_site_settings on site_settings for update to anon, authenticated using (true) with check (true);
-drop policy if exists p_anon_read_vouchers on customer_vouchers;
-create policy p_anon_read_vouchers on customer_vouchers for select to anon, authenticated using (true);
-
 insert into admins (name, email, password, role, admin_priority) values
   ('Super Admin', 'admin@techtra.vn', '$2b$10$placeholder_hash_change_me', 'superadmin', 1)
 on conflict (email) do nothing;
@@ -861,3 +841,67 @@ create table if not exists categories (
 
 alter table products
   add column if not exists category_id bigint references categories(id) on delete set null;
+
+-- RLS defaults to deny for browser roles. The server-side backend should use service_role.
+do $$
+declare
+  t text;
+  tbls text[] := array[
+    'products','product_groups','price_list','product_shipping_services',
+    'customers','orders','order_items','admins','users','posts','news_categories',
+    'homepage_banners','homepage_sections','homepage_section_products','homepage_config',
+    'homepage_values','homepage_promo_banners','homepage_articles','homepage_blog','homepage_picks',
+    'transactions','product_reviews','upload_groups','about_content','videos',
+    'customer_stats','customer_vouchers','site_settings','categories'
+  ];
+begin
+  foreach t in array tbls loop
+    execute format('alter table %I enable row level security', t);
+    execute format('drop policy if exists "allow_all_%s" on %I', t, t);
+    execute format('drop policy if exists "service_role_all_%s" on %I', t, t);
+    execute format('create policy "service_role_all_%s" on %I for all to service_role using (true) with check (true)', t, t);
+  end loop;
+end $$;
+
+drop policy if exists p_anon_read_site_settings on site_settings;
+drop policy if exists p_anon_write_site_settings on site_settings;
+drop policy if exists p_anon_update_site_settings on site_settings;
+drop policy if exists p_anon_read_vouchers on customer_vouchers;
+
+create or replace view v_public_products as
+select id, name, slug, description, group_id, price, final_price, discount, sku,
+       weight, weight_unit, height, width, length, images, image_url, video_url,
+       brand, origin, material, barcode, gtin, category, rating, reviews, is_new,
+       is_featured, is_flash_sale, old_price, flash_sale_discount, flash_sale_end_at,
+       cod_enabled, shipping_type, shipping_method, category_id
+from products
+where is_active = true and status = 'active';
+
+create or replace view v_public_product_groups as
+select id, name, slug, description, image_url, is_slider, sort_order, parent_id,
+       slider_text, intro_title, intro_subtitle, intro_image_url, is_sale
+from product_groups
+where is_active = true;
+
+create or replace view v_public_price_list as
+select id, sku, product_id, name, group_id, group_name, price, discount,
+       final_price, unit, sort_order
+from price_list
+where is_active = true;
+
+create or replace view v_public_posts as
+select id, title, slug, content, thumbnail, published_at, source_url, site_name,
+       summary, excerpt_html, thumbnail_source, category_id, post_type
+from posts
+where status = 'published' and published_at <= now();
+
+create or replace view v_public_product_reviews as
+select id, product_id, rating, comment, reviewer_name, created_at
+from product_reviews
+where is_approved = true;
+
+create or replace view v_public_categories as
+select id, name, slug from categories;
+
+grant select on v_public_products, v_public_product_groups, v_public_price_list,
+  v_public_posts, v_public_product_reviews, v_public_categories to anon, authenticated;

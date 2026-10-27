@@ -16,11 +16,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
-import java.util.Random;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Duration OTP_TTL = Duration.ofMinutes(5);
+    private static final Duration OTP_SEND_COOLDOWN = Duration.ofSeconds(60);
+    private static final int OTP_MAX_ATTEMPTS = 5;
+    private static final String GENERIC_OTP_MESSAGE = "Nếu thông tin phù hợp, mã xác minh sẽ được gửi đến email đã đăng ký.";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -40,8 +49,9 @@ public class AuthServiceImpl implements AuthService {
         this.authenticationManager = authenticationManager;
     }
 
-    // Tạm thời dùng Map để lưu OTP (Trong thực tế nên dùng Redis)
-    private final Map<String, String> otpCache = new ConcurrentHashMap<>();
+    // In-memory challenges are temporary; production multi-instance deployments should use shared Redis storage.
+    private final Map<String, OtpChallenge> otpCache = new ConcurrentHashMap<>();
+    private final Map<String, Instant> otpLastSentAt = new ConcurrentHashMap<>();
 
     @Override
     @Transactional
@@ -89,17 +99,14 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public String verifyOtp(String email, String otp) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
-
-        if (!otp.equals(otpCache.get(email))) {
-            throw new RuntimeException("Invalid OTP code!");
-        }
+        String normalizedEmail = normalizeEmail(email);
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(this::invalidOtpException);
+        verifyAndConsumeOtp(normalizedEmail, otp, "registration");
 
         user.setEnabled(true);
         userRepository.save(user);
-        otpCache.remove(email);
-        return "Account activated successfully!";
+        return "Tài khoản đã được xác minh.";
     }
 
     @Override
@@ -127,55 +134,116 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String sendForgotPasswordOtp(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email not registered!"));
-
-        String otp = generateOtp();
-        otpCache.put(email, "FORGOT_" + otp);
-        sendOtpEmail(email, otp);
-        return "OTP for password reset sent to your email.";
+        String normalizedEmail = normalizeEmail(email);
+        if (userRepository.findByEmailIgnoreCase(normalizedEmail).isEmpty()) return GENERIC_OTP_MESSAGE;
+        sendOtpChallenge(normalizedEmail, "forgot-password");
+        return GENERIC_OTP_MESSAGE;
     }
 
     @Override
     @Transactional
     public String resetPassword(String email, String otp, String newPassword) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
-
-        if (!("FORGOT_" + otp).equals(otpCache.get(email))) {
-            throw new RuntimeException("Invalid OTP code!");
+        String normalizedEmail = normalizeEmail(email);
+        if (newPassword == null || newPassword.length() < 8
+                || newPassword.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new IllegalArgumentException("Mật khẩu cần từ 8 ký tự và tối đa 72 byte.");
         }
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElseThrow(this::invalidOtpException);
+        verifyAndConsumeOtp(normalizedEmail, otp, "forgot-password");
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-        otpCache.remove(email);
-        return "Password reset successfully!";
+        return "Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại.";
     }
 
     @Override
     public String sendRegistrationOtp(String email) {
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email already registered!");
+        String normalizedEmail = normalizeEmail(email);
+        if (userRepository.findByEmailIgnoreCase(normalizedEmail).isEmpty()) {
+            sendOtpChallenge(normalizedEmail, "registration");
         }
-        String otp = generateOtp();
-        otpCache.put(email, otp);
-        sendOtpEmail(email, otp);
-        return "OTP sent to your email for registration.";
+        return GENERIC_OTP_MESSAGE;
     }
 
     @Override
     public void logout() {
     }
 
+    private void sendOtpChallenge(String email, String type) {
+        Instant now = Instant.now();
+        pruneOtpEntries(now);
+        AtomicBoolean allowed = new AtomicBoolean(false);
+        otpLastSentAt.compute(email, (key, previous) -> {
+            if (previous != null && previous.plus(OTP_SEND_COOLDOWN).isAfter(now)) return previous;
+            allowed.set(true);
+            return now;
+        });
+        if (!allowed.get()) return;
+
+        String otp = generateOtp();
+        otpCache.put(email, new OtpChallenge(otp, type, now.plus(OTP_TTL), 0));
+        try {
+            sendOtpEmail(email, otp);
+        } catch (RuntimeException exception) {
+            otpCache.remove(email);
+            otpLastSentAt.remove(email, now);
+            throw new IllegalStateException("Không thể gửi mã xác minh lúc này. Vui lòng thử lại sau.");
+        }
+    }
+
+    private void verifyAndConsumeOtp(String email, String submittedOtp, String expectedType) {
+        if (submittedOtp == null || !submittedOtp.matches("[0-9]{6}")) throw invalidOtpException();
+        AtomicBoolean verified = new AtomicBoolean(false);
+        Instant now = Instant.now();
+        otpCache.compute(email, (key, challenge) -> {
+            if (challenge == null || !expectedType.equals(challenge.type())
+                    || !challenge.expiresAt().isAfter(now) || challenge.failedAttempts() >= OTP_MAX_ATTEMPTS) {
+                return null;
+            }
+            boolean matches = MessageDigest.isEqual(challenge.code().getBytes(StandardCharsets.US_ASCII),
+                    submittedOtp.getBytes(StandardCharsets.US_ASCII));
+            if (matches) {
+                verified.set(true);
+                return null;
+            }
+            return new OtpChallenge(challenge.code(), challenge.type(), challenge.expiresAt(),
+                    challenge.failedAttempts() + 1);
+        });
+        if (!verified.get()) throw invalidOtpException();
+        otpLastSentAt.remove(email);
+    }
+
+    private void pruneOtpEntries(Instant now) {
+        otpCache.entrySet().removeIf(entry -> !entry.getValue().expiresAt().isAfter(now));
+        Instant cutoff = now.minus(Duration.ofMinutes(10));
+        otpLastSentAt.entrySet().removeIf(entry -> entry.getValue().isBefore(cutoff));
+        if (otpCache.size() > 10_000) otpCache.clear();
+        if (otpLastSentAt.size() > 10_000) otpLastSentAt.clear();
+    }
+
+    private IllegalArgumentException invalidOtpException() {
+        return new IllegalArgumentException("Mã xác minh không hợp lệ hoặc đã hết hạn.");
+    }
+
+    private String normalizeEmail(String email) {
+        String normalized = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+        if (normalized.length() > 254 || !normalized.matches("^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$")) {
+            throw new IllegalArgumentException("Địa chỉ email chưa đúng định dạng.");
+        }
+        return normalized;
+    }
+
     private String generateOtp() {
-        return String.valueOf(new Random().nextInt(899999) + 100000);
+        return String.format(Locale.ROOT, "%06d", SECURE_RANDOM.nextInt(1_000_000));
     }
 
     private void sendOtpEmail(String to, String otp) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
         message.setSubject("Shop Chain - Verification Code");
-        message.setText("Your verification code is: " + otp + ". This code expires in 5 minutes.");
+        message.setText("Mã xác minh của bạn là: " + otp + ". Mã có hiệu lực trong 5 phút và chỉ dùng một lần.");
         mailSender.send(message);
     }
+
+    private record OtpChallenge(String code, String type, Instant expiresAt, int failedAttempts) { }
 }

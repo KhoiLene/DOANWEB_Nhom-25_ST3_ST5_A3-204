@@ -41,12 +41,11 @@
                             <a th:href="@{/admin/products/edit/{id}(id=${p.id})}" class="btn btn-outline" style="margin-right: 5px;">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </a>
-                            <a th:href="@{/admin/products/delete/{id}(id=${p.id})}"
-                               class="btn btn-danger"
-                               onclick="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')"
-                               style="margin-right: 5px;">
-                                <i class="fa-solid fa-trash"></i>
-                            </a>
+                            <form th:action="@{/admin/products/delete/{id}(id=${p.id})}" method="post"
+                                  style="display: inline; margin-right: 5px;"
+                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')">
+                                <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i></button>
+                            </form>
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(products)}">

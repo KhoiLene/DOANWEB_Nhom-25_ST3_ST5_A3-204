@@ -130,11 +130,26 @@ public class StoreStaffController {
 
     @PostMapping("/sales")
     @ResponseBody
-    public java.util.Map<String, Object> sell(@RequestBody SaleRequest request, Authentication authentication) {
-        var invoice = pointOfSaleService.sell(authentication.getName(), request.customerName(), request.customerPhone(),
-                request.paymentMethod(), request.lines().stream()
-                        .map(line -> new PointOfSaleService.SaleLine(line.productId(), line.quantity())).toList());
-        return java.util.Map.of("invoiceUrl", "/staff/invoices/" + invoice.getId(), "invoiceNumber", invoice.getInvoiceNumber());
+    public org.springframework.http.ResponseEntity<?> sell(@RequestBody(required = false) SaleRequest request,
+                                                           Authentication authentication) {
+        if (request == null || request.lines() == null || request.lines().isEmpty() || request.lines().size() > 100
+                || request.lines().stream().anyMatch(line -> line == null || line.productId() == null || line.quantity() == null)) {
+            return org.springframework.http.ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", "Giỏ hàng tại quầy chưa hợp lệ."));
+        }
+        try {
+            var invoice = pointOfSaleService.sell(authentication.getName(), request.customerName(), request.customerPhone(),
+                    request.paymentMethod(), request.lines().stream()
+                            .map(line -> new PointOfSaleService.SaleLine(line.productId(), line.quantity())).toList());
+            return org.springframework.http.ResponseEntity.ok(java.util.Map.of(
+                    "invoiceUrl", "/staff/invoices/" + invoice.getId(), "invoiceNumber", invoice.getInvoiceNumber()));
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            return org.springframework.http.ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", exception.getMessage()));
+        } catch (RuntimeException exception) {
+            return org.springframework.http.ResponseEntity.internalServerError()
+                    .body(java.util.Map.of("error", "Chưa thể hoàn tất giao dịch. Vui lòng thử lại."));
+        }
     }
 
     public record SaleRequest(String customerName, String customerPhone, String paymentMethod, java.util.List<SaleRequestLine> lines) {}

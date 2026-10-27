@@ -153,6 +153,10 @@ public class WebController {
     @GetMapping("/product/{id}")
     public String productDetail(@PathVariable Long id, Model model, Authentication authentication) {
         Product product = productService.getProductDetail(id);
+        if (Boolean.FALSE.equals(product.getIsActive())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND);
+        }
         model.addAttribute("product", product);
         model.addAttribute("customerLoyaltyPoints", customerLoyaltyPoints(authentication));
         model.addAttribute("reviews", reviewService.getReviewsByProduct(id));

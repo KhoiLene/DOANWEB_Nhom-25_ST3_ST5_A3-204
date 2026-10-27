@@ -54,9 +54,9 @@ public class AdminCategoryController {
         return "admin/layout";
     }
 
-    @GetMapping("/delete/{id}")
+    @PostMapping("/delete/{id}")
     public String deleteCategory(@PathVariable Long id) {
-        categoryRepository.deleteById(id);
+        if (categoryRepository.existsById(id)) categoryRepository.deleteById(id);
         return "redirect:/admin/categories";
     }
 }

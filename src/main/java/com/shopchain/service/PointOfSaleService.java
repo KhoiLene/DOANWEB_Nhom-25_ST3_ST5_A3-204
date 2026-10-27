@@ -30,8 +30,11 @@ public class PointOfSaleService {
                              String paymentMethod, List<SaleLine> requestedLines) {
         User cashier = userRepository.findByUsername(username).orElseThrow();
         if (cashier.getStore() == null) throw new IllegalStateException("Tài khoản chưa được gán chi nhánh.");
-        if (requestedLines == null || requestedLines.isEmpty()) throw new IllegalArgumentException("Giỏ hàng đang trống.");
-        if (!List.of("CASH", "CARD", "BANK_TRANSFER", "OTHER").contains(paymentMethod)) {
+        if (requestedLines == null || requestedLines.isEmpty() || requestedLines.size() > 100)
+            throw new IllegalArgumentException("Giỏ hàng cần có từ 1 đến 100 dòng sản phẩm.");
+        if (customerName != null && customerName.length() > 100 || customerPhone != null && customerPhone.length() > 30)
+            throw new IllegalArgumentException("Thông tin khách hàng quá dài.");
+        if (paymentMethod == null || !List.of("CASH", "CARD", "BANK_TRANSFER", "OTHER").contains(paymentMethod)) {
             throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
         }
 

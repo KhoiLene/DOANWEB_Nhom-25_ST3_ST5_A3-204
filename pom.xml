@@ -5,7 +5,7 @@
 		<parent>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-parent</artifactId>
-			<version>4.1.1</version>
+			<version>4.1.2</version>
 			<relativePath/> <!-- lookup parent from repository -->
 		</parent>
 		<groupId>com.web</groupId>
@@ -38,6 +38,12 @@
 					<version>${spring-ai.version}</version>
 					<type>pom</type>
 					<scope>import</scope>
+				</dependency>
+				<!-- Cloudinary's legacy HttpClient 4 API remains binary-compatible with patched 4.5.x. -->
+				<dependency>
+					<groupId>org.apache.httpcomponents</groupId>
+					<artifactId>httpclient</artifactId>
+					<version>4.5.14</version>
 				</dependency>
 			</dependencies>
 		</dependencyManagement>
@@ -98,7 +104,7 @@
 			<dependency>
 				<groupId>com.cloudinary</groupId>
 				<artifactId>cloudinary-http44</artifactId>
-				<version>1.36.0</version>
+				<version>1.39.0</version>
 			</dependency>
 			<dependency>
 				<groupId>org.projectlombok</groupId>

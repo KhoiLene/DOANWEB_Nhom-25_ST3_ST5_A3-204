@@ -212,9 +212,11 @@ Sau đó chạy lại: `.\mvnw clean spring-boot:run`
 │
 ├── compose.yaml             # Docker Compose cho development (Spring Boot tự dùng)
 ├── docker-compose.yml       # Docker Compose cho production (có thêm Redis)
-├── init.sql                 # SQL schema tham khảo
+├── init.sql                 # SQL schema tham khảo, RLS mặc định chặn truy cập trực tiếp
 └── pom.xml
 ```
+
+> Với cơ sở dữ liệu tham khảo trong `init.sql`, vai trò `anon` và `authenticated` chỉ đọc các view `v_public_*`; backend cần dùng `service_role`. Không cấp quyền ghi trực tiếp cho trình duyệt.
 
 ---
 
@@ -222,7 +224,7 @@ Sau đó chạy lại: `.\mvnw clean spring-boot:run`
 
 | Thành phần | Công nghệ |
 |---|---|
-| Backend | Java 17+, Spring Boot 4.1.1 |
+| Backend | Java 17+, Spring Boot 4.1.2 |
 | Frontend | Thymeleaf (SSR), Bootstrap 5, Vanilla JS |
 | Database | PostgreSQL 16 |
 | Auth | JWT (Stateless) + BCrypt |

@@ -25,7 +25,8 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Mật khẩu ứng dụng (App Password)</label>
-                        <input type="password" name="smtp.pass" th:value="${settings['smtp.pass']}" class="form-control">
+                        <input type="password" name="smtp.pass" class="form-control" autocomplete="new-password" placeholder="Để trống nếu không đổi">
+                        <small th:text="${smtpPasswordConfigured ? 'Đã lưu mật khẩu SMTP.' : 'Chưa cấu hình mật khẩu SMTP.'}">Trạng thái SMTP</small>
                     </div>
                 </div>
 
@@ -36,7 +37,8 @@
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
                     <div class="form-group">
                         <label class="form-label">Zalo Access Token</label>
-                        <input type="text" name="zalo.accessToken" th:value="${settings['zalo.accessToken']}" class="form-control">
+                        <input type="password" name="zalo.accessToken" class="form-control" autocomplete="new-password" placeholder="Để trống nếu không đổi">
+                        <small th:text="${zaloTokenConfigured ? 'Đã lưu Zalo Access Token.' : 'Chưa cấu hình Zalo Access Token.'}">Trạng thái Zalo</small>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Zalo App ID</label>
@@ -55,7 +57,8 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">vnp_HashSecret</label>
-                        <input type="text" name="vnpay.hashSecret" th:value="${settings['vnpay.hashSecret']}" class="form-control">
+                        <input type="password" name="vnpay.hashSecret" class="form-control" autocomplete="new-password" placeholder="Để trống nếu không đổi">
+                        <small th:text="${vnpaySecretConfigured ? 'Đã lưu VNPay Hash Secret.' : 'Chưa cấu hình VNPay Hash Secret.'}">Trạng thái VNPay</small>
                     </div>
                 </div>
 

@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -37,9 +39,31 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public String uploadImage(MultipartFile file) throws IOException {
-        Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
-            com.cloudinary.utils.ObjectUtils.asMap("folder", "shop_products"));
-        return uploadResult.get("url").toString();
+        if (file == null || file.isEmpty()) throw new IllegalArgumentException("Vui lòng chọn ảnh sản phẩm.");
+        if (file.getSize() > 5L * 1024 * 1024) throw new IllegalArgumentException("Ảnh sản phẩm tối đa 5 MB.");
+        byte[] content = file.getBytes();
+        if (!isSupportedImage(content)) throw new IllegalArgumentException("Tệp tải lên phải là ảnh JPEG, PNG, WebP hoặc GIF hợp lệ.");
+
+        Map uploadResult = cloudinary.uploader().upload(content,
+                com.cloudinary.utils.ObjectUtils.asMap("folder", "shop_products", "resource_type", "image",
+                        "unique_filename", true, "overwrite", false, "secure", true));
+        Object secureUrl = uploadResult.get("secure_url");
+        if (secureUrl == null || !secureUrl.toString().startsWith("https://")) {
+            throw new IOException("Cloudinary không trả về địa chỉ ảnh HTTPS hợp lệ.");
+        }
+        return secureUrl.toString();
+    }
+
+    private boolean isSupportedImage(byte[] content) {
+        if (content == null || content.length < 12) return false;
+        boolean png = content.length >= 8 && Arrays.equals(Arrays.copyOf(content, 8),
+                new byte[]{(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a});
+        boolean jpeg = (content[0] & 0xff) == 0xff && (content[1] & 0xff) == 0xd8 && (content[2] & 0xff) == 0xff;
+        boolean gif = content.length >= 6 && ("GIF87a".equals(new String(content, 0, 6, StandardCharsets.US_ASCII))
+                || "GIF89a".equals(new String(content, 0, 6, StandardCharsets.US_ASCII)));
+        boolean webp = "RIFF".equals(new String(content, 0, 4, StandardCharsets.US_ASCII))
+                && "WEBP".equals(new String(content, 8, 4, StandardCharsets.US_ASCII));
+        return png || jpeg || gif || webp;
     }
 
     @Override
@@ -125,6 +149,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = getProductDetail(productId);
         return productRepository.findByCategoryId(product.getCategory().getId(), PageRequest.of(0, 4))
                 .stream()
+                .filter(related -> !Boolean.FALSE.equals(related.getIsActive()))
                 .filter(p -> !p.getId().equals(productId))
                 .toList();
     }

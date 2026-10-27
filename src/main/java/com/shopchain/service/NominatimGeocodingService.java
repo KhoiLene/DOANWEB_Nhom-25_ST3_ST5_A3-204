@@ -10,6 +10,7 @@ import org.springframework.web.client.RestClientException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -85,7 +86,19 @@ public class NominatimGeocodingService {
         }
         List<AddressSuggestion> results = parseResults(response);
         cache.put(cacheKey, new CacheEntry(Instant.now(), results));
-        if (cache.size() > 500) cache.entrySet().removeIf(entry -> entry.getValue().createdAt().plus(CACHE_TTL).isBefore(Instant.now()));
+        if (cache.size() > 500) {
+            Instant cutoff = Instant.now().minus(CACHE_TTL);
+            cache.entrySet().removeIf(entry -> entry.getValue().createdAt().isBefore(cutoff));
+            int excess = cache.size() - 500;
+            if (excess > 0) {
+                cache.entrySet().stream()
+                        .sorted(Comparator.comparing(entry -> entry.getValue().createdAt()))
+                        .limit(excess)
+                        .map(java.util.Map.Entry::getKey)
+                        .toList()
+                        .forEach(cache::remove);
+            }
+        }
         return results;
     }
 
