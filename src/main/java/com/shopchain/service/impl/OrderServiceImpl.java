@@ -24,6 +24,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository userRepository;
     private final StoreRepository storeRepository;
     private final ProductInventoryRepository inventoryRepository;
+    private final InventoryMovementRepository movementRepository;
     private final NotificationService notificationService;
     private final WarehouseRepository warehouseRepository;
     private final LoyaltyService loyaltyService;
@@ -32,13 +33,15 @@ public class OrderServiceImpl implements OrderService {
 
     public OrderServiceImpl(OrderRepository orderRepository, CartRepository cartRepository,
                             UserRepository userRepository, StoreRepository storeRepository,
-                            ProductInventoryRepository inventoryRepository, NotificationService notificationService,
+                            ProductInventoryRepository inventoryRepository, InventoryMovementRepository movementRepository,
+                            NotificationService notificationService,
                             WarehouseRepository warehouseRepository, LoyaltyService loyaltyService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.storeRepository = storeRepository;
         this.inventoryRepository = inventoryRepository;
+        this.movementRepository = movementRepository;
         this.notificationService = notificationService;
         this.warehouseRepository = warehouseRepository;
         this.loyaltyService = loyaltyService;
@@ -76,6 +79,7 @@ public class OrderServiceImpl implements OrderService {
         // Initialize explicitly even when Lombok builder defaults differ between build outputs.
         order.setOrderItems(new java.util.ArrayList<>());
         double total = 0;
+        List<InventoryMovement> movements = new java.util.ArrayList<>();
         for (CartItem item : cart.getItems().stream()
                 .sorted(java.util.Comparator.comparing(entry -> entry.getProduct().getId())).toList()) {
             ProductInventory inventory = warehouse == null
@@ -87,6 +91,12 @@ public class OrderServiceImpl implements OrderService {
                 throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm " + item.getProduct().getName());
             inventory.setStockQuantity(inventory.getStockQuantity() - item.getQuantity());
             inventoryRepository.save(inventory);
+            InventoryMovement.InventoryMovementBuilder movement = InventoryMovement.builder()
+                    .product(item.getProduct()).performedBy(user).movementType("ONLINE_SALE")
+                    .quantity(item.getQuantity());
+            if (warehouse == null) movement.store(store);
+            else movement.warehouse(warehouse);
+            movements.add(movement.build());
             double unitPrice = item.getProduct().effectivePrice(inventory.getPrice(), user.getLoyaltyPoints());
             total += unitPrice * item.getQuantity();
             order.getOrderItems().add(OrderItem.builder().order(order).product(item.getProduct())
@@ -94,6 +104,8 @@ public class OrderServiceImpl implements OrderService {
         }
         order.setTotalAmount(total);
         Order saved = orderRepository.save(order);
+        movements.forEach(movement -> movement.setNote("Đơn trực tuyến #" + saved.getId()));
+        movementRepository.saveAll(movements);
         notificationService.sendNotificationToStore(storeId, NotificationRequest.builder()
                 .message("Đơn trực tuyến #" + saved.getId() + " mới được tạo")
                 .type("ORDER_NEW").orderId(saved.getId()).build());
@@ -151,6 +163,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         double total = 0;
+        List<InventoryMovement> movements = new java.util.ArrayList<>();
         Order order = Order.builder()
                 .user(user)
                 .store(store)
@@ -175,11 +188,15 @@ public class OrderServiceImpl implements OrderService {
             total += unitPrice * item.getQuantity();
             inv.setStockQuantity(inv.getStockQuantity() - item.getQuantity());
             inventoryRepository.save(inv);
+            movements.add(InventoryMovement.builder().product(item.getProduct()).store(store)
+                    .performedBy(user).movementType("ONLINE_SALE").quantity(item.getQuantity()).build());
             // Note: orderItem saving logic would normally be handled by JPA cascade
         }
 
         order.setTotalAmount(total);
         Order savedOrder = orderRepository.save(order);
+        movements.forEach(movement -> movement.setNote("Đơn trực tuyến #" + savedOrder.getId()));
+        movementRepository.saveAll(movements);
 
         // --- INTEGRATE WEBSOCKET NOTIFICATION ---
         notificationService.sendNotificationToStore(storeId, NotificationRequest.builder()
@@ -206,6 +223,13 @@ public class OrderServiceImpl implements OrderService {
                 if (inventory != null) {
                     inventory.setStockQuantity(inventory.getStockQuantity() + item.getQuantity());
                     inventoryRepository.save(inventory);
+                    InventoryMovement.InventoryMovementBuilder movement = InventoryMovement.builder()
+                            .product(item.getProduct())
+                            .movementType("ORDER_CANCEL_RETURN").quantity(item.getQuantity())
+                            .note("Hoàn tồn đơn #" + order.getId());
+                    if (order.getFulfillmentWarehouse() == null) movement.store(order.getStore());
+                    else movement.warehouse(order.getFulfillmentWarehouse());
+                    movementRepository.save(movement.build());
                 }
             }
         }

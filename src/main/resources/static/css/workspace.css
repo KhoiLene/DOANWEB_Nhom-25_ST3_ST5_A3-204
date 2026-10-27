@@ -50,6 +50,9 @@ body.workspace-body {
 .workspace-page { width: min(1280px, calc(100% - 40px)); margin: 0 auto; padding: 32px 0 56px; }
 .workspace-page__heading { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 22px; }
 .workspace-page__heading p, .workspace-muted { color: var(--workspace-muted); margin: 0; }
+.workspace-notice { margin: 0 0 18px; padding: 12px 16px; border: 1px solid var(--workspace-border); border-radius: 10px; background: var(--workspace-surface); font-weight: 600; }
+.workspace-notice--success { border-color: #b7e4ce; background: #effaf4; color: #176b43; }
+.workspace-notice--error { border-color: #f1c4c0; background: #fff4f2; color: #a83228; }
 .workspace-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; padding: 5px; width: fit-content; max-width: 100%; background: #eaf0f8; border-radius: 12px; }
 .workspace-tabs a { color: var(--workspace-muted); padding: 9px 14px; border-radius: 9px; font-weight: 600; font-size: .88rem; }
 .workspace-tabs a:hover, .workspace-tabs a.active { color: var(--brand-blue); background: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.09); }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 
@@ -89,26 +90,38 @@ public class WarehouseController {
     public String receive(@RequestParam Long productId, @RequestParam Integer quantity,
                           @RequestParam(required = false) String batchCode,
                           @RequestParam(required = false) LocalDate expirationDate,
-                          @RequestParam(required = false) String note, Authentication authentication) {
+                          @RequestParam(required = false) String note, Authentication authentication,
+                          RedirectAttributes redirectAttributes) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         if (user.getWarehouse() == null) {
             throw new IllegalStateException("Tài khoản nhân viên kho chưa được gán kho.");
         }
-        inventoryOperationsService.receiveIntoWarehouse(productId, user.getWarehouse().getId(),
-                quantity, batchCode, expirationDate, note, authentication.getName());
+        try {
+            inventoryOperationsService.receiveIntoWarehouse(productId, user.getWarehouse().getId(),
+                    quantity, batchCode, expirationDate, note, authentication.getName());
+            redirectAttributes.addFlashAttribute("successMessage", "Đã cập nhật số lượng nhập kho.");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
         return "redirect:/warehouse/inventory";
     }
 
     @PostMapping("/transfer")
     public String transfer(@RequestParam Long productId, @RequestParam Long storeId,
                            @RequestParam Integer quantity, @RequestParam(required = false) String note,
-                           Authentication authentication) {
+                           Authentication authentication, RedirectAttributes redirectAttributes) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         if (user.getWarehouse() == null) {
             throw new IllegalStateException("Tài khoản nhân viên kho chưa được gán kho.");
         }
-        inventoryOperationsService.transferToStore(productId, user.getWarehouse().getId(), storeId,
-                quantity, note, authentication.getName());
+        try {
+            inventoryOperationsService.transferToStore(productId, user.getWarehouse().getId(), storeId,
+                    quantity, note, authentication.getName());
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Đã tạo phiếu điều chuyển. Tồn kho đã trừ khỏi kho; chi nhánh cần xác nhận nhận hàng để cộng vào tồn bán được.");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
         return "redirect:/warehouse/inventory";
     }
 }

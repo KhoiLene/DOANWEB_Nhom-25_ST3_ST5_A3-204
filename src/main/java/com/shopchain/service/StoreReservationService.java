@@ -19,12 +19,14 @@ public class StoreReservationService {
     private final ProductInventoryRepository inventoryRepository;
     private final StoreReservationRepository reservationRepository;
     private final OrderRepository orderRepository;
+    private final InventoryMovementRepository movementRepository;
     private final int holdMinutes;
 
     public StoreReservationService(StoreRepository storeRepository, UserRepository userRepository,
                                    ProductRepository productRepository, ProductInventoryRepository inventoryRepository,
                                    StoreReservationRepository reservationRepository,
                                    OrderRepository orderRepository,
+                                   InventoryMovementRepository movementRepository,
                                    @Value("${reservation.hold-minutes:30}") int holdMinutes) {
         this.storeRepository = storeRepository;
         this.userRepository = userRepository;
@@ -32,6 +34,7 @@ public class StoreReservationService {
         this.inventoryRepository = inventoryRepository;
         this.reservationRepository = reservationRepository;
         this.orderRepository = orderRepository;
+        this.movementRepository = movementRepository;
         this.holdMinutes = Math.max(10, Math.min(holdMinutes, 120));
     }
 
@@ -81,6 +84,9 @@ public class StoreReservationService {
                 throw new IllegalArgumentException("Số lượng còn lại của " + product.getName() + " không đủ.");
             inventory.setReservedQuantity(zero(inventory.getReservedQuantity()) + entry.getValue());
             inventoryRepository.save(inventory);
+            movementRepository.save(InventoryMovement.builder().product(product).store(store).performedBy(user)
+                    .movementType("RESERVE").quantity(entry.getValue())
+                    .note("Giữ hàng " + reservation.getReservationCode()).build());
             reservation.getItems().add(StoreReservationItem.builder().reservation(reservation).product(product)
                     .quantity(entry.getValue()).unitPrice(inventory.getPrice()).build());
         }
@@ -135,13 +141,14 @@ public class StoreReservationService {
     }
 
     @Transactional
-    public ReservationView pickup(Long reservationId, Long storeId) {
+    public ReservationView pickup(Long reservationId, Long storeId, String username) {
         expireReservations();
         StoreReservation reservation = reservationRepository.findForUpdateById(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu giữ hàng."));
         ensureStore(reservation, storeId);
         if (!"HELD".equals(reservation.getStatus())) throw new IllegalArgumentException("Phiếu này không còn hiệu lực.");
         if (!reservation.getExpiresAt().isAfter(LocalDateTime.now())) return cancel(reservation, "EXPIRED");
+        User cashier = userRepository.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản nhân viên."));
         for (StoreReservationItem item : reservation.getItems()) {
             ProductInventory inventory = inventoryRepository.findForUpdateByProductIdAndStoreId(item.getProduct().getId(), storeId)
                     .orElseThrow(() -> new IllegalStateException("Không tìm thấy lượng hàng đã giữ."));
@@ -151,6 +158,9 @@ public class StoreReservationService {
             inventory.setStockQuantity(inventory.getStockQuantity() - item.getQuantity());
             inventory.setReservedQuantity(reserved - item.getQuantity());
             inventoryRepository.save(inventory);
+            movementRepository.save(InventoryMovement.builder().product(item.getProduct()).store(reservation.getStore())
+                    .performedBy(cashier).movementType("PICKUP_SALE").quantity(item.getQuantity())
+                    .note("Khách nhận phiếu giữ " + reservation.getReservationCode()).build());
         }
         reservation.setStatus("PICKED_UP");
         reservation.setPickedUpAt(LocalDateTime.now());
@@ -177,6 +187,9 @@ public class StoreReservationService {
                     .ifPresent(inventory -> {
                         inventory.setReservedQuantity(Math.max(0, zero(inventory.getReservedQuantity()) - item.getQuantity()));
                         inventoryRepository.save(inventory);
+                        movementRepository.save(InventoryMovement.builder().product(item.getProduct())
+                                .store(reservation.getStore()).movementType("RESERVATION_RELEASE")
+                                .quantity(item.getQuantity()).note("Hủy giữ hàng " + reservation.getReservationCode()).build());
                     });
         }
         reservation.setStatus(status);

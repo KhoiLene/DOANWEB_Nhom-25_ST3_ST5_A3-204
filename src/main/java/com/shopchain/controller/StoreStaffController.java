@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/staff")
@@ -75,12 +76,18 @@ public class StoreStaffController {
     }
 
     @PostMapping("/transfers/{transferId}/receive")
-    public String receiveTransfer(@PathVariable Long transferId, Authentication authentication) {
+    public String receiveTransfer(@PathVariable Long transferId, Authentication authentication,
+                                  RedirectAttributes redirectAttributes) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         if (user.getStore() == null) {
             throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
         }
-        inventoryOperationsService.receiveTransfer(transferId, user.getStore().getId(), authentication.getName());
+        try {
+            inventoryOperationsService.receiveTransfer(transferId, user.getStore().getId(), authentication.getName());
+            redirectAttributes.addFlashAttribute("successMessage", "Đã xác nhận nhận hàng. Tồn chi nhánh đã được cập nhật.");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
         return "redirect:/staff/inventory";
     }
 
@@ -106,7 +113,7 @@ public class StoreStaffController {
     public String pickupReservation(@PathVariable Long reservationId, Authentication authentication) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         if (user.getStore() == null) throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
-        reservationService.pickup(reservationId, user.getStore().getId());
+        reservationService.pickup(reservationId, user.getStore().getId(), authentication.getName());
         return "redirect:/staff/reservations";
     }
 

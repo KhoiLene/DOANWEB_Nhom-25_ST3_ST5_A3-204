@@ -16,13 +16,16 @@ public class PointOfSaleService {
     private final ProductInventoryRepository inventoryRepository;
     private final OrderRepository orderRepository;
     private final SalesInvoiceRepository invoiceRepository;
+    private final InventoryMovementRepository movementRepository;
 
     public PointOfSaleService(UserRepository userRepository, ProductInventoryRepository inventoryRepository,
-                              OrderRepository orderRepository, SalesInvoiceRepository invoiceRepository) {
+                              OrderRepository orderRepository, SalesInvoiceRepository invoiceRepository,
+                              InventoryMovementRepository movementRepository) {
         this.userRepository = userRepository;
         this.inventoryRepository = inventoryRepository;
         this.orderRepository = orderRepository;
         this.invoiceRepository = invoiceRepository;
+        this.movementRepository = movementRepository;
     }
 
     @Transactional
@@ -42,6 +45,7 @@ public class PointOfSaleService {
                 .status("COMPLETED").paymentMethod(paymentMethod).paymentStatus("PAID").totalAmount(0d).build();
         List<OrderItem> items = new ArrayList<>();
         List<SalesInvoiceLine> invoiceLines = new ArrayList<>();
+        List<InventoryMovement> movements = new ArrayList<>();
         String phoneForLookup = blankToNull(customerPhone);
         java.util.Map<Long, User> customerMatches = new java.util.LinkedHashMap<>();
         if (phoneForLookup != null) {
@@ -66,6 +70,8 @@ public class PointOfSaleService {
             if (stock.availableQuantity() < requested.quantity())
                 throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm: " + stock.getProduct().getName());
             stock.setStockQuantity(stock.getStockQuantity() - requested.quantity());
+            movements.add(InventoryMovement.builder().product(stock.getProduct()).store(cashier.getStore())
+                    .performedBy(cashier).movementType("POS_SALE").quantity(requested.quantity()).build());
             double unitPrice = stock.getProduct().effectivePrice(stock.getPrice(), customerPoints);
             double lineTotal = unitPrice * requested.quantity();
             subtotal += lineTotal;
@@ -79,6 +85,8 @@ public class PointOfSaleService {
         order.setTotalAmount(subtotal);
         order.setOrderItems(items);
         Order savedOrder = orderRepository.save(order);
+        movements.forEach(movement -> movement.setNote("Bán tại quầy #" + savedOrder.getId()));
+        movementRepository.saveAll(movements);
         LocalDateTime now = LocalDateTime.now();
         SalesInvoice invoice = SalesInvoice.builder().order(savedOrder).issuedBy(cashier)
                 .customerName(blankToNull(customerName)).customerPhone(blankToNull(customerPhone))

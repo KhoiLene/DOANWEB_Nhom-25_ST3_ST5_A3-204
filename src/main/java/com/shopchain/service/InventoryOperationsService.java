@@ -36,9 +36,10 @@ public class InventoryOperationsService {
                                      String batchCode, LocalDate expiry, String note, String username) {
         requirePositive(quantity);
         Product product = productRepository.findById(productId).orElseThrow();
-        Warehouse warehouse = warehouseRepository.findById(warehouseId).orElseThrow();
+        Warehouse warehouse = warehouseRepository.findForUpdateById(warehouseId).orElseThrow();
+        if (!warehouse.isActive()) throw new IllegalArgumentException("Kho này hiện không hoạt động.");
         User actor = userRepository.findByUsername(username).orElseThrow();
-        ProductInventory inventory = inventoryRepository.findByProductIdAndWarehouseId(productId, warehouseId)
+        ProductInventory inventory = inventoryRepository.findForUpdateByProductIdAndWarehouseId(productId, warehouseId)
                 .orElseGet(() -> ProductInventory.builder().product(product).warehouse(warehouse)
                         .price(product.getPrice()).stockQuantity(0).build());
         inventory.setStockQuantity(inventory.getStockQuantity() + quantity);
@@ -52,14 +53,16 @@ public class InventoryOperationsService {
     public StockTransfer transferToStore(Long productId, Long warehouseId, Long storeId, Integer quantity,
                                          String note, String username) {
         requirePositive(quantity);
+        Warehouse warehouse = warehouseRepository.findForUpdateById(warehouseId).orElseThrow();
+        if (!warehouse.isActive()) throw new IllegalArgumentException("Kho này hiện không hoạt động.");
         ProductInventory source = inventoryRepository.findForUpdateByProductIdAndWarehouseId(productId, warehouseId)
                 .orElseThrow(() -> new IllegalArgumentException("Sản phẩm chưa có tồn ở kho này."));
         if (source.availableQuantity() < quantity) {
             throw new IllegalArgumentException("Tồn kho không đủ để chuyển.");
         }
         Product product = source.getProduct();
-        Warehouse warehouse = warehouseRepository.findById(warehouseId).orElseThrow();
         Store store = storeRepository.findById(storeId).orElseThrow();
+        if (!store.isActive()) throw new IllegalArgumentException("Chi nhánh này hiện không hoạt động.");
         User actor = userRepository.findByUsername(username).orElseThrow();
 
         source.setStockQuantity(source.getStockQuantity() - quantity);
@@ -75,18 +78,20 @@ public class InventoryOperationsService {
 
     @Transactional
     public void receiveTransfer(Long transferId, Long storeId, String username) {
-        StockTransfer transfer = transferRepository.findById(transferId).orElseThrow();
+        StockTransfer transfer = transferRepository.findForUpdateById(transferId).orElseThrow();
         if (!transfer.getDestinationStore().getId().equals(storeId)) {
             throw new IllegalArgumentException("Phiếu điều chuyển không thuộc cửa hàng được phân công.");
         }
         if (!"IN_TRANSIT".equals(transfer.getStatus())) {
             throw new IllegalArgumentException("Phiếu này đã được xử lý.");
         }
+        Store store = storeRepository.findForUpdateById(storeId).orElseThrow();
+        if (!store.isActive()) throw new IllegalArgumentException("Chi nhánh này hiện không hoạt động.");
         User actor = userRepository.findByUsername(username).orElseThrow();
-        ProductInventory target = inventoryRepository.findByProductIdAndStoreId(
+        ProductInventory target = inventoryRepository.findForUpdateByProductIdAndStoreId(
                         transfer.getProduct().getId(), storeId)
                 .orElseGet(() -> ProductInventory.builder().product(transfer.getProduct())
-                        .store(transfer.getDestinationStore()).price(transfer.getProduct().getPrice())
+                        .store(store).price(transfer.getProduct().getPrice())
                         .stockQuantity(0).build());
         target.setStockQuantity(target.getStockQuantity() + transfer.getQuantity());
         inventoryRepository.save(target);
