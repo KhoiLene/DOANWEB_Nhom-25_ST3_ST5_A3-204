@@ -12,7 +12,7 @@ Website thương mại điện tử xây dựng bằng **Java Spring Boot 4**, *
 | **Docker Desktop** | Mới nhất | https://www.docker.com/products/docker-desktop |
 
 > ⚠️ **Lưu ý quan trọng:**
-> - Sau khi cài Docker Desktop, hãy **mở ứng dụng Docker Desktop lên** và để nó chạy ngầm trước khi chạy project.
+> - Trên Windows, nút Run sẽ thử mở Docker Desktop nếu Docker chưa chạy. Hãy hoàn tất thiết lập Docker Desktop lần đầu trước khi chạy project.
 > - Không cần cài PostgreSQL thủ công — Docker sẽ lo phần này.
 > - Không cần cài Maven — đã có sẵn `mvnw` trong source code.
 
@@ -27,11 +27,20 @@ git clone <đường-dẫn-repo>
 cd DOANWEB_Nhom-25_ST3_ST5_A3-204
 ```
 
-### Bước 2 — Mở Docker Desktop
+### Bước 2 — Chuẩn bị Docker Desktop
 
-Mở ứng dụng **Docker Desktop** và chờ cho đến khi nó báo **"Engine running"** (biểu tượng Docker ở thanh taskbar chuyển sang màu xanh / không còn loading).
+Hãy cài và hoàn tất thiết lập **Docker Desktop**. Bạn có thể mở sẵn và đợi **"Engine running"**, hoặc để nút Run trong IntelliJ thử mở Docker Desktop trên Windows.
 
 ### Bước 3 — Chạy project
+
+**Trong IntelliJ IDEA:** mở thư mục project bằng `pom.xml`, đợi Maven nạp xong, rồi mở
+`src/main/java/com/example/demo/WebApplication.java` và bấm nút tam giác cạnh hàm `main`.
+Chọn **Run 'WebApplication'**. Khi chạy tại máy cá nhân, ứng dụng sẽ bật Docker Desktop
+(trên Windows, nếu cần), khởi động PostgreSQL và Qdrant, chờ cơ sở dữ liệu sẵn sàng rồi
+mới mở website. Không cần chạy `docker compose up` thủ công. Nếu đã có phiên web khác
+chiếm cổng 8080, hãy dừng phiên đó trước khi bấm Run.
+
+**Trong terminal:**
 
 Mở terminal (CMD / PowerShell) tại thư mục project rồi gõ:
 

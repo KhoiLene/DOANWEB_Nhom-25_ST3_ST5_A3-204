@@ -18,6 +18,7 @@ public class WebApplication {
 	}
 
 	public static void main(String[] args) {
+		LocalDockerServices.startIfNeeded();
 		SpringApplication.run(WebApplication.class, args);
 	}
 
