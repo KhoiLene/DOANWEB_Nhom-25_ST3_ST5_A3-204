@@ -1,52 +1,51 @@
-<div th:fragment="dashboard">
-    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-        <div class="card">
-            <div class="card__body" style="display: flex; align-items: center; gap: 20px;">
-                <div style="background: #e3f2fd; color: #1976d2; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                    <i class="fa-solid fa-box"></i>
-                </div>
-                <div>
-                    <span style="display: block; color: #6c757d; font-size: 0.9rem;">Tổng sản phẩm</span>
-                    <strong style="font-size: 1.8rem;" th:text="${totalProducts}">0</strong>
-                </div>
-            </div>
-        </div>
+<div th:fragment="dashboard" class="control-tower">
+    <header class="control-tower__hero">
+        <div><span class="control-tower__eyebrow">VẬN HÀNH TOÀN CHUỖI</span><h1>Trung tâm điều hành</h1><p>Theo dõi điểm bán, kho, đơn hàng và xử lý các cảnh báo cần ưu tiên.</p></div>
+        <div class="control-tower__refresh"><i class="fa-solid fa-rotate"></i><span>Cập nhật lúc</span><strong th:text="${operations.refreshedAt}">—</strong></div>
+    </header>
 
-        <div class="card">
-            <div class="card__body" style="display: flex; align-items: center; gap: 20px;">
-                <div style="background: #e8f5e9; color: #388e3c; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                    <i class="fa-solid fa-cart-shopping"></i>
-                </div>
-                <div>
-                    <span style="display: block; color: #6c757d; font-size: 0.9rem;">Tổng đơn hàng</span>
-                    <strong style="font-size: 1.8rem;" th:text="${totalOrders}">0</strong>
-                </div>
-            </div>
-        </div>
+    <div th:if="${operationsMessage}" class="control-tower__notice control-tower__notice--success" role="status" th:text="${operationsMessage}"></div>
+    <div th:if="${operationsError}" class="control-tower__notice control-tower__notice--error" role="alert" th:text="${operationsError}"></div>
 
-        <div class="card">
-            <div class="card__body" style="display: flex; align-items: center; gap: 20px;">
-                <div style="background: #fff3e0; color: #f57c00; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                    <i class="fa-solid fa-users"></i>
-                </div>
-                <div>
-                    <span style="display: block; color: #6c757d; font-size: 0.9rem;">Tổng người dùng</span>
-                    <strong style="font-size: 1.8rem;" th:text="${totalUsers}">0</strong>
-                </div>
-            </div>
-        </div>
+    <section class="control-tower__metrics" aria-label="Chỉ số toàn chuỗi">
+        <article class="control-metric"><span class="control-metric__icon control-metric__icon--blue"><i class="fa-solid fa-shop"></i></span><div><span>Chi nhánh đang hoạt động</span><strong th:text="${operations.activeStores}">0</strong></div><a th:href="@{/admin/locations/stores}">Quản lý chi nhánh <i class="fa-solid fa-arrow-right"></i></a></article>
+        <article class="control-metric"><span class="control-metric__icon control-metric__icon--purple"><i class="fa-solid fa-warehouse"></i></span><div><span>Kho đang hoạt động</span><strong th:text="${operations.activeWarehouses}">0</strong></div><a th:href="@{/admin/locations/warehouses}">Quản lý kho <i class="fa-solid fa-arrow-right"></i></a></article>
+        <article class="control-metric" th:classappend="${operations.ordersNeedingAction > 0 ? 'control-metric--attention' : ''}"><span class="control-metric__icon control-metric__icon--orange"><i class="fa-solid fa-bell"></i></span><div><span>Đơn cần tiếp nhận</span><strong th:text="${operations.ordersNeedingAction}">0</strong></div><a th:href="@{/admin/orders}">Mở danh sách đơn <i class="fa-solid fa-arrow-right"></i></a></article>
+        <article class="control-metric" th:classappend="${operations.lowStockCount > 0 ? 'control-metric--attention' : ''}"><span class="control-metric__icon control-metric__icon--red"><i class="fa-solid fa-box-open"></i></span><div><span>Sản phẩm tồn thấp</span><strong th:text="${operations.lowStockCount}">0</strong><small th:text="${operations.outOfStockCount + ' mặt hàng đã hết hàng khả dụng'}">0 mặt hàng đã hết hàng khả dụng</small></div><a href="#stock-alerts">Xem cảnh báo <i class="fa-solid fa-arrow-right"></i></a></article>
+        <article class="control-metric"><span class="control-metric__icon control-metric__icon--green"><i class="fa-solid fa-truck-fast"></i></span><div><span>Phiếu đang vận chuyển</span><strong th:text="${operations.transfersWaiting}">0</strong><small>Chờ chi nhánh xác nhận nhận hàng</small></div><a href="#transfer-alerts">Theo dõi phiếu <i class="fa-solid fa-arrow-right"></i></a></article>
+        <article class="control-metric"><span class="control-metric__icon control-metric__icon--teal"><i class="fa-solid fa-chart-line"></i></span><div><span>Doanh thu đã thu tháng này</span><strong class="control-metric__money" th:text="${#numbers.formatInteger(operations.monthRevenue, 1, 'POINT') + ' đ'}">0 đ</strong><small>Đơn đã giao và thanh toán</small></div><a th:href="@{/admin/orders}">Xem đơn hàng <i class="fa-solid fa-arrow-right"></i></a></article>
+    </section>
+
+    <section class="control-panel" id="stock-alerts">
+        <div class="control-panel__heading"><div><span class="control-panel__kicker">CẦN ƯU TIÊN</span><h2>Cảnh báo tồn kho chi nhánh</h2><p>Ngưỡng cảnh báo hiện tại: còn tối đa <b th:text="${operations.lowStockThreshold}">3</b> sản phẩm khả dụng. Mức đề xuất sau điều chuyển: <b th:text="${operations.targetStockLevel}">5</b>.</p></div><a class="control-tower__text-link" th:href="@{/admin/locations/warehouses}">Quản lý nguồn hàng <i class="fa-solid fa-arrow-right"></i></a></div>
+        <div class="control-table-wrap"><table class="control-table"><thead><tr><th>Mức độ</th><th>Sản phẩm</th><th>Chi nhánh</th><th>Tồn khả dụng</th><th>Nguồn kho đề xuất</th><th>Phê duyệt hành động</th></tr></thead><tbody>
+            <tr th:each="alert : ${operations.stockAlerts}">
+                <td><span class="control-badge" th:classappend="${alert.availableQuantity == 0 ? 'control-badge--critical' : 'control-badge--warning'}" th:text="${alert.availableQuantity == 0 ? 'Hết hàng' : 'Sắp hết'}">Sắp hết</span></td>
+                <td><strong th:text="${alert.productName}">Sản phẩm</strong><small>Mã SP <span th:text="${alert.productId}">0</span></small></td>
+                <td th:text="${alert.storeName}">Chi nhánh</td><td><strong th:text="${alert.availableQuantity}">0</strong> sản phẩm</td>
+                <td th:if="${alert.sourceWarehouseId != null}"><strong th:text="${alert.sourceWarehouseName}">Kho</strong><small>Có thể chuyển tối đa <span th:text="${alert.sourceWarehouseAvailable}">0</span></small></td>
+                <td th:unless="${alert.sourceWarehouseId != null}" class="control-table__muted">Chưa có nguồn khả dụng</td>
+                <td th:if="${alert.sourceWarehouseId != null and alert.proposedQuantity > 0}"><form class="control-transfer-form" th:action="@{/admin/operations/transfers}" method="post"><input type="hidden" name="productId" th:value="${alert.productId}"><input type="hidden" name="sourceWarehouseId" th:value="${alert.sourceWarehouseId}"><input type="hidden" name="destinationStoreId" th:value="${alert.storeId}"><label><span class="visually-hidden">Số lượng điều chuyển</span><input type="number" name="quantity" min="1" th:max="${alert.sourceWarehouseAvailable}" th:value="${alert.proposedQuantity}" required></label><button type="submit" th:text="${'Duyệt chuyển ' + alert.proposedQuantity}">Duyệt điều chuyển</button></form></td>
+                <td th:unless="${alert.sourceWarehouseId != null and alert.proposedQuantity > 0}"><a class="control-tower__text-link" th:href="@{/admin/locations/warehouses}">Kiểm tra nguồn hàng</a></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(operations.stockAlerts)}"><td colspan="6" class="control-table__empty"><i class="fa-solid fa-circle-check"></i><strong>Không có cảnh báo tồn thấp</strong><span>Các mặt hàng đã ghi nhận đều cao hơn ngưỡng hiện tại.</span></td></tr>
+        </tbody></table></div>
+        <p class="control-panel__footnote">Điều chuyển chỉ được tạo sau khi bạn bấm duyệt. Chi nhánh xác nhận thực nhận tại mục hoạt động chi nhánh.</p>
+    </section>
+
+    <div class="control-tower__lower-grid">
+        <section class="control-panel"><div class="control-panel__heading"><div><span class="control-panel__kicker">ĐƠN HÀNG</span><h2>Đơn đang chờ tiếp nhận</h2><p>Tổng số đơn cần hành động: <b th:text="${operations.ordersNeedingAction}">0</b></p></div><a class="control-tower__text-link" th:href="@{/admin/orders}">Tất cả đơn <i class="fa-solid fa-arrow-right"></i></a></div>
+            <div class="control-order-list"><article class="control-order" th:each="order : ${operations.actionOrders}"><div class="control-order__id"><strong th:text="${'#' + order.id}">#1</strong><span class="control-badge" th:text="${order.status == 'PENDING' ? 'Chờ xử lý' : (order.status == 'CONFIRMED' ? 'Đã xác nhận' : order.status)}">Chờ xử lý</span></div><div><strong th:text="${order.customerName ?: 'Khách hàng'}">Khách</strong><small th:text="${order.storeName}">Chi nhánh</small></div><strong class="control-order__total" th:text="${#numbers.formatInteger(order.totalAmount ?: 0, 1, 'POINT') + ' đ'}">0 đ</strong><a th:href="@{/admin/orders/detail/{id}(id=${order.id})}" aria-label="Mở chi tiết đơn"><i class="fa-solid fa-arrow-up-right-from-square"></i></a></article><div th:if="${#lists.isEmpty(operations.actionOrders)}" class="control-table__empty"><i class="fa-solid fa-circle-check"></i><strong>Không có đơn cần tiếp nhận</strong></div></div>
+        </section>
+        <section class="control-panel" id="transfer-alerts"><div class="control-panel__heading"><div><span class="control-panel__kicker">LUÂN CHUYỂN</span><h2>Chờ chi nhánh nhận hàng</h2><p>Đã gửi hàng nhưng chưa xác nhận thực nhận.</p></div><a class="control-tower__text-link" th:href="@{/messages}">Nhắn nội bộ <i class="fa-solid fa-arrow-right"></i></a></div>
+            <div class="control-transfer-list"><article th:each="transfer : ${operations.pendingTransfers}"><span class="control-transfer-list__icon"><i class="fa-solid fa-box"></i></span><div><strong th:text="${transfer.productName}">Sản phẩm</strong><small><span th:text="${transfer.sourceWarehouseName}">Kho</span> → <span th:text="${transfer.destinationStoreName}">Chi nhánh</span></small></div><span class="control-transfer-list__quantity" th:text="${'× ' + transfer.quantity}">× 1</span></article><div th:if="${#lists.isEmpty(operations.pendingTransfers)}" class="control-table__empty"><i class="fa-solid fa-circle-check"></i><strong>Không có phiếu đang chờ nhận</strong></div></div>
+        </section>
     </div>
 
-    <div class="card">
-        <div class="card__header">
-            <h3 style="margin: 0;">Chào mừng Quản trị viên!</h3>
-        </div>
-        <div class="card__body">
-            <p>Chào mừng bạn quay trở lại với hệ thống quản trị của KL Shop. Tại đây bạn có thể quản lý toàn bộ danh mục sản phẩm, đơn hàng và người dùng của cửa hàng.</p>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <a th:href="@{/admin/products}" class="btn btn-primary">Quản lý sản phẩm</a>
-                <a th:href="@{/admin/categories}" class="btn btn-outline">Quản lý danh mục</a>
-            </div>
-        </div>
-    </div>
+    <section class="control-panel"><div class="control-panel__heading"><div><span class="control-panel__kicker">SỨC KHỎE ĐIỂM BÁN</span><h2>Tình hình chi nhánh</h2><p>Ưu tiên các điểm có tồn thấp hoặc đơn chờ tiếp nhận.</p></div><a class="control-tower__text-link" th:href="@{/admin/locations/stores}">Danh sách chi nhánh <i class="fa-solid fa-arrow-right"></i></a></div>
+        <div class="control-table-wrap"><table class="control-table control-table--branches"><thead><tr><th>Chi nhánh</th><th>Đơn cần nhận</th><th>Đơn đang mở</th><th>Cảnh báo tồn</th><th>Phiếu chờ nhận</th><th>Tình hình</th></tr></thead><tbody>
+            <tr th:each="branch : ${operations.branches}"><td><strong th:text="${branch.name}">Chi nhánh</strong><small th:text="${branch.city ?: 'Chưa cập nhật tỉnh/thành'}">Khu vực</small></td><td th:text="${branch.ordersNeedingAction}">0</td><td th:text="${branch.openOrders}">0</td><td th:text="${branch.stockAlerts}">0</td><td th:text="${branch.transfersWaiting}">0</td><td><span class="control-badge" th:classappend="${branch.stockAlerts > 0 or branch.ordersNeedingAction > 0 ? 'control-badge--warning' : 'control-badge--ok'}" th:text="${branch.stockAlerts > 0 or branch.ordersNeedingAction > 0 ? 'Cần theo dõi' : 'Ổn định'}">Ổn định</span></td></tr>
+            <tr th:if="${#lists.isEmpty(operations.branches)}"><td colspan="6" class="control-table__empty">Chưa có chi nhánh đang hoạt động.</td></tr>
+        </tbody></table></div>
+    </section>
 </div>
