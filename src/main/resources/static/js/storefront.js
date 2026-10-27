@@ -54,7 +54,8 @@
         body: JSON.stringify({ productId: Number(productId), quantity: Number(quantity) })
       });
       if (response.status === 401 || response.status === 403) {
-        window.location.assign('/login');
+        const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        window.location.assign(`/login?returnTo=${encodeURIComponent(returnTo)}`);
         return false;
       }
       const result = await response.json();

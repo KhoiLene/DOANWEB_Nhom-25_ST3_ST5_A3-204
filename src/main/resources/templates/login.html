@@ -41,6 +41,7 @@
     <!-- Right: form -->
     <section class="auth-form-wrap">
         <form class="auth-form" th:action="@{/login-process}" method="post">
+            <input type="hidden" name="returnTo" th:value="${returnTo}">
             <a th:href="@{/}" class="auth-form__back">
                 <i class="fa-solid fa-arrow-left"></i> Về cửa hàng
             </a>

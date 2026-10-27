@@ -301,12 +301,14 @@ public class WebController {
     }
 
     @GetMapping("/login")
-    public String login() {
+    public String login(@RequestParam(required = false) String returnTo, Model model) {
+        model.addAttribute("returnTo", safeLocalReturnTo(returnTo));
         return "login";
     }
 
     @PostMapping("/login-process")
     public String loginProcess(@RequestParam String username, @RequestParam String password,
+                               @RequestParam(required = false) String returnTo,
                                Model model, HttpServletRequest request,
                                jakarta.servlet.http.HttpServletResponse response) {
         try {
@@ -319,6 +321,10 @@ public class WebController {
                     .maxAge(Duration.ofHours(24))
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+            String safeReturnTo = safeLocalReturnTo(returnTo);
+            if ("ROLE_USER".equals(authResponse.getRole()) && safeReturnTo != null) {
+                return "redirect:" + safeReturnTo;
+            }
             return switch (authResponse.getRole()) {
                 case "ROLE_ADMIN" -> "redirect:/admin/dashboard";
                 case "ROLE_WAREHOUSE" -> "redirect:/warehouse/inventory";
@@ -328,8 +334,19 @@ public class WebController {
         } catch (Exception e) {
             model.addAttribute("error", "Tên đăng nhập hoặc email, hay mật khẩu chưa đúng. Vui lòng thử lại.");
             model.addAttribute("loginUsername", username);
+            model.addAttribute("returnTo", safeLocalReturnTo(returnTo));
             return "login";
         }
+    }
+
+    private String safeLocalReturnTo(String returnTo) {
+        if (returnTo == null || returnTo.isBlank()) return null;
+        String candidate = returnTo.trim();
+        if (!candidate.startsWith("/") || candidate.startsWith("//")
+                || candidate.contains("\\") || candidate.contains("\r") || candidate.contains("\n")) {
+            return null;
+        }
+        return candidate;
     }
 
     @GetMapping("/register")
