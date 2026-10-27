@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Giữ hàng tại chi nhánh | Techtra Beauty</title><link rel="stylesheet" th:href="@{/css/workspace.css}"><link rel="stylesheet" th:href="@{/css/assistant-widget.css}"><script defer th:src="@{/js/assistant-widget.js}"></script></head>
+<body class="workspace-body">
+<th:block th:replace="~{fragments/portal-header :: header('Nhân viên cửa hàng', ${store.name})}"></th:block>
+<main class="workspace-page">
+  <div class="workspace-page__heading"><div><h1>Phiếu giữ hàng</h1><p>Xác nhận khách đến nhận hoặc trả hàng về tồn bán tại chi nhánh.</p></div></div>
+  <nav class="workspace-tabs"><a th:href="@{/staff/orders}">Đơn hàng &amp; tồn kho</a><a th:href="@{/staff/pos}">Bán tại quầy</a><a class="active" th:href="@{/staff/reservations}">Giữ hàng</a><a th:href="@{/}">Cửa hàng trực tuyến</a></nav>
+  <section class="card"><div class="card__header"><h2>Khách sẽ đến nhận tại <span th:text="${store.name}">chi nhánh</span></h2></div>
+    <div class="card__body workspace-table-wrap"><table class="admin-table"><thead><tr><th>Mã phiếu</th><th>Khách hàng</th><th>Sản phẩm</th><th>Hạn giữ</th><th>Thao tác</th></tr></thead><tbody>
+      <tr th:each="reservation : ${reservations}">
+        <td><strong th:text="${reservation.code}">TH12345678</strong></td>
+        <td><span th:text="${reservation.customerName ?: 'Khách hàng'}">Tên khách</span><br><small th:text="${reservation.customerPhone ?: 'Không có số điện thoại'}">Điện thoại</small></td>
+        <td><span th:each="line,iter : ${reservation.items}" th:text="${line.productName + ' × ' + line.quantity + (iter.last ? '' : ', ')}">Sản phẩm</span></td>
+        <td th:text="${#temporals.format(reservation.expiresAt, 'dd/MM/yyyy HH:mm')}">Hạn giữ</td>
+        <td class="reservation-actions"><form th:action="@{/staff/reservations/{id}/pickup(id=${reservation.id})}" method="post"><button type="submit">Đã giao khách</button></form><form th:action="@{/staff/reservations/{id}/cancel(id=${reservation.id})}" method="post"><button type="submit" class="workspace-button--secondary">Hủy giữ</button></form></td>
+      </tr>
+      <tr th:if="${#lists.isEmpty(reservations)}"><td colspan="5" class="workspace-empty">Không có phiếu giữ hàng đang hiệu lực.</td></tr>
+    </tbody></table></div>
+  </section>
+</main>
+</body></html>

@@ -391,6 +391,12 @@ public class WebController {
         return "profile";
     }
 
+    @GetMapping("/beauty-passport")
+    public String beautyPassport(Model model, Authentication authentication) {
+        model.addAttribute("customer", userRepository.findByUsername(authentication.getName()).orElseThrow());
+        return "beauty-passport";
+    }
+
     @GetMapping("/entertainment")
     public String entertainment() {
         return "entertainment";

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hồ sơ làm đẹp | Techtra Beauty</title>
+  <link rel="stylesheet" th:href="@{/css/beauty-passport.css}">
+  <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
+  <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+</head>
+<body>
+  <div th:replace="~{fragments/header :: header}"></div>
+  <main class="beauty-passport container">
+    <a class="passport-back" th:href="@{/profile}">← Hồ sơ tài khoản</a>
+    <header class="passport-hero">
+      <span>TECHTRA BEAUTY PASSPORT</span>
+      <h1>Lộ trình chăm sóc của bạn</h1>
+      <p>Chia sẻ nhu cầu cơ bản để xem gợi ý từ sản phẩm đang bán. Bạn có thể sửa hoặc xóa thông tin bất cứ lúc nào.</p>
+    </header>
+
+    <div class="passport-grid">
+      <section class="passport-panel">
+        <h2>Hồ sơ của tôi</h2>
+        <form id="beautyProfileForm">
+          <label>Loại da
+            <select name="skinType"><option value="">Chưa chọn</option><option>Da thường</option><option>Da khô</option><option>Da dầu</option><option>Da hỗn hợp</option><option>Da nhạy cảm</option></select>
+          </label>
+          <label>Loại tóc
+            <select name="hairType"><option value="">Chưa chọn</option><option>Tóc thẳng</option><option>Tóc gợn sóng</option><option>Tóc xoăn</option><option>Tóc nhuộm</option><option>Da đầu dầu</option><option>Da đầu khô</option></select>
+          </label>
+          <label>Điều bạn quan tâm về da
+            <input name="skinConcerns" maxlength="300" placeholder="Ví dụ: khô căng, dễ bóng dầu">
+          </label>
+          <label>Điều bạn quan tâm về tóc
+            <input name="hairConcerns" maxlength="300" placeholder="Ví dụ: khô xơ, dễ rối">
+          </label>
+          <label>Thành phần hoặc sản phẩm bạn muốn tránh
+            <input name="sensitivities" maxlength="300" placeholder="Không bắt buộc">
+          </label>
+          <label>Ngân sách tối đa mỗi sản phẩm (đồng)
+            <input name="maxBudget" type="number" min="0" max="100000000" step="10000" placeholder="Không giới hạn">
+          </label>
+          <label class="passport-consent"><input name="assistantConsent" type="checkbox"><span>Cho phép chatbot dùng các thông tin trên để cá nhân hóa câu trả lời. Mặc định tắt.</span></label>
+          <p class="passport-privacy">Không nhập thông tin sức khỏe nhạy cảm. Hồ sơ này chỉ phục vụ gợi ý chăm sóc cá nhân.</p>
+          <p class="passport-message" id="profileMessage" role="status" aria-live="polite"></p>
+          <button class="passport-save" type="submit">Lưu hồ sơ</button>
+        </form>
+      </section>
+
+      <section class="passport-panel passport-routine">
+        <div class="passport-routine__heading"><div><h2>Lộ trình gợi ý</h2><p>Chỉ gồm các sản phẩm hiện có trong danh mục.</p></div><button type="button" id="refreshRoutine">Cập nhật gợi ý</button></div>
+        <p id="routineIntro" class="passport-privacy">Lưu hồ sơ để cá nhân hóa ngân sách và nhu cầu.</p>
+        <div id="routineGroups" class="routine-groups" aria-live="polite"></div>
+      </section>
+    </div>
+  </main>
+  <div th:replace="~{fragments/footer :: footer}"></div>
+  <script>
+  (() => {
+    const form = document.getElementById('beautyProfileForm');
+    const message = document.getElementById('profileMessage');
+    const groups = document.getElementById('routineGroups');
+    const escapeText = value => String(value ?? '');
+    const api = async (url, options = {}) => {
+      const response = await fetch(url, {credentials: 'same-origin', ...options});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Không thể tải thông tin.');
+      return data;
+    };
+    const renderProduct = product => {
+      if (!product) return;
+      const card = document.createElement('a');
+      card.className = 'routine-product'; card.href = `/product/${encodeURIComponent(product.id)}`;
+      if (product.imageUrl) { const image = document.createElement('img'); image.src = product.imageUrl; image.alt = ''; image.loading = 'lazy'; card.append(image); }
+      const body = document.createElement('span');
+      const name = document.createElement('strong'); name.textContent = escapeText(product.name);
+      const usage = document.createElement('small'); usage.textContent = escapeText(product.usage);
+      const price = document.createElement('small'); price.textContent = product.price == null ? '' : new Intl.NumberFormat('vi-VN').format(product.price) + ' đ';
+      body.append(name, usage, price); card.append(body); return card;
+    };
+    const renderRoutine = async () => {
+      try {
+        const routine = await api('/api/customer/beauty-profile/routine');
+        document.getElementById('routineIntro').textContent = routine.introduction;
+        groups.replaceChildren();
+        const sections = [
+          ['Buổi sáng', [['Làm sạch nhẹ', routine.cleanser], ['Dưỡng ẩm', routine.moisturizer], ['Chống nắng', routine.sunscreen]]],
+          ['Buổi tối', [['Làm sạch', routine.cleanser], ['Dưỡng bổ sung', routine.serum], ['Dưỡng ẩm', routine.moisturizer]]],
+          ['Chăm sóc tóc và môi', [['Dầu gội', routine.shampoo], ['Dầu xả', routine.conditioner], ['Dưỡng môi', routine.lipCare]]]
+        ];
+        sections.forEach(([title, items]) => {
+          const section = document.createElement('section'); section.className = 'routine-group';
+          const heading = document.createElement('h3'); heading.textContent = title; section.append(heading);
+          let count = 0;
+          items.forEach(([label, product]) => {
+            if (!product) return;
+            const row = document.createElement('div'); row.className = 'routine-step';
+            const step = document.createElement('span'); step.textContent = label;
+            row.append(step, renderProduct(product)); section.append(row); count++;
+          });
+          if (count) groups.append(section);
+        });
+        if (!groups.children.length) groups.textContent = 'Chưa có đủ sản phẩm phù hợp trong danh mục để tạo gợi ý.';
+      } catch (error) { groups.textContent = error.message; }
+    };
+    const loadProfile = async () => {
+      try {
+        const profile = await api('/api/customer/beauty-profile');
+        for (const [key, value] of Object.entries(profile)) {
+          const control = form.elements.namedItem(key);
+          if (!control) continue;
+          if (control.type === 'checkbox') control.checked = Boolean(value);
+          else control.value = value ?? '';
+        }
+      } catch (error) { message.textContent = error.message; }
+    };
+    form.addEventListener('submit', async event => {
+      event.preventDefault(); message.textContent = 'Đang lưu…';
+      const values = Object.fromEntries(new FormData(form).entries());
+      values.assistantConsent = form.elements.assistantConsent.checked;
+      values.maxBudget = values.maxBudget === '' ? null : Number(values.maxBudget);
+      try {
+        await api('/api/customer/beauty-profile', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(values)});
+        message.textContent = 'Đã lưu hồ sơ.'; await renderRoutine();
+      } catch (error) { message.textContent = error.message; }
+    });
+    document.getElementById('refreshRoutine').addEventListener('click', renderRoutine);
+    loadProfile().then(renderRoutine);
+  })();
+  </script>
+</body>
+</html>

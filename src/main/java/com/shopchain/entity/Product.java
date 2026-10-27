@@ -61,6 +61,12 @@ public class Product {
     @Column(name = "usage_instructions", columnDefinition = "TEXT")
     private String usageInstructions;
 
+    @Column(name = "ingredients", columnDefinition = "TEXT")
+    private String ingredients;
+
+    @Column(name = "product_cautions", columnDefinition = "TEXT")
+    private String cautions;
+
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;

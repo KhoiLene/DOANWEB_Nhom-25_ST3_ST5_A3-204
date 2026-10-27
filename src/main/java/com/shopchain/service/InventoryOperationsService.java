@@ -52,9 +52,9 @@ public class InventoryOperationsService {
     public StockTransfer transferToStore(Long productId, Long warehouseId, Long storeId, Integer quantity,
                                          String note, String username) {
         requirePositive(quantity);
-        ProductInventory source = inventoryRepository.findByProductIdAndWarehouseId(productId, warehouseId)
+        ProductInventory source = inventoryRepository.findForUpdateByProductIdAndWarehouseId(productId, warehouseId)
                 .orElseThrow(() -> new IllegalArgumentException("Sản phẩm chưa có tồn ở kho này."));
-        if (source.getStockQuantity() < quantity) {
+        if (source.availableQuantity() < quantity) {
             throw new IllegalArgumentException("Tồn kho không đủ để chuyển.");
         }
         Product product = source.getProduct();

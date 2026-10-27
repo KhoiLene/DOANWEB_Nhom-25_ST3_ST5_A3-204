@@ -2,6 +2,7 @@ package com.shopchain.controller;
 
 import com.shopchain.entity.Product;
 import com.shopchain.service.ProductService;
+import com.shopchain.service.StoreReservationService;
 import com.shopchain.repository.UserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.data.domain.Page;
@@ -19,10 +20,13 @@ public class ProductApiController {
 
     private final ProductService productService;
     private final UserRepository userRepository;
+    private final StoreReservationService reservationService;
 
-    public ProductApiController(ProductService productService, UserRepository userRepository) {
+    public ProductApiController(ProductService productService, UserRepository userRepository,
+                                StoreReservationService reservationService) {
         this.productService = productService;
         this.userRepository = userRepository;
+        this.reservationService = reservationService;
     }
 
     @GetMapping("/search")
@@ -75,6 +79,15 @@ public class ProductApiController {
     @GetMapping("/{id}")
     public ResponseEntity<Product> getDetail(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductDetail(id));
+    }
+
+    @GetMapping("/{id}/availability")
+    public ResponseEntity<?> availability(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(reservationService.availability(id));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", exception.getMessage()));
+        }
     }
 
     public record ProductSuggestion(Long id, String name, String imageUrl, Double price, Double originalPrice,

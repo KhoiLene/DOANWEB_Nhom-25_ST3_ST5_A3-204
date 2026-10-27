@@ -6,6 +6,7 @@
   <title>Tài khoản của tôi | Techtra Beauty</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" th:href="@{/css/customer-account.css}">
+  <link rel="stylesheet" th:href="@{/css/beauty-passport.css}">
   <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
   <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
 </head>
@@ -19,6 +20,16 @@
         <p>Theo dõi đơn hàng, tham gia ưu đãi và tích điểm ngay trên cửa hàng.</p>
       </div>
       <a class="account-link-button" th:href="@{/products}"><i class="fa-solid fa-bag-shopping"></i> Tiếp tục mua sắm</a>
+    </section>
+
+    <a class="beauty-passport-link" th:href="@{/beauty-passport}">
+      <span><i class="fa-solid fa-sparkles" aria-hidden="true"></i> Hồ sơ làm đẹp và lộ trình chăm sóc</span>
+      <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+    </a>
+
+    <section class="account-panel reservation-account-panel">
+      <div class="account-panel__heading"><div><span class="account-eyebrow">NHẬN TẠI CỬA HÀNG</span><h2>Phiếu giữ hàng của tôi</h2></div><span class="account-panel__hint">Hàng được giữ tối đa 30 phút</span></div>
+      <div id="customerReservations" class="customer-reservations"><p class="account-empty">Đang tải phiếu giữ hàng…</p></div>
     </section>
 
     <section class="account-stats" aria-label="Tóm tắt thành viên">
@@ -77,5 +88,38 @@
 
   </main>
   <div th:replace="~{fragments/footer :: footer}"></div>
+  <script>
+  (() => {
+    const root = document.getElementById('customerReservations');
+    const render = async () => {
+      try {
+        const response = await fetch('/api/customer/reservations', {credentials: 'same-origin'});
+        if (!response.ok) throw new Error('Chưa tải được phiếu giữ hàng.');
+        const reservations = await response.json(); root.replaceChildren();
+        if (!reservations.length) { const empty = document.createElement('p'); empty.className = 'account-empty'; empty.textContent = 'Bạn chưa có phiếu giữ hàng nào.'; root.append(empty); return; }
+        reservations.forEach(item => {
+          const card = document.createElement('article'); card.className = 'customer-reservation';
+          const heading = document.createElement('div'); heading.className = 'customer-reservation__heading';
+          const code = document.createElement('strong'); code.textContent = `${item.code} · ${item.storeName}`;
+          const status = document.createElement('span'); status.textContent = ({HELD:'Đang giữ',PICKED_UP:'Đã nhận',CANCELLED:'Đã hủy',EXPIRED:'Hết hạn'})[item.status] || item.status;
+          heading.append(code, status); card.append(heading);
+          const address = document.createElement('p'); address.textContent = item.storeAddress || 'Chi nhánh'; card.append(address);
+          const lines = document.createElement('p'); lines.textContent = item.items.map(line => `${line.productName} × ${line.quantity}`).join(' · '); card.append(lines);
+          const expires = document.createElement('small'); expires.textContent = item.status === 'HELD' ? `Giữ đến ${new Date(item.expiresAt).toLocaleString('vi-VN')}` : `Tạo lúc ${new Date(item.createdAt).toLocaleString('vi-VN')}`; card.append(expires);
+          if (item.status === 'HELD') {
+            const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'reservation-cancel'; cancel.textContent = 'Hủy phiếu';
+            cancel.addEventListener('click', async () => {
+              cancel.disabled = true;
+              const result = await fetch(`/api/customer/reservations/${item.id}/cancel`, {method: 'POST', credentials: 'same-origin'});
+              if (result.ok) render(); else { cancel.disabled = false; cancel.textContent = 'Chưa hủy được'; }
+            }); card.append(cancel);
+          }
+          root.append(card);
+        });
+      } catch (error) { root.textContent = error.message; }
+    };
+    render();
+  })();
+  </script>
 </body>
 </html>

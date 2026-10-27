@@ -57,7 +57,7 @@ public class SecurityConfig {
                 .requestMatchers("/staff/**", "/api/staff/**").hasAnyRole("STORE_STAFF", "ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/assistant/**").permitAll()
-                .requestMatchers("/api/cart/**", "/api/customer/**", "/cart", "/cart/**", "/checkout", "/checkout/**", "/profile", "/my/invoices/**", "/api/orders/**").hasRole("USER")
+                .requestMatchers("/api/cart/**", "/api/customer/**", "/cart", "/cart/**", "/checkout", "/checkout/**", "/profile", "/beauty-passport", "/my/invoices/**", "/api/orders/**").hasRole("USER")
                 .requestMatchers("/api/vendor/**").hasAnyRole("VENDOR", "ADMIN")
                 .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
                 .anyRequest().authenticated()

@@ -5,6 +5,7 @@ import com.shopchain.service.InventoryOperationsService;
 import com.shopchain.service.PointOfSaleService;
 import com.shopchain.service.InvoiceService;
 import com.shopchain.service.OrderService;
+import com.shopchain.service.StoreReservationService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -22,12 +23,14 @@ public class StoreStaffController {
     private final OrderRepository orderRepository;
     private final InvoiceService invoiceService;
     private final OrderService orderService;
+    private final StoreReservationService reservationService;
 
     public StoreStaffController(UserRepository userRepository, ProductInventoryRepository inventoryRepository,
                                 InventoryMovementRepository movementRepository, StockTransferRepository transferRepository,
                                 InventoryOperationsService inventoryOperationsService,
                                 PointOfSaleService pointOfSaleService, OrderRepository orderRepository,
-                                InvoiceService invoiceService, OrderService orderService) {
+                                InvoiceService invoiceService, OrderService orderService,
+                                StoreReservationService reservationService) {
         this.userRepository = userRepository;
         this.inventoryRepository = inventoryRepository;
         this.movementRepository = movementRepository;
@@ -37,6 +40,7 @@ public class StoreStaffController {
         this.orderRepository = orderRepository;
         this.invoiceService = invoiceService;
         this.orderService = orderService;
+        this.reservationService = reservationService;
     }
 
     @GetMapping({"/orders", "/inventory"})
@@ -87,6 +91,31 @@ public class StoreStaffController {
         model.addAttribute("store", user.getStore());
         model.addAttribute("inventory", inventoryRepository.findByStoreId(user.getStore().getId()));
         return "staff/pos";
+    }
+
+    @GetMapping("/reservations")
+    public String reservations(Model model, Authentication authentication) {
+        var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        if (user.getStore() == null) throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
+        model.addAttribute("store", user.getStore());
+        model.addAttribute("reservations", reservationService.staffReservations(user.getStore().getId()));
+        return "staff/reservations";
+    }
+
+    @PostMapping("/reservations/{reservationId}/pickup")
+    public String pickupReservation(@PathVariable Long reservationId, Authentication authentication) {
+        var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        if (user.getStore() == null) throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
+        reservationService.pickup(reservationId, user.getStore().getId());
+        return "redirect:/staff/reservations";
+    }
+
+    @PostMapping("/reservations/{reservationId}/cancel")
+    public String cancelReservation(@PathVariable Long reservationId, Authentication authentication) {
+        var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        if (user.getStore() == null) throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
+        reservationService.cancelForStaff(reservationId, user.getStore().getId());
+        return "redirect:/staff/reservations";
     }
 
     @GetMapping("/invoices/{invoiceId}")

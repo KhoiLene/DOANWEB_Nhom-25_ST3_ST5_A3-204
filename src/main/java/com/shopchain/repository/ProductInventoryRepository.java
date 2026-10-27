@@ -15,4 +15,5 @@ public interface ProductInventoryRepository extends JpaRepository<ProductInvento
     Optional<ProductInventory> findForUpdateByProductIdAndWarehouseId(Long productId, Long warehouseId);
     java.util.List<ProductInventory> findByStoreId(Long storeId);
     java.util.List<ProductInventory> findByWarehouseId(Long warehouseId);
+    java.util.List<ProductInventory> findByProductId(Long productId);
 }

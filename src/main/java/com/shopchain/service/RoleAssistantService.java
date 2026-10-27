@@ -97,6 +97,10 @@ public class RoleAssistantService {
     }
 
     public AssistantReply ask(String role, String question, List<ChatTurn> history) {
+        return ask(role, question, history, "");
+    }
+
+    public AssistantReply ask(String role, String question, List<ChatTurn> history, String customerProfileContext) {
         validateQuestion(question);
         validateHistory(history);
         if (!ROLE_NAMES.containsKey(role)) throw new IllegalArgumentException("Vai trò này chưa có trợ lý riêng.");
@@ -114,7 +118,7 @@ public class RoleAssistantService {
         if (!gemini.isConfigured()) throw new GeminiApiClient.GeminiApiException("Chưa cấu hình GEMINI_API_KEY cho ứng dụng.");
         if (!vectorEnabled) throw new GeminiApiClient.GeminiApiException("Vector RAG đang tắt trong cấu hình.");
 
-        List<Product> suggestedProducts = "customer".equals(role) ? relevantProducts(question) : List.of();
+        List<Product> suggestedProducts = "customer".equals(role) ? relevantProducts(question, customerProfileContext) : List.of();
         List<ProductCard> productCards = suggestedProducts.stream().limit(3).map(this::productCard).toList();
         VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
         if (vectorStore == null) throw new GeminiApiClient.GeminiApiException("Qdrant chưa sẵn sàng.");
@@ -152,7 +156,9 @@ public class RoleAssistantService {
                 .reduce((left, right) -> left + "\n" + right).orElse("");
         String prompt = (recentHistory.isBlank() ? "" : "HỘI THOẠI GẦN ĐÂY:\n" + recentHistory + "\n\n")
                 + "CÂU HỎI HIỆN TẠI:\n" + gemini.sanitize(question.trim())
-                + "\n\nTHÔNG TIN THAM KHẢO:\n" + context;
+                + "\n\nTHÔNG TIN THAM KHẢO:\n" + context
+                + ("customer".equals(role) && customerProfileContext != null && !customerProfileContext.isBlank()
+                    ? "\n\n" + gemini.sanitize(customerProfileContext) : "");
         String generatedAnswer = gemini.generate(system, prompt);
         if (OFFENSIVE_CONTENT.matcher(generatedAnswer == null ? "" : generatedAnswer).find()
                 || refersToMissingKnowledge(generatedAnswer)) {
@@ -163,7 +169,7 @@ public class RoleAssistantService {
         return new AssistantReply(answer, sources, "GEMINI_VECTOR", productCards);
     }
 
-    private List<Product> relevantProducts(String question) {
+    private List<Product> relevantProducts(String question, String customerProfileContext) {
         String query = normalizeForScope(question);
         boolean productIntent = List.of("goi y", "tu van", "chon", "nen dung", "san pham", "lo trinh", "routine",
                 "bat dau", "duong da", "duong toc", "duong moi", "chong nang", "da dau", "da kho",
@@ -175,14 +181,17 @@ public class RoleAssistantService {
         boolean promotionIntent = List.of("khuyen mai", "uu dai", "giam gia", "vip", "sale").stream().anyMatch(query::contains);
         return products.stream()
                 .filter(product -> !promotionIntent || product.hasDiscountCampaign())
-                .sorted(Comparator.comparingInt((Product product) -> productScore(product, query, promotionIntent)).reversed()
+                .sorted(Comparator.comparingInt((Product product) -> productScore(product, query, promotionIntent, customerProfileContext)).reversed()
                         .thenComparing(Product::getId))
                 .limit(5).toList();
     }
 
-    private int productScore(Product product, String query, boolean promotionIntent) {
+    private int productScore(Product product, String query, boolean promotionIntent, String customerProfileContext) {
         String name = normalizeForScope(product.getName());
         String category = product.getCategory() == null ? "" : normalizeForScope(product.getCategory().getName());
+        String details = normalizeForScope(String.join(" ", product.getName(),
+                product.getDescription() == null ? "" : product.getDescription(),
+                product.getSuitableFor() == null ? "" : product.getSuitableFor()));
         int score = Boolean.TRUE.equals(product.getIsFeatured()) ? 1 : 0;
         if (promotionIntent && product.hasDiscountCampaign()) score += 4;
         for (String token : query.split(" ")) {
@@ -192,6 +201,17 @@ public class RoleAssistantService {
         if (query.contains("moi") && (category.contains("moi") || name.contains("son"))) score += 8;
         if (query.contains("da") && category.contains("da")) score += 5;
         if (query.contains("chong nang") && category.contains("chong nang")) score += 8;
+        if (customerProfileContext != null && !customerProfileContext.isBlank()) {
+            for (String token : normalizeForScope(customerProfileContext).split("\\s+"))
+                if (token.length() > 3 && details.contains(token)) score += 1;
+            String marker = "Thành phần/điều khách muốn tránh:";
+            int cautionIndex = customerProfileContext.toLowerCase(java.util.Locale.ROOT).indexOf(marker.toLowerCase(java.util.Locale.ROOT));
+            if (cautionIndex >= 0 && product.getIngredients() != null) {
+                String avoid = customerProfileContext.substring(cautionIndex + marker.length()).split("\\R", 2)[0];
+                for (String token : normalizeForScope(avoid).split("\\s+"))
+                    if (token.length() > 3 && normalizeForScope(product.getIngredients()).contains(token)) score -= 20;
+            }
+        }
         return score;
     }
 
@@ -199,6 +219,10 @@ public class RoleAssistantService {
         String details = product.getName() + "; giá gốc " + Math.round(product.getPrice()) + " đồng"
                 + "; hãng " + (product.getBrandName() == null ? "chưa xác nhận" : product.getBrandName())
                 + "; mô tả " + gemini.sanitize(product.getDescription() == null ? "" : product.getDescription());
+        if (product.getIngredients() != null && !product.getIngredients().isBlank())
+            details += "; thành phần theo thông tin cửa hàng: " + gemini.sanitize(product.getIngredients());
+        if (product.getCautions() != null && !product.getCautions().isBlank())
+            details += "; lưu ý: " + gemini.sanitize(product.getCautions());
         if (!product.hasDiscountCampaign()) return details + "; hiện không có ưu đãi đang hiệu lực.";
         details += "; ưu đãi " + product.getCampaignName() + ", giảm " + product.getDiscountPercent() + "%"
                 + ", dành cho " + ("VIP".equalsIgnoreCase(product.getCampaignAudience()) ? "khách VIP từ 500 điểm" : "mọi khách hàng");

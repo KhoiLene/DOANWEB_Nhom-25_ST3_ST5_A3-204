@@ -35,7 +35,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
             "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
             "AND (:storeId IS NULL OR EXISTS (SELECT inventory.id FROM ProductInventory inventory " +
-            "WHERE inventory.product = p AND inventory.store.id = :storeId AND inventory.stockQuantity > 0))")
+            "WHERE inventory.product = p AND inventory.store.id = :storeId " +
+            "AND (inventory.stockQuantity - COALESCE(inventory.reservedQuantity, 0)) > 0))")
     Page<Product> searchFilteredActiveProducts(@Param("keyword") String keyword,
                                                @Param("categoryId") Long categoryId,
                                                @Param("saleOnly") boolean saleOnly,
@@ -61,7 +62,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
             "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
             "AND (:storeId IS NULL OR EXISTS (SELECT 1 FROM product_inventory inventory " +
-            "WHERE inventory.product_id = p.id AND inventory.store_id = :storeId AND inventory.stock_quantity > 0)) " +
+            "WHERE inventory.product_id = p.id AND inventory.store_id = :storeId " +
+            "AND (inventory.stock_quantity - COALESCE(inventory.reserved_quantity, 0)) > 0)) " +
             "ORDER BY COALESCE(sales.units_sold, 0) DESC, p.id DESC",
             countQuery = "SELECT COUNT(*) FROM products p WHERE (p.is_active = true OR p.is_active IS NULL) " +
                     "AND (:categoryId IS NULL OR p.category_id = :categoryId) " +
@@ -75,7 +77,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                     "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                     "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                     "AND (:storeId IS NULL OR EXISTS (SELECT 1 FROM product_inventory inventory " +
-                    "WHERE inventory.product_id = p.id AND inventory.store_id = :storeId AND inventory.stock_quantity > 0))",
+                    "WHERE inventory.product_id = p.id AND inventory.store_id = :storeId " +
+                    "AND (inventory.stock_quantity - COALESCE(inventory.reserved_quantity, 0)) > 0))",
             nativeQuery = true)
     Page<Product> searchBestSellingActiveProducts(@Param("keyword") String keyword,
                                                   @Param("categoryId") Long categoryId,

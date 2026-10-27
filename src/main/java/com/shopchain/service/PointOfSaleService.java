@@ -49,7 +49,7 @@ public class PointOfSaleService {
             ProductInventory stock = inventoryRepository.findForUpdateByProductIdAndStoreId(
                     requested.productId(), cashier.getStore().getId()).orElseThrow(
                     () -> new IllegalArgumentException("Sản phẩm không có trong tồn kho chi nhánh."));
-            if (stock.getStockQuantity() < requested.quantity())
+            if (stock.availableQuantity() < requested.quantity())
                 throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm: " + stock.getProduct().getName());
             stock.setStockQuantity(stock.getStockQuantity() - requested.quantity());
             double unitPrice = stock.getProduct().effectivePrice(stock.getPrice(), customerPoints);

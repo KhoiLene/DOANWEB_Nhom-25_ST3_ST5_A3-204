@@ -76,13 +76,14 @@ public class OrderServiceImpl implements OrderService {
         // Initialize explicitly even when Lombok builder defaults differ between build outputs.
         order.setOrderItems(new java.util.ArrayList<>());
         double total = 0;
-        for (CartItem item : cart.getItems()) {
+        for (CartItem item : cart.getItems().stream()
+                .sorted(java.util.Comparator.comparing(entry -> entry.getProduct().getId())).toList()) {
             ProductInventory inventory = warehouse == null
                     ? inventoryRepository.findForUpdateByProductIdAndStoreId(item.getProduct().getId(), storeId)
                         .orElseThrow(() -> new IllegalArgumentException("Sản phẩm " + item.getProduct().getName() + " chưa có tại chi nhánh."))
                     : inventoryRepository.findForUpdateByProductIdAndWarehouseId(item.getProduct().getId(), warehouse.getId())
                         .orElseThrow(() -> new IllegalArgumentException("Sản phẩm " + item.getProduct().getName() + " chưa có tại kho."));
-            if (inventory.getStockQuantity() < item.getQuantity())
+            if (inventory.availableQuantity() < item.getQuantity())
                 throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm " + item.getProduct().getName());
             inventory.setStockQuantity(inventory.getStockQuantity() - item.getQuantity());
             double unitPrice = item.getProduct().effectivePrice(inventory.getPrice(), user.getLoyaltyPoints());
@@ -136,12 +137,16 @@ public class OrderServiceImpl implements OrderService {
         Store store = storeRepository.findById(storeId).orElseThrow();
         Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Cart is empty"));
 
-        for (CartItem item : cart.getItems()) {
-            ProductInventory inv = inventoryRepository.findByProductIdAndStoreId(item.getProduct().getId(), storeId)
+        List<CartItem> orderedItems = cart.getItems().stream()
+                .sorted(java.util.Comparator.comparing(entry -> entry.getProduct().getId())).toList();
+        java.util.Map<Long, ProductInventory> lockedInventory = new java.util.LinkedHashMap<>();
+        for (CartItem item : orderedItems) {
+            ProductInventory inv = inventoryRepository.findForUpdateByProductIdAndStoreId(item.getProduct().getId(), storeId)
                     .orElseThrow(() -> new RuntimeException("Product " + item.getProduct().getName() + " not available in this store"));
-            if (inv.getStockQuantity() < item.getQuantity()) {
+            if (inv.availableQuantity() < item.getQuantity()) {
                 throw new RuntimeException("Insufficient stock for product: " + item.getProduct().getName());
             }
+            lockedInventory.put(item.getProduct().getId(), inv);
         }
 
         double total = 0;
@@ -153,8 +158,8 @@ public class OrderServiceImpl implements OrderService {
                 .paymentStatus("UNPAID")
                 .build();
 
-        for (CartItem item : cart.getItems()) {
-            ProductInventory inv = inventoryRepository.findByProductIdAndStoreId(item.getProduct().getId(), storeId).get();
+        for (CartItem item : orderedItems) {
+            ProductInventory inv = lockedInventory.get(item.getProduct().getId());
 
             double unitPrice = item.getProduct().effectivePrice(inv.getPrice(), user.getLoyaltyPoints());
             OrderItem orderItem = OrderItem.builder()

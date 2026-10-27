@@ -31,4 +31,15 @@ public class ProductInventory {
 
     @Column(nullable = false)
     private Integer stockQuantity;
+
+    @Column(name = "reserved_quantity")
+    @Builder.Default
+    private Integer reservedQuantity = 0;
+
+    public int availableQuantity() {
+        return Math.max(0, (stockQuantity == null ? 0 : stockQuantity)
+                - (reservedQuantity == null ? 0 : reservedQuantity));
+    }
+
+    public int getAvailableQuantity() { return availableQuantity(); }
 }

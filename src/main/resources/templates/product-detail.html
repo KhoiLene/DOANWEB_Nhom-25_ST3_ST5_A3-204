@@ -164,6 +164,8 @@
           <div><strong>Hãng</strong><span th:text="${product.brandName != null and !product.brandName.isBlank() ? product.brandName : 'Đang cập nhật'}">Đang cập nhật</span></div>
           <div><strong>Phù hợp</strong><span th:text="${product.suitableFor != null and !product.suitableFor.isBlank() ? product.suitableFor : 'Xem mô tả và nhãn sản phẩm'}">Xem mô tả</span></div>
           <div th:if="${product.usageInstructions != null and !product.usageInstructions.isBlank()}"><strong>Cách dùng</strong><span th:text="${product.usageInstructions}">Cách dùng</span></div>
+          <div><strong>Thành phần</strong><span th:text="${product.ingredients != null and !product.ingredients.isBlank() ? product.ingredients : 'Thông tin đang được cập nhật từ nhãn sản phẩm'}">Thông tin đang được cập nhật</span></div>
+          <div th:if="${product.cautions != null and !product.cautions.isBlank()}"><strong>Lưu ý</strong><span th:text="${product.cautions}">Lưu ý sử dụng</span></div>
           <div th:if="${product.hasDiscountCampaign()}"><strong>Ưu đãi</strong><span th:text="${product.campaignName + ' · ' + (product.campaignAudience == 'VIP' ? 'Khách VIP từ 500 điểm' : 'Mọi khách hàng')}">Chương trình</span></div>
           <div th:if="${product.campaignEndAt != null and product.hasDiscountCampaign()}"><strong>Đến hết</strong><span th:text="${#temporals.format(product.campaignEndAt, 'dd/MM/yyyy HH:mm')}">Thời gian</span></div>
         </section>
@@ -201,6 +203,17 @@
             <p>Miễn phí vận chuyển cho đơn từ 500.000đ</p>
           </div>
         </div>
+        <section class="branch-box branch-reservation-box" aria-labelledby="reservationTitle">
+          <i class="fas fa-box-open" aria-hidden="true"></i>
+          <div class="branch-reservation-box__content">
+            <strong id="reservationTitle">Giữ hàng tại cửa hàng</strong>
+            <p>Chọn chi nhánh còn hàng. Sản phẩm được giữ trong 30 phút.</p>
+            <label for="reservationStore">Chi nhánh nhận hàng</label>
+            <select id="reservationStore" aria-describedby="reservationMessage"><option value="">Đang tải tình trạng hàng…</option></select>
+            <button type="button" class="btn-outline" id="reserveAtStore" th:attr="data-product-id=${product.id}">Giữ hàng</button>
+            <p id="reservationMessage" class="reservation-message" role="status" aria-live="polite"></p>
+          </div>
+        </section>
       </div><!-- /.info -->
 
     </div><!-- /.product-grid -->
@@ -296,6 +309,54 @@
         const buyNow = async () => { if (await addToCart()) window.location.href = '/checkout'; };
         document.getElementById('btnBuyNow').onclick = buyNow;
         document.getElementById('stickyBuyNow').onclick = buyNow;
+
+        const reservationSelect = document.getElementById('reservationStore');
+        const reservationMessage = document.getElementById('reservationMessage');
+        const reserveButton = document.getElementById('reserveAtStore');
+        const reservationProductId = reserveButton.dataset.productId;
+        let reservationCreated = false;
+        fetch(`/api/products/${reservationProductId}/availability`)
+          .then(response => response.ok ? response.json() : Promise.reject())
+          .then(branches => {
+            reservationSelect.replaceChildren();
+            const available = branches.filter(branch => branch.available > 0);
+            if (!available.length) {
+              reservationSelect.add(new Option('Hiện chưa có chi nhánh còn hàng', ''));
+              reserveButton.disabled = true;
+              return;
+            }
+            reservationSelect.add(new Option('Chọn chi nhánh', ''));
+            available.forEach(branch => {
+              const address = [branch.district, branch.city].filter(Boolean).join(', ');
+              reservationSelect.add(new Option(`${branch.name}${address ? ' · ' + address : ''} · còn ${branch.available}`, branch.storeId));
+            });
+          })
+          .catch(() => {
+            reservationSelect.replaceChildren(new Option('Chưa tải được tồn kho chi nhánh', ''));
+            reservationMessage.textContent = 'Bạn có thể thử tải lại trang sau.';
+          });
+
+        reserveButton.addEventListener('click', async () => {
+          if (!reservationSelect.value) { reservationMessage.textContent = 'Hãy chọn một chi nhánh còn hàng.'; return; }
+          const quantity = Math.max(1, Number(document.getElementById('qtyValue')?.textContent || 1));
+          reserveButton.disabled = true;
+          reservationMessage.textContent = 'Đang giữ hàng…';
+          try {
+            const response = await fetch('/api/customer/reservations', {
+              method: 'POST', headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({storeId: Number(reservationSelect.value), lines: [{productId: Number(reservationProductId), quantity}]})
+            });
+            if (response.status === 401 || response.status === 403) throw new Error('Đăng nhập bằng tài khoản khách hàng để giữ hàng.');
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || (response.status === 401 ? 'Đăng nhập để giữ hàng tại chi nhánh.' : 'Chưa thể giữ hàng.'));
+            reservationMessage.textContent = `Đã giữ ${result.code} tại ${result.storeName} đến ${new Date(result.expiresAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}.`;
+            reservationCreated = true;
+          } catch (error) {
+            reservationMessage.textContent = error.message || 'Chưa thể giữ hàng.';
+          } finally {
+            reserveButton.disabled = reservationCreated;
+          }
+        });
     });
   </script>
 </body>
