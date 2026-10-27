@@ -8,6 +8,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,7 @@ public class AssistantKnowledgeGraphService {
     private final String activeProfiles;
     private volatile CachedEdges cachedEdges;
 
+    @Autowired
     public AssistantKnowledgeGraphService(AssistantKnowledgeSourceRepository repository,
                                          ObjectProvider<VectorStore> vectorStoreProvider,
                                          GeminiApiClient gemini,

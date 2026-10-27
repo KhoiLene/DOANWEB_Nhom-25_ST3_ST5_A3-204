@@ -10,6 +10,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -68,6 +69,7 @@ public class RoleAssistantService {
     private final String qdrantHost;
     private final String activeProfiles;
 
+    @Autowired
     public RoleAssistantService(AssistantKnowledgeSourceRepository repository,
                                 ProductRepository productRepository,
                                 ObjectProvider<VectorStore> vectorStoreProvider,

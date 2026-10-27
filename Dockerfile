@@ -11,6 +11,8 @@ RUN groupadd --system app && useradd --system --gid app --home-dir /app app \
 COPY --from=build --chown=app:app /workspace/target/DoAnWeb-0.0.1-SNAPSHOT.jar /app/app.jar
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=60.0 -XX:InitialRAMPercentage=15.0 -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=48m"
 ENV SPRING_DOCKER_COMPOSE_ENABLED=false
+ENV SPRING_PROFILES_ACTIVE=prod
+ENV PORT=8080
 EXPOSE 8080
 USER app
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
