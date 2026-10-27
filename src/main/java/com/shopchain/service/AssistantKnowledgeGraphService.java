@@ -29,6 +29,8 @@ public class AssistantKnowledgeGraphService {
     private final boolean vectorEnabled;
     private final int topK;
     private final double similarityThreshold;
+    private final String qdrantHost;
+    private final String activeProfiles;
     private volatile CachedEdges cachedEdges;
 
     public AssistantKnowledgeGraphService(AssistantKnowledgeSourceRepository repository,
@@ -36,13 +38,34 @@ public class AssistantKnowledgeGraphService {
                                          GeminiApiClient gemini,
                                          @Value("${assistant.rag.vector.enabled:true}") boolean vectorEnabled,
                                          @Value("${assistant.rag.top-k:6}") int topK,
-                                         @Value("${assistant.rag.similarity-threshold:0.35}") double similarityThreshold) {
+                                         @Value("${assistant.rag.similarity-threshold:0.35}") double similarityThreshold,
+                                         @Value("${spring.ai.vectorstore.qdrant.host:${QDRANT_HOST:localhost}}") String qdrantHost,
+                                         @Value("${spring.profiles.active:}") String activeProfiles) {
         this.repository = repository;
         this.vectorStoreProvider = vectorStoreProvider;
         this.gemini = gemini;
         this.vectorEnabled = vectorEnabled;
         this.topK = Math.max(2, Math.min(topK, 8));
         this.similarityThreshold = Math.max(0, Math.min(similarityThreshold, 1));
+        this.qdrantHost = qdrantHost;
+        this.activeProfiles = activeProfiles;
+    }
+
+    public AssistantKnowledgeGraphService(AssistantKnowledgeSourceRepository repository,
+                                         ObjectProvider<VectorStore> vectorStoreProvider,
+                                         GeminiApiClient gemini,
+                                         boolean vectorEnabled,
+                                         int topK,
+                                         double similarityThreshold) {
+        this(repository, vectorStoreProvider, gemini, vectorEnabled, topK, similarityThreshold, "localhost", "");
+    }
+
+    private boolean isProduction() {
+        return activeProfiles != null && (activeProfiles.contains("prod") || activeProfiles.contains("production"));
+    }
+
+    private boolean isLocalhost(String host) {
+        return host == null || host.isBlank() || "localhost".equalsIgnoreCase(host.trim()) || "127.0.0.1".equals(host.trim());
     }
 
     public KnowledgeGraph graph() {
@@ -59,6 +82,10 @@ public class AssistantKnowledgeGraphService {
         if (!vectorEnabled || !gemini.isConfigured()) {
             return new KnowledgeGraph(false, gemini.embeddingModel(), gemini.dimensions(), indexed.size(), chunks,
                     nodes, List.of(), "Cần cấu hình Gemini API key để dựng các cạnh láng giềng embedding.");
+        }
+        if (isProduction() && isLocalhost(qdrantHost)) {
+            return new KnowledgeGraph(false, gemini.embeddingModel(), gemini.dimensions(), indexed.size(), chunks,
+                    nodes, List.of(), "Chưa cấu hình QDRANT_HOST trên production; cạnh embedding sẽ hiện sau khi cấu hình Qdrant.");
         }
         VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
         if (vectorStore == null) {

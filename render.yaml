@@ -38,6 +38,8 @@ services:
         value: "true"
       - key: SPRING_DOCKER_COMPOSE_ENABLED
         value: "false"
+      - key: SPRING_AI_VECTORSTORE_QDRANT_INITIALIZE_SCHEMA
+        value: "false"
       - key: SPRING_THYMELEAF_CACHE
         value: "true"
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO

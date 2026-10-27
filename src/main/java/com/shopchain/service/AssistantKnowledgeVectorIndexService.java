@@ -2,6 +2,8 @@ package com.shopchain.service;
 
 import com.shopchain.entity.AssistantKnowledgeSource;
 import com.shopchain.repository.AssistantKnowledgeSourceRepository;
+import io.qdrant.client.QdrantClient;
+import io.qdrant.client.grpc.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
@@ -24,7 +26,11 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 public class AssistantKnowledgeVectorIndexService {
@@ -34,20 +40,42 @@ public class AssistantKnowledgeVectorIndexService {
 
     private final AssistantKnowledgeSourceRepository repository;
     private final ObjectProvider<VectorStore> vectorStoreProvider;
+    private final ObjectProvider<QdrantClient> qdrantClientProvider;
     private final GeminiApiClient gemini;
     private final AssistantKnowledgeGraphService graphService;
     private final boolean enabled;
+    private final String collectionName;
+    private final String qdrantHost;
+    private final String activeProfiles;
+    private volatile boolean collectionInitialized = false;
+
+    public AssistantKnowledgeVectorIndexService(AssistantKnowledgeSourceRepository repository,
+                                                ObjectProvider<VectorStore> vectorStoreProvider,
+                                                ObjectProvider<QdrantClient> qdrantClientProvider,
+                                                GeminiApiClient gemini,
+                                                AssistantKnowledgeGraphService graphService,
+                                                @Value("${assistant.rag.vector.enabled:true}") boolean enabled,
+                                                @Value("${spring.ai.vectorstore.qdrant.collection-name:${assistant.rag.collection:techtra_knowledge_gemini_embedding_2_768}}") String collectionName,
+                                                @Value("${spring.ai.vectorstore.qdrant.host:${QDRANT_HOST:localhost}}") String qdrantHost,
+                                                @Value("${spring.profiles.active:}") String activeProfiles) {
+        this.repository = repository;
+        this.vectorStoreProvider = vectorStoreProvider;
+        this.qdrantClientProvider = qdrantClientProvider;
+        this.gemini = gemini;
+        this.graphService = graphService;
+        this.enabled = enabled;
+        this.collectionName = collectionName;
+        this.qdrantHost = qdrantHost;
+        this.activeProfiles = activeProfiles;
+    }
 
     public AssistantKnowledgeVectorIndexService(AssistantKnowledgeSourceRepository repository,
                                                 ObjectProvider<VectorStore> vectorStoreProvider,
                                                 GeminiApiClient gemini,
                                                 AssistantKnowledgeGraphService graphService,
-                                                @Value("${assistant.rag.vector.enabled:true}") boolean enabled) {
-        this.repository = repository;
-        this.vectorStoreProvider = vectorStoreProvider;
-        this.gemini = gemini;
-        this.graphService = graphService;
-        this.enabled = enabled;
+                                                boolean enabled) {
+        this(repository, vectorStoreProvider, null, gemini, graphService, enabled,
+                "techtra_knowledge_gemini_embedding_2_768", "localhost", "");
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
@@ -125,6 +153,10 @@ public class AssistantKnowledgeVectorIndexService {
             updateIndexState(sourceId, expectedHash, "PENDING", 0, "Chưa cấu hình GEMINI_API_KEY.");
             return "PENDING";
         }
+        if (isProduction() && isLocalhost(qdrantHost)) {
+            updateIndexState(sourceId, expectedHash, "PENDING", 0, "Chưa cấu hình QDRANT_HOST cho môi trường production.");
+            return "PENDING";
+        }
 
         VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
         if (vectorStore == null) {
@@ -133,6 +165,7 @@ public class AssistantKnowledgeVectorIndexService {
         }
 
         try {
+            ensureCollectionExists(vectorStore);
             List<String> chunks = split(source.getTitle(), source.getContent());
             List<Document> documents = new ArrayList<>(chunks.size());
             for (int index = 0; index < chunks.size(); index++) {
@@ -232,6 +265,45 @@ public class AssistantKnowledgeVectorIndexService {
             return HexFormat.of().formatHex(value);
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is unavailable.", exception);
+        }
+    }
+
+    private boolean isProduction() {
+        return activeProfiles != null && (activeProfiles.contains("prod") || activeProfiles.contains("production"));
+    }
+
+    private boolean isLocalhost(String host) {
+        return host == null || host.isBlank() || "localhost".equalsIgnoreCase(host.trim()) || "127.0.0.1".equals(host.trim());
+    }
+
+    private void ensureCollectionExists(VectorStore vectorStore) {
+        if (collectionInitialized) return;
+        QdrantClient client = qdrantClientProvider != null ? qdrantClientProvider.getIfAvailable() : null;
+        if (client == null) {
+            Optional<QdrantClient> nativeClient = vectorStore.getNativeClient();
+            if (nativeClient.isPresent()) {
+                client = nativeClient.get();
+            }
+        }
+        if (client == null) return;
+        try {
+            Boolean exists = client.collectionExistsAsync(collectionName).get(5, TimeUnit.SECONDS);
+            if (!Boolean.TRUE.equals(exists)) {
+                Collections.VectorParams params = Collections.VectorParams.newBuilder()
+                        .setDistance(Collections.Distance.Cosine)
+                        .setSize(gemini.dimensions())
+                        .build();
+                client.createCollectionAsync(collectionName, params).get(10, TimeUnit.SECONDS);
+                log.info("Initialized Qdrant collection '{}' with dimension {}", collectionName, gemini.dimensions());
+            }
+            collectionInitialized = true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while checking Qdrant collection.", e);
+        } catch (ExecutionException e) {
+            throw new IllegalStateException("Failed to communicate with Qdrant: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()), e);
+        } catch (TimeoutException e) {
+            throw new IllegalStateException("Timed out communicating with Qdrant.", e);
         }
     }
 

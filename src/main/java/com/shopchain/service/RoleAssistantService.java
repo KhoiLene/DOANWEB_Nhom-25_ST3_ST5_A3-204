@@ -65,6 +65,8 @@ public class RoleAssistantService {
     private final boolean vectorEnabled;
     private final int topK;
     private final double similarityThreshold;
+    private final String qdrantHost;
+    private final String activeProfiles;
 
     public RoleAssistantService(AssistantKnowledgeSourceRepository repository,
                                 ProductRepository productRepository,
@@ -72,7 +74,9 @@ public class RoleAssistantService {
                                 GeminiApiClient gemini,
                                 @Value("${assistant.rag.vector.enabled:true}") boolean vectorEnabled,
                                 @Value("${assistant.rag.top-k:6}") int topK,
-                                @Value("${assistant.rag.similarity-threshold:0.35}") double similarityThreshold) {
+                                @Value("${assistant.rag.similarity-threshold:0.35}") double similarityThreshold,
+                                @Value("${spring.ai.vectorstore.qdrant.host:${QDRANT_HOST:localhost}}") String qdrantHost,
+                                @Value("${spring.profiles.active:}") String activeProfiles) {
         this.repository = repository;
         this.productRepository = productRepository;
         this.vectorStoreProvider = vectorStoreProvider;
@@ -80,6 +84,26 @@ public class RoleAssistantService {
         this.vectorEnabled = vectorEnabled;
         this.topK = Math.max(1, Math.min(topK, 8));
         this.similarityThreshold = Math.max(0, Math.min(similarityThreshold, 1));
+        this.qdrantHost = qdrantHost;
+        this.activeProfiles = activeProfiles;
+    }
+
+    public RoleAssistantService(AssistantKnowledgeSourceRepository repository,
+                                ProductRepository productRepository,
+                                ObjectProvider<VectorStore> vectorStoreProvider,
+                                GeminiApiClient gemini,
+                                boolean vectorEnabled,
+                                int topK,
+                                double similarityThreshold) {
+        this(repository, productRepository, vectorStoreProvider, gemini, vectorEnabled, topK, similarityThreshold, "localhost", "");
+    }
+
+    private boolean isProduction() {
+        return activeProfiles != null && (activeProfiles.contains("prod") || activeProfiles.contains("production"));
+    }
+
+    private boolean isLocalhost(String host) {
+        return host == null || host.isBlank() || "localhost".equalsIgnoreCase(host.trim()) || "127.0.0.1".equals(host.trim());
     }
 
     public AssistantContext context(String role) {
@@ -87,12 +111,15 @@ public class RoleAssistantService {
         if (roleName == null) throw new IllegalArgumentException("Vai trò này chưa có trợ lý riêng.");
         List<AssistantKnowledgeSource> activeSources = repository.findByRoleKeyAndActiveTrueOrderByUpdatedAtDesc(role);
         long indexedCount = activeSources.stream().filter(this::indexedForCurrentGemini).count();
-        boolean qdrantReady = vectorEnabled && vectorStoreProvider.getIfAvailable() != null;
+        boolean qdrantConfigured = !isProduction() || !isLocalhost(qdrantHost);
+        boolean qdrantReady = vectorEnabled && qdrantConfigured && vectorStoreProvider.getIfAvailable() != null;
         boolean providerConfigured = gemini.isConfigured();
         boolean ready = !activeSources.isEmpty() && indexedCount > 0 && qdrantReady && providerConfigured;
         String description = "Chatbot AI thông minh dành cho " + roleName + ".";
         String mode = !providerConfigured
                 ? "Chưa cấu hình GEMINI_API_KEY ở backend."
+                : !qdrantConfigured
+                ? "Chưa cấu hình QDRANT_HOST ở backend."
                 : !qdrantReady
                 ? "Qdrant chưa sẵn sàng."
                 : "Gemini " + gemini.chatModel() + " + " + gemini.embeddingModel() + "; không dùng model cục bộ.";
@@ -121,6 +148,9 @@ public class RoleAssistantService {
         }
         if (!gemini.isConfigured()) throw new GeminiApiClient.GeminiApiException("Chưa cấu hình GEMINI_API_KEY cho ứng dụng.");
         if (!vectorEnabled) throw new GeminiApiClient.GeminiApiException("Vector RAG đang tắt trong cấu hình.");
+        if (isProduction() && isLocalhost(qdrantHost)) {
+            throw new GeminiApiClient.GeminiApiException("Chưa cấu hình QDRANT_HOST cho môi trường production.");
+        }
 
         List<Product> suggestedProducts = "customer".equals(role) ? relevantProducts(question, customerProfileContext) : List.of();
         List<ProductCard> productCards = suggestedProducts.stream().limit(3).map(this::productCard).toList();
