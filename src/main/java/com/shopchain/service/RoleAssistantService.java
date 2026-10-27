@@ -43,15 +43,19 @@ public class RoleAssistantService {
             "duong toc", "dau goi", "dau xa", "moi", "son", "trang diem", "makeup", "kem", "serum",
             "toner", "chong nang", "sua rua mat", "mat na", "tinh chat", "tay trang", "duong am", "loai da",
             "da dau", "da kho", "da nhay cam", "mun", "thanh phan", "cach dung", "su dung", "routine",
-            "tu van", "gia", "don hang", "gio hang", "mua hang", "thanh toan", "giao hang", "doi tra",
+            "tu van", "gia", "don hang", "gio hang", "mua hang", "dat hang", "dat san pham", "thanh toan", "giao hang", "doi tra",
             "cua hang", "chi nhanh", "tim cua hang", "gan nhat", "dia chi", "vi tri", "gps", "ban do",
             "nhan tai cua hang", "lay hang tai cua hang", "khuyen mai", "uu dai", "tich diem", "diem thuong",
             "voucher", "ship", "lam dep", "dep da", "da dep", "lo trinh da dep", "cham soc sac dep",
-            "lo trinh cham soc da", "routine da", "duong da hang ngay");
+            "lo trinh cham soc da", "routine da", "duong da hang ngay", "diem tich luy", "diem thanh vien",
+            "tai khoan", "hoa don", "huy don", "van chuyen", "ma van don", "phi giao hang", "dang ky",
+            "thong tin don hang", "phuong thuc thanh toan", "nhan hang");
+    private static final List<String> COMMON_HELP_TOPICS = List.of(
+            "chuc nang", "cach su dung", "huong dan", "thao tac", "lam sao", "giup toi", "chi toi", "cach lam", "cach thuc hien");
     private static final Map<String, List<String>> ROLE_TOPICS = Map.of(
             "customer", CUSTOMER_TOPICS,
-            "store-staff", List.of("ban tai quay", "ban hang", "hoa don", "thanh toan", "san pham", "khuyen mai", "don hang", "khach hang", "cua hang", "chi nhanh", "doi tra", "in hoa don", "ma giam gia", "giao hang", "ton kho", "ca lam", "nhan vien", "chuc nang", "thao tac"),
-            "warehouse", List.of("kho", "ton kho", "nhap", "xuat", "nhap hang", "xuat hang", "dieu chuyen", "phieu", "sku", "don hang", "kiem ke", "chi nhanh", "san pham", "so luong", "nhan hang", "tra hang", "nha cung cap", "chuc nang", "thao tac", "giao hang", "giao xa", "nuoc ngoai", "quoc te", "dat hang", "van chuyen"),
+            "store-staff", List.of("ban tai quay", "ban hang", "hoa don", "xuat hoa don", "in hoa don", "pdf", "thanh toan", "san pham", "khuyen mai", "uu dai", "ma giam gia", "don hang", "don online", "khach hang", "cua hang", "chi nhanh", "doi tra", "huy don", "giao hang", "ton kho", "lich su ton", "dieu chuyen", "nhan dieu chuyen", "nhan hang", "xuat kho", "so luong", "ca lam", "nhan vien", "pos", "gio hang", "trang thai", "pending", "processing", "shipping", "delivered", "chuc nang", "thao tac"),
+            "warehouse", List.of("kho", "ton kho", "nhap", "xuat", "nhap kho", "nhap hang", "xuat hang", "dieu chuyen", "phieu", "phieu dieu chuyen", "sku", "don hang", "don giao tu kho", "kiem ke", "chi nhanh", "san pham", "so luong", "nhan hang", "tra hang", "nha cung cap", "ma lo", "han dung", "ton thuc te", "hang hong", "chenh lech", "nhan xu ly", "ban giao", "pending", "processing", "shipping", "delivered", "giao hang", "giao xa", "nuoc ngoai", "quoc te", "dat hang", "van chuyen", "chuc nang", "thao tac"),
             "admin", List.of("quan tri", "he thong", "nguoi dung", "vai tro", "nhan su", "san pham", "danh muc", "chi nhanh", "kho", "don hang", "khuyen mai", "bao cao", "doanh thu", "phan quyen", "rag", "chatbot", "tinh nang", "chuc nang", "cai dat", "cau hinh", "hoa don", "thao tac", "huong dan", "cach su dung", "quan ly", "cach lam", "lam sao", "chi toi", "giup toi", "van hanh", "cap nhat", "them moi", "chinh sua", "tim kiem", "tai khoan", "dieu chuyen", "ton kho", "nhap hang", "xuat hang", "vi tri", "ban do", "nhan vien", "chi nhanh gan", "kho tri thuc", "nguon tri thuc", "bao mat", "phan quyen", "dang nhap", "cua hang", "phieu", "kiem ke"));
 
     private final AssistantKnowledgeSourceRepository repository;
@@ -124,8 +128,7 @@ public class RoleAssistantService {
         if (vectorStore == null) throw new GeminiApiClient.GeminiApiException("Qdrant chưa sẵn sàng.");
         List<RetrievedSnippet> snippets = retrieve(vectorStore, role, question);
         if (snippets.isEmpty() && suggestedProducts.isEmpty()) {
-            return new AssistantReply("admin".equals(role) ? adminNavigationFallback() : scopeRedirect(role),
-                    List.of(), "GEMINI_VECTOR");
+            return new AssistantReply(knowledgeFallback(role, question), List.of(), "GEMINI_VECTOR");
         }
 
         String roleName = ROLE_NAMES.get(role);
@@ -160,9 +163,11 @@ public class RoleAssistantService {
                 + ("customer".equals(role) && customerProfileContext != null && !customerProfileContext.isBlank()
                     ? "\n\n" + gemini.sanitize(customerProfileContext) : "");
         String generatedAnswer = gemini.generate(system, prompt);
-        if (OFFENSIVE_CONTENT.matcher(generatedAnswer == null ? "" : generatedAnswer).find()
-                || refersToMissingKnowledge(generatedAnswer)) {
+        if (OFFENSIVE_CONTENT.matcher(generatedAnswer == null ? "" : generatedAnswer).find()) {
             return new AssistantReply(scopeRedirect(role), List.of(), "ROLE_GUIDE");
+        }
+        if (refersToMissingKnowledge(generatedAnswer)) {
+            return new AssistantReply(knowledgeFallback(role, question), List.of(), "GEMINI_VECTOR");
         }
         String answer = formatAnswer(generatedAnswer);
         List<String> sources = snippets.stream().map(RetrievedSnippet::title).distinct().limit(5).toList();
@@ -324,8 +329,51 @@ public class RoleAssistantService {
         if (normalized.matches(".*\\b(hello|hi|xin chao|chao|cam on|cảm ơn|ban la ai|ban giup duoc gi|tro giup).*")) return true;
         List<String> topics = ROLE_TOPICS.get(role);
         if (topics == null) return false;
-        String padded = " " + normalized + " ";
-        return topics.stream().anyMatch(topic -> padded.contains(" " + topic + " "));
+        return topics.stream().anyMatch(topic -> containsTopic(normalized, topic))
+                || COMMON_HELP_TOPICS.stream().anyMatch(topic -> containsTopic(normalized, topic));
+    }
+
+    private boolean containsTopic(String normalizedText, String topic) {
+        String[] expected = topic.split("\\s+");
+        String[] actual = normalizedText.split("\\s+");
+        if (expected.length == 0 || actual.length < expected.length) return false;
+        for (int start = 0; start <= actual.length - expected.length; start++) {
+            boolean matches = true;
+            for (int offset = 0; offset < expected.length; offset++) {
+                if (!matchesTopicWord(expected[offset], actual[start + offset])) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches) return true;
+        }
+        return false;
+    }
+
+    private boolean matchesTopicWord(String expected, String actual) {
+        if (expected.equals(actual)) return true;
+        if (Math.min(expected.length(), actual.length()) < 3
+                || Math.abs(expected.length() - actual.length()) > 1) return false;
+
+        int left = 0;
+        int right = 0;
+        int edits = 0;
+        while (left < expected.length() && right < actual.length()) {
+            if (expected.charAt(left) == actual.charAt(right)) {
+                left++;
+                right++;
+                continue;
+            }
+            if (++edits > 1) return false;
+            if (expected.length() > actual.length()) left++;
+            else if (actual.length() > expected.length()) right++;
+            else {
+                left++;
+                right++;
+            }
+        }
+        if (left < expected.length() || right < actual.length()) edits++;
+        return edits <= 1;
     }
 
     private boolean hasRelevantHistory(String role, List<ChatTurn> history) {
@@ -363,12 +411,45 @@ public class RoleAssistantService {
                 + "→ Bạn muốn mình hướng dẫn cụ thể mục nào?";
     }
 
+    private String knowledgeFallback(String role, String question) {
+        String normalized = normalizeForScope(question);
+        return switch (role) {
+            case "customer" -> {
+                if (List.of("dat hang", "dat san pham", "mua hang", "gio hang", "thanh toan", "giao hang")
+                        .stream().anyMatch(normalized::contains)) {
+                    yield "→ Mở sản phẩm bạn muốn mua rồi bấm Thêm vào giỏ.\n"
+                            + "→ Vào Giỏ hàng, kiểm tra số lượng và chọn Tiến hành đặt hàng.\n"
+                            + "→ Điền thông tin nhận hàng, chọn giao tận nơi hoặc nhận tại chi nhánh rồi xác nhận đơn.";
+                }
+                if (List.of("chi nhanh", "cua hang", "dia chi", "gps", "vi tri", "ban do")
+                        .stream().anyMatch(normalized::contains)) {
+                    yield "→ Mở mục Cửa hàng trên thanh điều hướng.\n"
+                            + "→ Dùng vị trí hiện tại hoặc nhập địa chỉ để tìm các chi nhánh phù hợp.\n"
+                            + "→ Chọn chi nhánh mong muốn; danh sách gợi ý hiển thị tối đa năm điểm.";
+                }
+                yield "→ Mình có thể tư vấn chăm sóc da, tóc, môi, sản phẩm, ưu đãi và cách đặt hàng.\n"
+                        + "→ Bạn đang muốn tìm hiểu chủ đề nào?";
+            }
+            case "store-staff" -> "→ Dùng tab Bán tại quầy để lập giao dịch; mở Đơn hàng & tồn kho để xử lý đơn của chi nhánh.\n"
+                    + "→ Kiểm tra sản phẩm, số lượng và tổng tiền trước khi hoàn tất rồi xem biên nhận.\n"
+                    + "→ Bạn cần hướng dẫn bán tại quầy, đơn online hay nhận điều chuyển?";
+            case "warehouse" -> "→ Dùng tab Tồn kho & nhập hàng để ghi nhận hàng và lập phiếu điều chuyển.\n"
+                    + "→ Dùng tab Đơn giao từ kho để xử lý đơn được giao cho kho của bạn.\n"
+                    + "→ Bạn cần hướng dẫn nhập kho, điều chuyển hay xử lý đơn?";
+            case "admin" -> adminNavigationFallback();
+            default -> scopeRedirect(role);
+        };
+    }
+
     private boolean refersToMissingKnowledge(String answer) {
         if (answer == null) return true;
         String normalized = java.text.Normalizer.normalize(answer.toLowerCase(java.util.Locale.ROOT), java.text.Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .replace('đ', 'd');
-        return normalized.matches("(?s).*(khong co|chua co|khong tim thay|thieu|khong biet)\\s+(thong tin|tai lieu|du lieu|nguon|cau tra loi)|no (relevant )?(documents?|information|data|answer).*|tai lieu (khong co|chua co|khong de cap).*|.*(tai lieu|kho tri thuc|nguon tham khao|vector store|knowledge base).*");
+        return normalized.matches("(?s).*(?:khong co|chua co|khong tim thay|thieu|khong biet|khong du)\\s+(?:thong tin|tai lieu|du lieu|nguon|cau tra loi).*")
+                || normalized.matches("(?s).*no (?:relevant )?(?:documents?|information|data|answer).*")
+                || normalized.matches("(?s).*tai lieu (?:khong co|chua co|khong de cap).*")
+                || normalized.matches("(?s).*(?:i (?:do not|don't) have enough|not enough) (?:information|data).*");
     }
 
     private String greetingTopics(String role) {
