@@ -21,7 +21,7 @@ public class DatabaseUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
-                .or(() -> userRepository.findByEmail(username))
+                .or(() -> userRepository.findByEmailIgnoreCase(username))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         String role = user.getRole() == null ? "ROLE_USER" : user.getRole().getName();

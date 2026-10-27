@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,36 +46,44 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public String register(RegisterRequest request) {
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new RuntimeException("Username already exists!");
-        }
+        if (request == null) throw new IllegalArgumentException("Thông tin đăng ký chưa hợp lệ.");
+        String username = request.getUsername() == null ? "" : request.getUsername().trim().toLowerCase(Locale.ROOT);
+        String email = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase(Locale.ROOT);
+        String fullName = request.getFullName() == null ? "" : request.getFullName().trim();
+        String phone = request.getPhone() == null ? "" : request.getPhone().replaceAll("[\\s()\\-]", "");
+        String password = request.getPassword();
 
-        // 1. Mã hóa mật khẩu
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        if (!username.matches("[a-z0-9._-]{4,30}"))
+            throw new IllegalArgumentException("Tên đăng nhập cần từ 4 đến 30 ký tự: chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang.");
+        if (userRepository.findByUsernameIgnoreCase(username).isPresent())
+            throw new IllegalArgumentException("Tên đăng nhập này đã được sử dụng.");
+        if (email.length() > 254 || !email.matches("^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$"))
+            throw new IllegalArgumentException("Địa chỉ email chưa đúng định dạng.");
+        if (userRepository.findByEmailIgnoreCase(email).isPresent())
+            throw new IllegalArgumentException("Email này đã được đăng ký.");
+        if (fullName.isBlank() || fullName.length() > 100)
+            throw new IllegalArgumentException("Họ tên cần có từ 1 đến 100 ký tự.");
+        if (!phone.matches("\\+?[0-9]{9,15}"))
+            throw new IllegalArgumentException("Số điện thoại cần có từ 9 đến 15 chữ số; có thể bắt đầu bằng +84.");
+        if (password == null || password.length() < 8 || password.getBytes(StandardCharsets.UTF_8).length > 72)
+            throw new IllegalArgumentException("Mật khẩu cần từ 8 ký tự và tối đa 72 byte.");
 
-        // 2. Tạo user (chưa enable)
+        String encodedPassword = passwordEncoder.encode(password);
+
         User user = User.builder()
-                .username(request.getUsername())
+                .username(username)
                 .password(encodedPassword)
-                .email(request.getEmail())
-                .fullName(request.getFullName())
-                .phone(request.getPhone())
-                .enabled(false)
+                .email(email)
+                .fullName(fullName)
+                .phone(phone)
+                .enabled(true)
                 .build();
 
-        // Gán role mặc định là ROLE_USER
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_USER").build()));
         user.setRole(userRole);
-
         userRepository.save(user);
-
-        // 3. Gửi OTP qua Email
-        String otp = generateOtp();
-        otpCache.put(user.getEmail(), otp);
-        sendOtpEmail(user.getEmail(), otp);
-
-        return "Registration successful! Please check your email for OTP activation.";
+        return "Tài khoản khách hàng đã được tạo. Bạn có thể đăng nhập ngay.";
     }
 
     @Override
@@ -100,7 +110,7 @@ public class AuthServiceImpl implements AuthService {
 
         String jwt = tokenProvider.generateToken(authentication);
         User user = userRepository.findByUsername(username)
-                .or(() -> userRepository.findByEmail(username))
+                .or(() -> userRepository.findByEmailIgnoreCase(username))
                 .orElseThrow();
 
         return AuthResponse.builder()

@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập - KL Shop</title>
+    <title>Đăng nhập | Techtra Beauty</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" th:href="@{/css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/auth-polish.css}">
     <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
     <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
 </head>
@@ -15,37 +16,33 @@
   <main class="auth-page">
     <!-- Left: brand / visual -->
     <aside class="auth-visual">
-        <div class="auth-visual__brand">
-            <span class="brand-mark"><i class="fa-solid fa-flask"></i></span>
-            <span>KL Shop</span>
-        </div>
+        <div class="auth-visual__brand"><span class="brand-mark"><i class="fa-solid fa-spa"></i></span><span>TECHTRA <strong>BEAUTY</strong></span></div>
 
         <div class="auth-visual__content">
             <span class="auth-visual__eyebrow">Chào mừng trở lại</span>
-            <h1 class="auth-visual__title">Đăng nhập để tiếp tục <span>hành trình xanh</span> của bạn</h1>
+            <h1 class="auth-visual__title">Chăm sóc bản thân, <span>theo cách của bạn</span></h1>
             <p class="auth-visual__desc">
-                Khám phá hàng ngàn sản phẩm thiên nhiên, an toàn và lành tính —
-                cùng những ưu đãi độc quyền dành riêng cho thành viên KL.
+                Đăng nhập để theo dõi đơn hàng, tích điểm thành viên và tiếp tục khám phá các sản phẩm phù hợp.
             </p>
 
             <ul class="auth-visual__perks">
-                <li class="auth-perk"><i class="fa-solid fa-truck-fast"></i> Miễn phí vận chuyển cho đơn từ 299K</li>
-                <li class="auth-perk"><i class="fa-solid fa-gift"></i> Tích điểm đổi quà hấp dẫn mỗi đơn hàng</li>
-                <li class="auth-perk"><i class="fa-solid fa-shield-halved"></i> Cam kết chính hãng 100% — đổi trả dễ dàng</li>
+                <li class="auth-perk"><i class="fa-solid fa-box-open"></i> Theo dõi đơn hàng và lịch sử mua</li>
+                <li class="auth-perk"><i class="fa-solid fa-star"></i> Tích điểm và xem ưu đãi thành viên</li>
+                <li class="auth-perk"><i class="fa-solid fa-store"></i> Chọn nhận hàng tại chi nhánh</li>
             </ul>
         </div>
 
         <div class="auth-visual__footer">
             <i class="fa-solid fa-leaf"></i>
-            <span>KL — Vì một Việt Nam xanh, sạch, an lành.</span>
+            <span>Techtra Beauty · Chăm sóc mỗi ngày, theo cách của bạn.</span>
         </div>
     </aside>
 
     <!-- Right: form -->
     <section class="auth-form-wrap">
         <form class="auth-form" th:action="@{/login-process}" method="post">
-            <a th:href="@{/profile}" class="auth-form__back">
-                <i class="fa-solid fa-arrow-left"></i> Quay lại trang chủ
+            <a th:href="@{/}" class="auth-form__back">
+                <i class="fa-solid fa-arrow-left"></i> Về cửa hàng
             </a>
 
             <h2 class="auth-form__heading">Đăng nhập</h2>
@@ -54,10 +51,10 @@
                 <a th:href="@{/register}">Đăng ký ngay</a>
             </p>
 
-            <div th:if="${error}" class="auth-message" style="color: red; margin-bottom: 1rem;" role="alert" th:text="${error}"></div>
+            <div th:if="${error}" class="auth-message error is-show" role="alert" th:text="${error}"></div>
 
             <div class="form-field">
-                <label class="form-field__label" for="username">Tên đăng nhập, Email hoặc SĐT</label>
+                <label class="form-field__label" for="username">Tên đăng nhập hoặc email</label>
                 <div class="form-field__input-wrap">
                     <i class="fa-solid fa-user form-icon"></i>
                     <input
@@ -67,7 +64,8 @@
                         name="username"
                         required
                         autocomplete="username"
-                        placeholder="Nhập tên đăng nhập, email hoặc số điện thoại"
+                        placeholder="Nhập tên đăng nhập hoặc email"
+                        th:value="${loginUsername}"
                     >
                 </div>
             </div>
@@ -91,11 +89,7 @@
                 </div>
             </div>
 
-            <div class="form-row">
-                <label class="form-check">
-                    <input type="checkbox" id="remember" name="remember">
-                    <span>Ghi nhớ đăng nhập</span>
-                </label>
+            <div class="form-row form-row--login">
                 <a th:href="@{/forgot-password}" class="form-link">Quên mật khẩu?</a>
             </div>
 
@@ -104,16 +98,13 @@
                 <i class="fa-solid fa-arrow-right"></i>
             </button>
 
-            <p class="auth-form__sub" style="margin-top:24px;font-size:0.85rem;text-align:center;">
-                Bằng việc đăng nhập, bạn đồng ý với
-                <a href="#">Điều khoản dịch vụ</a> &amp;
-                <a href="#">Chính sách bảo mật</a> của KL.
-            </p>
+            <p class="auth-form__security"><i class="fa-solid fa-lock"></i> Thông tin đăng nhập được bảo vệ an toàn.</p>
         </form>
     </section>
   </main>
 
   <div th:replace="~{fragments/footer :: footer}"></div>
+  <script defer th:src="@{/js/auth.js}"></script>
 
 </body>
 </html>

@@ -326,7 +326,8 @@ public class WebController {
                 default -> "redirect:/";
             };
         } catch (Exception e) {
-            model.addAttribute("error", "Invalid username or password");
+            model.addAttribute("error", "Tên đăng nhập hoặc email, hay mật khẩu chưa đúng. Vui lòng thử lại.");
+            model.addAttribute("loginUsername", username);
             return "login";
         }
     }
@@ -339,14 +340,20 @@ public class WebController {
     @PostMapping("/register-process")
     public String registerProcess(@RequestParam String username, @RequestParam String password,
                                   @RequestParam String email, @RequestParam String fullName,
-                                  @RequestParam String phone, Model model) {
+                                  @RequestParam String phone, @RequestParam String confirmPassword, Model model) {
         try {
+            if (!password.equals(confirmPassword))
+                throw new IllegalArgumentException("Mật khẩu xác nhận chưa khớp.");
             RegisterRequest request = new RegisterRequest(username, password, email, fullName, phone);
             String message = authService.register(request);
             model.addAttribute("message", message);
             return "register-success";
         } catch (Exception e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("error", e.getMessage() == null ? "Không thể tạo tài khoản. Vui lòng kiểm tra lại thông tin." : e.getMessage());
+            model.addAttribute("registerUsername", username);
+            model.addAttribute("registerEmail", email);
+            model.addAttribute("registerFullName", fullName);
+            model.addAttribute("registerPhone", phone);
             return "register";
         }
     }

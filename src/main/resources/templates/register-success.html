@@ -1,32 +1,31 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng ký thành công - KL Shop</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tạo tài khoản thành công | Techtra Beauty</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" th:href="@{/css/dang-ky.css}">
-    <th:block th:replace="~{fragments/header :: header-assets}"></th:block>
-    <th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/auth.css}"><link rel="stylesheet" th:href="@{/css/auth-polish.css}"><link rel="stylesheet" th:href="@{/css/auth-success.css}">
+    <th:block th:replace="~{fragments/header :: header-assets}"></th:block><th:block th:replace="~{fragments/footer :: footer-assets}"></th:block>
 </head>
-<body style="display: flex; flex-direction: column; min-height: 100vh;">
+<body>
   <div th:replace="~{fragments/header :: header}"></div>
-
-  <main class="auth-page" style="align-items: center; justify-content: center; flex-grow: 1;">
-    <div class="auth-form-wrap" style="text-align: center; max-width: 500px;">
-        <div class="auth-form" style="padding: 40px;">
-            <div style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;">
-                <i class="fa-solid fa-circle-check"></i>
-            </div>
-            <h2 class="auth-form__heading">Đăng ký thành công!</h2>
-            <p class="auth-form__sub" style="margin-bottom: 30px;" th:text="${message}">
-                Chúng tôi đã gửi mã xác nhận OTP đến email của bạn. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản.
-            </p>
-            <a th:href="@{/login}" class="btn btn-primary">Đi đến đăng nhập</a>
-        </div>
-    </div>
+  <main class="auth-page auth-success-page">
+    <aside class="auth-visual">
+      <div class="auth-visual__brand"><span class="brand-mark"><i class="fa-solid fa-spa"></i></span><span>TECHTRA <strong>BEAUTY</strong></span></div>
+      <div class="auth-visual__content"><span class="auth-visual__eyebrow">Chào mừng thành viên mới</span><h1 class="auth-visual__title">Mọi thứ bắt đầu từ <span>một lựa chọn phù hợp</span></h1><p class="auth-visual__desc">Khám phá sản phẩm, theo dõi đơn hàng và tích điểm thành viên trên Techtra Beauty.</p></div>
+      <div class="auth-visual__footer"><i class="fa-solid fa-leaf"></i><span>Chăm sóc mỗi ngày, theo cách của bạn.</span></div>
+    </aside>
+    <section class="auth-form-wrap">
+      <div class="auth-form auth-success-card">
+        <span class="auth-success-card__icon"><i class="fa-solid fa-circle-check"></i></span>
+        <span class="auth-form__eyebrow">HOÀN TẤT ĐĂNG KÝ</span>
+        <h1 class="auth-form__heading">Tài khoản đã sẵn sàng</h1>
+        <p class="auth-form__sub" th:text="${message}">Bạn có thể đăng nhập ngay bằng tên đăng nhập hoặc email.</p>
+        <a th:href="@{/login}" class="btn btn-primary"><span>Đăng nhập</span><i class="fa-solid fa-arrow-right"></i></a>
+        <a th:href="@{/products}" class="auth-success-card__browse">Tiếp tục xem sản phẩm</a>
+      </div>
+    </section>
   </main>
-
   <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>
