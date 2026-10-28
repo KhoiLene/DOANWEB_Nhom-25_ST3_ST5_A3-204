@@ -439,10 +439,31 @@ public class WebController {
         try {
             String message = authService.forgotPassword(email);
             model.addAttribute("message", message);
+            model.addAttribute("email", email.trim());
             return "forgot-password-success";
         } catch (Exception e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("error", e.getMessage() == null ? "Không gửi được mã lúc này. Vui lòng thử lại sau." : e.getMessage());
+            model.addAttribute("email", email);
             return "forgot-password";
+        }
+    }
+
+    @PostMapping("/reset-password-process")
+    public String resetPasswordProcess(@RequestParam String email, @RequestParam String otp,
+                                       @RequestParam String newPassword, @RequestParam String confirmPassword,
+                                       Model model) {
+        try {
+            if (!newPassword.equals(confirmPassword)) {
+                throw new IllegalArgumentException("Mật khẩu nhập lại chưa khớp.");
+            }
+            String message = authService.resetPassword(email, otp, newPassword);
+            model.addAttribute("message", message);
+            return "password-reset-success";
+        } catch (Exception e) {
+            model.addAttribute("message", "Nhập mã xác minh và mật khẩu mới để tiếp tục.");
+            model.addAttribute("error", e.getMessage() == null ? "Không thể đặt lại mật khẩu. Vui lòng thử lại." : e.getMessage());
+            model.addAttribute("email", email);
+            return "forgot-password-success";
         }
     }
 

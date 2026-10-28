@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Map;
 import java.nio.charset.StandardCharsets;
@@ -37,16 +38,22 @@ public class AuthServiceImpl implements AuthService {
     private final JavaMailSender mailSender;
     private final JwtTokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
+    private final String mailUsername;
+    private final String mailPassword;
 
     public AuthServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
                            PasswordEncoder passwordEncoder, JavaMailSender mailSender,
-                           JwtTokenProvider tokenProvider, AuthenticationManager authenticationManager) {
+                           JwtTokenProvider tokenProvider, AuthenticationManager authenticationManager,
+                           @Value("${spring.mail.username:}") String mailUsername,
+                           @Value("${spring.mail.password:}") String mailPassword) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.mailSender = mailSender;
         this.tokenProvider = tokenProvider;
         this.authenticationManager = authenticationManager;
+        this.mailUsername = mailUsername;
+        this.mailPassword = mailPassword;
     }
 
     // In-memory challenges are temporary; production multi-instance deployments should use shared Redis storage.
@@ -170,6 +177,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void sendOtpChallenge(String email, String type) {
+        if (mailUsername == null || mailUsername.isBlank() || mailPassword == null || mailPassword.isBlank()) {
+            throw new IllegalStateException("Chưa cấu hình Gmail SMTP. Vui lòng thêm MAIL_USERNAME và MAIL_PASSWORD (Google App Password).");
+        }
         Instant now = Instant.now();
         pruneOtpEntries(now);
         AtomicBoolean allowed = new AtomicBoolean(false);
@@ -238,10 +248,15 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void sendOtpEmail(String to, String otp) {
+        if (mailUsername == null || mailUsername.isBlank() || mailPassword == null || mailPassword.isBlank()) {
+            throw new IllegalStateException("Chưa cấu hình Gmail SMTP. Vui lòng thêm MAIL_USERNAME và MAIL_PASSWORD (Google App Password).");
+        }
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(mailUsername.trim());
         message.setTo(to);
-        message.setSubject("Shop Chain - Verification Code");
-        message.setText("Mã xác minh của bạn là: " + otp + ". Mã có hiệu lực trong 5 phút và chỉ dùng một lần.");
+        message.setSubject("Techtra Beauty | Mã đặt lại mật khẩu");
+        message.setText("Xin chào,\n\nMã xác minh đặt lại mật khẩu của bạn là: " + otp
+                + "\n\nMã có hiệu lực trong 5 phút và chỉ sử dụng một lần. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.\n\nTechtra Beauty");
         mailSender.send(message);
     }
 
