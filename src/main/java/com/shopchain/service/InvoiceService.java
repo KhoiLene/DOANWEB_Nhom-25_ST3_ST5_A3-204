@@ -45,4 +45,14 @@ public class InvoiceService {
         lines.forEach(line -> line.setInvoice(invoice));
         return invoiceRepository.save(invoice);
     }
+
+    @Transactional(readOnly = true)
+    public SalesInvoice getInvoiceForCustomer(Long invoiceId, Long customerUserId) {
+        SalesInvoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy biên nhận."));
+        User owner = invoice.getOrder().getUser();
+        if (owner == null || customerUserId == null || !owner.getId().equals(customerUserId))
+            throw new IllegalArgumentException("Biên nhận không thuộc tài khoản này.");
+        return invoice;
+    }
 }

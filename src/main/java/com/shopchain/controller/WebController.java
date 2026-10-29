@@ -36,6 +36,7 @@ public class WebController {
     private final OrderService orderService;
     private final OrderRepository orderRepository;
     private final SalesInvoiceRepository salesInvoiceRepository;
+    private final InvoiceService invoiceService;
     private final CustomerProgramService customerProgramService;
     private final OrderPricingService pricingService;
 
@@ -45,7 +46,8 @@ public class WebController {
                          CategoryRepository categoryRepository, ReviewService reviewService,
                          UserRepository userRepository, StoreRepository storeRepository, OrderService orderService,
                          OrderRepository orderRepository, SalesInvoiceRepository salesInvoiceRepository,
-                         CustomerProgramService customerProgramService, OrderPricingService pricingService) {
+                         InvoiceService invoiceService, CustomerProgramService customerProgramService,
+                         OrderPricingService pricingService) {
         this.productService = productService;
         this.newsService = newsService;
         this.aboutService = aboutService;
@@ -61,6 +63,7 @@ public class WebController {
         this.orderService = orderService;
         this.orderRepository = orderRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;
+        this.invoiceService = invoiceService;
         this.customerProgramService = customerProgramService;
         this.pricingService = pricingService;
     }
@@ -342,8 +345,7 @@ public class WebController {
     @GetMapping("/my/invoices/{invoiceId}")
     public String myInvoice(@PathVariable Long invoiceId, Model model, Authentication authentication) {
         User user = userRepository.findByUsername(authentication.getName()).orElseThrow();
-        SalesInvoice invoice = salesInvoiceRepository.findById(invoiceId).orElseThrow();
-        if (!invoice.getOrder().getUser().getId().equals(user.getId())) throw new IllegalArgumentException("Biên nhận không thuộc tài khoản này.");
+        SalesInvoice invoice = invoiceService.getInvoiceForCustomer(invoiceId, user.getId());
         model.addAttribute("invoice", invoice);
         return "my-invoice";
     }

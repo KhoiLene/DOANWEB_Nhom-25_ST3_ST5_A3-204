@@ -5,18 +5,33 @@
 <th:block th:replace="~{fragments/portal-header :: header('Nhân viên cửa hàng', ${store.name})}"></th:block>
 <main class="workspace-page">
   <div class="workspace-page__heading"><div><h1>Phiếu giữ hàng</h1><p>Xác nhận khách đến nhận hoặc trả hàng về tồn bán tại chi nhánh.</p></div></div>
+  <div class="workspace-notice workspace-notice--error" th:if="${errorMessage}" th:text="${errorMessage}" role="alert"></div>
   <nav class="workspace-tabs"><a th:href="@{/staff/orders}">Đơn hàng &amp; tồn kho</a><a th:href="@{/staff/pos}">Bán tại quầy</a><a class="active" th:href="@{/staff/reservations}">Giữ hàng</a><a th:href="@{/}">Cửa hàng trực tuyến</a></nav>
-  <section class="card"><div class="card__header"><h2>Khách sẽ đến nhận tại <span th:text="${store.name}">chi nhánh</span></h2></div>
+  <section class="card"><div class="card__header"><div><h2>Khách sẽ đến nhận tại <span th:text="${store.name}">chi nhánh</span></h2><p class="workspace-muted">Khi giao hàng, chọn phương thức thanh toán để tạo giao dịch và biên nhận. Không bấm bán lại các sản phẩm này ở POS.</p></div></div>
     <div class="card__body workspace-table-wrap"><table class="admin-table"><thead><tr><th>Mã phiếu</th><th>Khách hàng</th><th>Sản phẩm</th><th>Hạn giữ</th><th>Thao tác</th></tr></thead><tbody>
       <tr th:each="reservation : ${reservations}">
         <td><strong th:text="${reservation.code}">TH12345678</strong></td>
         <td><span th:text="${reservation.customerName ?: 'Khách hàng'}">Tên khách</span><br><small th:text="${reservation.customerPhone ?: 'Không có số điện thoại'}">Điện thoại</small></td>
         <td><span th:each="line,iter : ${reservation.items}" th:text="${line.productName + ' × ' + line.quantity + (iter.last ? '' : ', ')}">Sản phẩm</span></td>
         <td th:text="${#temporals.format(reservation.expiresAt, 'dd/MM/yyyy HH:mm')}">Hạn giữ</td>
-        <td class="reservation-actions"><form th:action="@{/staff/reservations/{id}/pickup(id=${reservation.id})}" method="post"><button type="submit">Đã giao khách</button></form><form th:action="@{/staff/reservations/{id}/cancel(id=${reservation.id})}" method="post"><button type="submit" class="workspace-button--secondary">Hủy giữ</button></form></td>
+        <td class="reservation-actions"><form class="reservation-pickup-form" th:action="@{/staff/reservations/{id}/pickup(id=${reservation.id})}" method="post"><label>Thanh toán<select name="paymentMethod" required><option value="CASH">Tiền mặt</option><option value="CARD">Thẻ</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="OTHER">Khác</option></select></label><input type="hidden" name="paymentReference" th:value="${'RES-' + reservation.code}"><div class="reservation-transfer-confirm" hidden><p>Ghi nhận chuyển khoản theo nội dung <strong th:text="${'RES-' + reservation.code}">RES-TH12345678</strong>. Nhân viên phải tự kiểm tra tiền đã vào tài khoản; không có xác minh ngân hàng tự động.</p><label><input type="checkbox" name="bankTransferConfirmed" value="true"> Tôi đã kiểm tra tiền thực nhận</label></div><button type="submit">Giao hàng &amp; xuất biên nhận</button></form><form th:action="@{/staff/reservations/{id}/cancel(id=${reservation.id})}" method="post"><button type="submit" class="workspace-button--secondary">Hủy giữ</button></form></td>
       </tr>
       <tr th:if="${#lists.isEmpty(reservations)}"><td colspan="5" class="workspace-empty">Không có phiếu giữ hàng đang hiệu lực.</td></tr>
     </tbody></table></div>
   </section>
 </main>
+<script>
+document.querySelectorAll('.reservation-pickup-form').forEach(form => {
+  const payment = form.querySelector('[name="paymentMethod"]');
+  const confirmation = form.querySelector('.reservation-transfer-confirm');
+  const checkbox = form.querySelector('[name="bankTransferConfirmed"]');
+  const update = () => {
+    const isTransfer = payment.value === 'BANK_TRANSFER';
+    confirmation.hidden = !isTransfer;
+    checkbox.required = isTransfer;
+  };
+  payment.addEventListener('change', update);
+  update();
+});
+</script>
 </body></html>

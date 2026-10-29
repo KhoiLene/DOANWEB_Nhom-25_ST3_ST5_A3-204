@@ -122,10 +122,21 @@ public class StoreStaffController {
     }
 
     @PostMapping("/reservations/{reservationId}/pickup")
-    public String pickupReservation(@PathVariable Long reservationId, Authentication authentication) {
+    public String pickupReservation(@PathVariable Long reservationId,
+                                    @RequestParam(defaultValue = "CASH") String paymentMethod,
+                                    @RequestParam(required = false) String paymentReference,
+                                    @RequestParam(defaultValue = "false") boolean bankTransferConfirmed,
+                                    Authentication authentication, RedirectAttributes redirectAttributes) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         if (user.getStore() == null) throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
-        reservationService.pickup(reservationId, user.getStore().getId(), authentication.getName());
+        try {
+            var result = reservationService.pickup(reservationId, user.getStore().getId(), authentication.getName(),
+                    paymentMethod, paymentReference, bankTransferConfirmed);
+            if (result.invoiceId() != null) return "redirect:/staff/invoices/" + result.invoiceId();
+            redirectAttributes.addFlashAttribute("errorMessage", "Phiếu đã hết hạn; đã giải phóng lượng hàng giữ và chưa tạo giao dịch.");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
         return "redirect:/staff/reservations";
     }
 
@@ -157,8 +168,9 @@ public class StoreStaffController {
                     .body(java.util.Map.of("error", "Giỏ hàng tại quầy chưa hợp lệ."));
         }
         try {
-            var invoice = pointOfSaleService.sell(authentication.getName(), request.customerName(), request.customerPhone(),
-                    request.paymentMethod(), request.paymentReference(), request.lines().stream()
+            var invoice = pointOfSaleService.sell(authentication.getName(), request.customerUserId(),
+                    request.customerName(), request.customerPhone(), request.paymentMethod(), request.paymentReference(),
+                    request.bankTransferConfirmed(), request.lines().stream()
                             .map(line -> new PointOfSaleService.SaleLine(line.productId(), line.quantity())).toList());
             return org.springframework.http.ResponseEntity.ok(java.util.Map.of(
                     "invoiceUrl", "/staff/invoices/" + invoice.getId(), "invoiceNumber", invoice.getInvoiceNumber()));
@@ -171,7 +183,8 @@ public class StoreStaffController {
         }
     }
 
-    public record SaleRequest(String customerName, String customerPhone, String paymentMethod, String paymentReference,
+    public record SaleRequest(Long customerUserId, String customerName, String customerPhone, String paymentMethod,
+                              String paymentReference, boolean bankTransferConfirmed,
                               java.util.List<SaleRequestLine> lines) {}
     public record SaleRequestLine(Long productId, Integer quantity) {}
 }

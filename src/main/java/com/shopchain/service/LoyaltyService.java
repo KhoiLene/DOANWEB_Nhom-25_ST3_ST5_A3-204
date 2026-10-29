@@ -23,7 +23,7 @@ public class LoyaltyService {
         Order order = orderRepository.findByIdForUpdate(orderId).orElseThrow();
         if (Boolean.TRUE.equals(order.getLoyaltyPointsAwarded())
                 || !"PAID".equalsIgnoreCase(order.getPaymentStatus())
-                || "CANCELLED".equalsIgnoreCase(order.getStatus())) {
+                || "CANCELLED".equalsIgnoreCase(order.getStatus()) || order.getUser() == null) {
             return;
         }
 

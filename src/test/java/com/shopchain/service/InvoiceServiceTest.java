@@ -11,9 +11,26 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class InvoiceServiceTest {
+    @Test
+    void customerCanReadOnlyOwnInvoice() {
+        OrderRepository orders = mock(OrderRepository.class);
+        SalesInvoiceRepository invoices = mock(SalesInvoiceRepository.class);
+        User owner = User.builder().id(3L).build();
+        User other = User.builder().id(4L).build();
+        Order order = Order.builder().user(owner).build();
+        SalesInvoice invoice = SalesInvoice.builder().id(9L).order(order).build();
+        when(invoices.findById(9L)).thenReturn(Optional.of(invoice));
+        InvoiceService service = new InvoiceService(orders, invoices);
+
+        assertThat(service.getInvoiceForCustomer(9L, 3L)).isSameAs(invoice);
+        assertThatThrownBy(() -> service.getInvoiceForCustomer(9L, other.getId()))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("không thuộc");
+    }
+
     @Test
     void receiptStoresPriceBreakdownAndRepeatedIssueCreatesOnlyOneInvoice() {
         OrderRepository orders = mock(OrderRepository.class);

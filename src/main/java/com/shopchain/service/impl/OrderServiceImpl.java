@@ -201,9 +201,11 @@ public class OrderServiceImpl implements OrderService {
         if ("DELIVERED".equals(target) && "COD".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("PAID");
         Order savedOrder = orderRepository.save(order);
         if ("PAID".equalsIgnoreCase(savedOrder.getPaymentStatus())) loyaltyService.awardForPaidOrder(savedOrder.getId());
-        notificationService.sendNotificationToUser(savedOrder.getUser().getId(), NotificationRequest.builder()
-                .message("Đơn hàng #" + orderId + " đã chuyển sang " + target)
-                .type("ORDER_STATUS_UPDATE").orderId(orderId).build());
+        if (savedOrder.getUser() != null) {
+            notificationService.sendNotificationToUser(savedOrder.getUser().getId(), NotificationRequest.builder()
+                    .message("Đơn hàng #" + orderId + " đã chuyển sang " + target)
+                    .type("ORDER_STATUS_UPDATE").orderId(orderId).build());
+        }
         return savedOrder;
     }
 

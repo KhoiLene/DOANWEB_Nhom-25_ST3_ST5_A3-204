@@ -57,7 +57,7 @@ public class StoreClientelingService {
                 : null;
         List<RecentPurchase> purchases = profile != null && profile.isSharePurchaseHistoryWithStore()
                 ? recentPurchases(customer, staff.getStore().getId(), normalizedPhone) : List.of();
-        return new MemberCard(customer.getFullName(), maskPhone(normalizedPhone), points, tier, preferences, purchases);
+        return new MemberCard(customer.getId(), customer.getFullName(), maskPhone(normalizedPhone), points, tier, preferences, purchases);
     }
 
     private List<RecentPurchase> recentPurchases(User customer, Long storeId, String searchedPhone) {
@@ -97,6 +97,6 @@ public class StoreClientelingService {
     public record SharedPreferences(String skinType, String hairType, String skinConcerns, String hairConcerns) { }
     public record RecentPurchase(Long productId, String productName, java.time.LocalDateTime purchasedAt,
                                  Integer previousQuantity, int availableAtThisStore) { }
-    public record MemberCard(String name, String maskedPhone, int loyaltyPoints, String tier,
+    public record MemberCard(Long customerId, String name, String maskedPhone, int loyaltyPoints, String tier,
                              SharedPreferences sharedPreferences, List<RecentPurchase> recentPurchases) { }
 }

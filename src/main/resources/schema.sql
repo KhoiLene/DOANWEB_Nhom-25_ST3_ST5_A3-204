@@ -33,6 +33,10 @@ ALTER TABLE IF EXISTS order_items ADD COLUMN IF NOT EXISTS list_unit_price NUMER
 ALTER TABLE IF EXISTS sales_invoices ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(14,2) DEFAULT 0;
 ALTER TABLE IF EXISTS sales_invoices ADD COLUMN IF NOT EXISTS shipping_amount NUMERIC(14,2) DEFAULT 0;
 ALTER TABLE IF EXISTS sales_invoice_lines ADD COLUMN IF NOT EXISTS list_unit_price NUMERIC(14,2);
+ALTER TABLE IF EXISTS store_reservations ADD COLUMN IF NOT EXISTS order_id BIGINT;
+ALTER TABLE IF EXISTS store_reservation_items ADD COLUMN IF NOT EXISTS list_unit_price NUMERIC(14,2);
+ALTER TABLE IF EXISTS orders ALTER COLUMN user_id DROP NOT NULL;
+ALTER TABLE IF EXISTS store_reservation_items ALTER COLUMN unit_price TYPE NUMERIC(14,2) USING round(unit_price::numeric, 2);
 
 -- Convert legacy floating point money columns to fixed precision before JPA uses BigDecimal.
 ALTER TABLE IF EXISTS orders ALTER COLUMN total_amount TYPE NUMERIC(14,2) USING round(total_amount::numeric, 2);
@@ -58,5 +62,18 @@ BEGIN
     END IF;
     IF to_regclass('public.sales_invoice_lines') IS NOT NULL THEN
         UPDATE sales_invoice_lines SET list_unit_price = unit_price WHERE list_unit_price IS NULL;
+    END IF;
+    IF to_regclass('public.store_reservation_items') IS NOT NULL THEN
+        UPDATE store_reservation_items SET list_unit_price = unit_price WHERE list_unit_price IS NULL;
+    END IF;
+    IF to_regclass('public.store_reservations') IS NOT NULL THEN
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_store_reservations_order_id
+            ON store_reservations(order_id) WHERE order_id IS NOT NULL;
+        IF to_regclass('public.orders') IS NOT NULL AND NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'fk_store_reservations_order'
+        ) THEN
+            ALTER TABLE store_reservations ADD CONSTRAINT fk_store_reservations_order
+                FOREIGN KEY (order_id) REFERENCES orders(id);
+        END IF;
     END IF;
 END $$;

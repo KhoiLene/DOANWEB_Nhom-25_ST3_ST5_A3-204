@@ -42,6 +42,10 @@ public class StoreReservation {
     @Column(name = "picked_up_at")
     private LocalDateTime pickedUpAt;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", unique = true)
+    private Order order;
+
     @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<StoreReservationItem> items = new ArrayList<>();

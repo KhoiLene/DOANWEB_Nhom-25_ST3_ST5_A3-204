@@ -29,6 +29,7 @@
                 <div id="cart" class="pos-cart" aria-live="polite"><p class="workspace-muted pos-cart__empty">Chưa có sản phẩm. Chọn sản phẩm ở danh sách bên trái.</p></div>
                 <div class="pos-customer-fields"><label for="customerName">Tên khách <span>(không bắt buộc)</span></label><input class="workspace-field" id="customerName" autocomplete="name" placeholder="Khách lẻ"><label for="customerPhone">Số điện thoại <span>(không bắt buộc)</span></label><div class="pos-member-phone"><input class="workspace-field" id="customerPhone" autocomplete="tel" inputmode="tel" placeholder="Số điện thoại"><button type="button" class="btn-outline" id="lookupMember">Tra cứu thành viên</button></div><p id="memberLookupStatus" class="workspace-muted" role="status" aria-live="polite"></p><section id="memberCard" class="pos-member-card" hidden aria-label="Thông tin thành viên"></section></div>
                 <label for="payment">Phương thức thanh toán</label><select id="payment" class="workspace-field"><option value="CASH">Tiền mặt</option><option value="CARD">Thẻ</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="OTHER">Khác</option></select>
+                <p class="workspace-muted" id="manualTransferNotice" hidden>QR chỉ điền thông tin chuyển khoản. Nhân viên phải tự kiểm tra tiền đã vào tài khoản; hệ thống không xác minh ngân hàng tự động.</p>
                 <section id="bankTransferQrPanel" class="pos-bank-qr" hidden
                          th:if="${bankQrConfigured}"
                          th:attr="data-bank-code=${qrBankCode},data-account-number=${qrAccountNumber},data-account-name=${qrAccountName}">
@@ -68,6 +69,7 @@
   const memberStatus = document.getElementById('memberLookupStatus');
   const lookupButton = document.getElementById('lookupMember');
   let memberLookupForPhone = '';
+  let memberCustomerId = null;
 
   function updateBankQr(total = Number(document.getElementById('total').textContent.replace(/[^0-9]/g, ''))) {
     const transferSelected = paymentMethod.value === 'BANK_TRANSFER';
@@ -180,12 +182,14 @@
     const result = await response.json().catch(() => ({}));
     if (response.status === 404) {
       memberLookupForPhone = phone;
+      memberCustomerId = null;
       memberCard.hidden = true;
       refreshMemberPrices(0);
       return null;
     }
     if (!response.ok) throw new Error(result.error || 'Chưa tra cứu được thành viên.');
     memberLookupForPhone = phone;
+    memberCustomerId = result.customerId || null;
     refreshMemberPrices(result.loyaltyPoints || 0);
     if (!document.getElementById('customerName').value.trim() && result.name)
       document.getElementById('customerName').value = result.name;
@@ -202,7 +206,7 @@
     } catch (exception) { memberStatus.textContent = exception.message || 'Chưa tra cứu được thành viên.'; }
     finally { lookupButton.disabled = false; lookupButton.textContent = 'Tra cứu thành viên'; }
   });
-  memberPhone.addEventListener('input', () => { memberCard.hidden = true; memberStatus.textContent = ''; memberLookupForPhone = ''; refreshMemberPrices(0); });
+  memberPhone.addEventListener('input', () => { memberCard.hidden = true; memberStatus.textContent = ''; memberLookupForPhone = ''; memberCustomerId = null; refreshMemberPrices(0); });
 
   function updateSearch() {
     const term = search.value.trim().toLocaleLowerCase('vi');
@@ -262,13 +266,18 @@
     if (visible.length === 1) { event.preventDefault(); addProduct(visible[0]); }
   });
   document.getElementById('clearCart').addEventListener('click', () => { basket.clear(); error.textContent = ''; renderCart(); search.focus(); });
-  paymentMethod.addEventListener('change', () => updateBankQr());
+  paymentMethod.addEventListener('change', () => {
+    updateBankQr();
+    document.getElementById('manualTransferNotice').hidden = paymentMethod.value !== 'BANK_TRANSFER';
+  });
   checkoutButton.addEventListener('click', async () => {
     error.textContent = '';
     if (!basket.size) { error.textContent = 'Vui lòng thêm sản phẩm vào hóa đơn.'; search.focus(); return; }
+    let bankTransferConfirmed = false;
     if (paymentMethod.value === 'BANK_TRANSFER') {
       if (!bankQrPanel) { error.textContent = 'Chưa cấu hình tài khoản nhận tiền. Vui lòng nhờ quản trị viên cấu hình QR trước khi bán.'; return; }
-      if (!window.confirm('Chỉ hoàn tất hóa đơn sau khi đã kiểm tra tiền chuyển khoản vào tài khoản. Bạn đã xác nhận chưa?')) return;
+      if (!window.confirm('QR không xác minh giao dịch ngân hàng. Bạn đã tự kiểm tra tiền thực nhận trong tài khoản chưa?')) return;
+      bankTransferConfirmed = true;
     }
     const phone = memberPhone.value.trim();
     if (phone && memberLookupForPhone !== phone) {
@@ -278,7 +287,7 @@
     checkoutButton.disabled = true;
     checkoutButton.textContent = 'Đang tạo biên nhận…';
     try {
-      const response = await fetch('/staff/sales', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ customerName: document.getElementById('customerName').value, customerPhone: document.getElementById('customerPhone').value, paymentMethod: paymentMethod.value, paymentReference: paymentMethod.value === 'BANK_TRANSFER' ? transferReference : null, lines: [...basket.values()].map(({ productId, quantity }) => ({ productId, quantity })) }) });
+      const response = await fetch('/staff/sales', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ customerUserId: memberCustomerId, customerName: document.getElementById('customerName').value, customerPhone: document.getElementById('customerPhone').value, paymentMethod: paymentMethod.value, paymentReference: paymentMethod.value === 'BANK_TRANSFER' ? transferReference : null, bankTransferConfirmed, lines: [...basket.values()].map(({ productId, quantity }) => ({ productId, quantity })) }) });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || result.message || 'Không thể hoàn tất giao dịch.');
       location.href = result.invoiceUrl;
