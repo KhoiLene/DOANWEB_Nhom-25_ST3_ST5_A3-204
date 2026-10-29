@@ -59,6 +59,14 @@ public class Order {
     @Column(name = "loyalty_points_awarded")
     private Boolean loyaltyPointsAwarded = false;
 
+    @Builder.Default
+    @Column(name = "loyalty_points_redeemed", nullable = false)
+    private Integer loyaltyPointsRedeemed = 0;
+
+    @Builder.Default
+    @Column(name = "loyalty_points_restored", nullable = false)
+    private Boolean loyaltyPointsRestored = false;
+
     @ManyToOne
     @JoinColumn(name = "warehouse_id")
     private Warehouse fulfillmentWarehouse;

@@ -105,6 +105,28 @@ class PointOfSaleServiceTest {
     }
 
     @Test
+    void memberCanRedeemPointsAtPosAndGuestCannot() {
+        User member = User.builder().id(5L).username("member").fullName("Member")
+                .phone("0900000001").email("member@example.test").loyaltyPoints(100).enabled(true)
+                .role(Role.builder().name("ROLE_USER").build()).build();
+        when(users.findByIdForUpdate(5L)).thenReturn(Optional.of(member));
+        when(users.findByPhone("0900000001")).thenReturn(List.of(member));
+
+        SalesInvoice invoice = service.sell("cashier", 5L, "Member", "0900000001", "CASH", null,
+                false, List.of(new PointOfSaleService.SaleLine(3L, 2)), 100);
+
+        assertThat(invoice.getTotalAmount()).isEqualByComparingTo("190000");
+        assertThat(invoice.getDiscountAmount()).isEqualByComparingTo("10000");
+        assertThat(invoice.getOrder().getLoyaltyPointsRedeemed()).isEqualTo(100);
+        assertThat(member.getLoyaltyPoints()).isZero();
+
+        assertThatThrownBy(() -> service.sell("cashier", null, "Walk-in", null, "CASH", null,
+                false, List.of(new PointOfSaleService.SaleLine(3L, 1)), 1))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Khách lẻ");
+        assertThat(stock.getStockQuantity()).isEqualTo(3);
+    }
+
+    @Test
     void memberCannotBeAttachedWhenPhoneDoesNotMatchExplicitLookup() {
         User member = User.builder().id(5L).phone("0900000001").enabled(true)
                 .role(Role.builder().name("ROLE_USER").build()).build();

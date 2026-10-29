@@ -10,6 +10,9 @@ public interface OrderService {
     Order placeOnlineOrder(Long userId, Long storeId, String name, String phone, String address,
                            String deliveryCity, String fulfillmentType, String paymentMethod,
                            Double deliveryLatitude, Double deliveryLongitude);
+    Order placeOnlineOrder(Long userId, Long storeId, String name, String phone, String address,
+                           String deliveryCity, String fulfillmentType, String paymentMethod,
+                           Double deliveryLatitude, Double deliveryLongitude, Integer redeemPoints);
     Order updateOrderStatus(Long orderId, String status);
     Order confirmVnPayPayment(Long orderId);
     Order prepareVnPayPayment(Long orderId);

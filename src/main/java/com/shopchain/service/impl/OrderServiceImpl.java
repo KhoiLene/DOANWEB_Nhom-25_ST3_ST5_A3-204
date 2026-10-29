@@ -58,7 +58,16 @@ public class OrderServiceImpl implements OrderService {
     public Order placeOnlineOrder(Long userId, Long storeId, String name, String phone, String address,
                                   String deliveryCity, String fulfillmentType, String paymentMethod,
                                   Double deliveryLatitude, Double deliveryLongitude) {
-        User user = userRepository.findById(userId).orElseThrow();
+        return placeOnlineOrder(userId, storeId, name, phone, address, deliveryCity, fulfillmentType,
+                paymentMethod, deliveryLatitude, deliveryLongitude, 0);
+    }
+
+    @Override
+    @Transactional
+    public Order placeOnlineOrder(Long userId, Long storeId, String name, String phone, String address,
+                                  String deliveryCity, String fulfillmentType, String paymentMethod,
+                                  Double deliveryLatitude, Double deliveryLongitude, Integer redeemPoints) {
+        User user = userRepository.findByIdForUpdate(userId).orElseThrow();
         Store store = storeRepository.findForUpdateById(storeId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chi nhánh."));
         if (!store.isActive()) throw new IllegalArgumentException("Chi nhánh này hiện không hoạt động.");
         Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new IllegalArgumentException("Giỏ hàng đang trống."));
@@ -97,7 +106,11 @@ public class OrderServiceImpl implements OrderService {
         for (int i = 0; i < orderedItems.size(); i++) {
             currentItems.add(CartItem.builder().product(lockedProducts.get(i)).quantity(orderedItems.get(i).getQuantity()).build());
         }
-        OrderPricingService.Quote quote = pricingService.quote(currentItems, user.getLoyaltyPoints(), pickup ? "PICKUP" : "DELIVERY");
+        OrderPricingService.Quote quote = pricingService.quote(currentItems, user.getLoyaltyPoints(),
+                pickup ? "PICKUP" : "DELIVERY", redeemPoints);
+        user.setLoyaltyPoints(Math.max(0, user.getLoyaltyPoints() == null ? 0 : user.getLoyaltyPoints())
+                - quote.redeemedPoints());
+        if (quote.redeemedPoints() > 0) userRepository.save(user);
 
         Order order = Order.builder().user(user).store(store).orderDate(java.time.LocalDateTime.now())
                 .status("PENDING").paymentMethod(paymentMethod).paymentStatus("UNPAID")
@@ -106,6 +119,7 @@ public class OrderServiceImpl implements OrderService {
                 .fulfillmentType(pickup ? "PICKUP" : (remote ? "WAREHOUSE_SHIP" : "STORE_SHIP"))
                 .fulfillmentWarehouse(warehouse).totalAmount(quote.total())
                 .subtotalAmount(quote.subtotal()).discountAmount(quote.discount()).shippingAmount(quote.shipping())
+                .loyaltyPointsRedeemed(quote.redeemedPoints()).loyaltyPointsRestored(false)
                 .paymentExpiresAt("VNPAY".equalsIgnoreCase(paymentMethod) ? LocalDateTime.now().plusMinutes(15) : null).build();
         // Initialize explicitly even when Lombok builder defaults differ between build outputs.
         order.setOrderItems(new java.util.ArrayList<>());
@@ -195,6 +209,7 @@ public class OrderServiceImpl implements OrderService {
         }
         if ("CANCELLED".equals(target)) {
             releaseOrderStock(order, "ORDER_CANCEL_RETURN", "Hoàn tồn đơn hủy #" + order.getId());
+            restoreRedeemedPoints(order);
             if ("VNPAY".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("CANCELLED");
         }
         order.setStatus(target);
@@ -278,9 +293,20 @@ public class OrderServiceImpl implements OrderService {
     private void expireLockedOrder(Order order, LocalDateTime now) {
         if (!isExpirableVnPay(order) || order.getPaymentExpiresAt().isAfter(now)) return;
         releaseOrderStock(order, "ORDER_PAYMENT_EXPIRED_RETURN", "Hoàn tồn đơn VNPay hết hạn #" + order.getId());
+        restoreRedeemedPoints(order);
         order.setStatus("CANCELLED");
         order.setPaymentStatus("EXPIRED");
         orderRepository.save(order);
+    }
+
+    private void restoreRedeemedPoints(Order order) {
+        int redeemed = order.getLoyaltyPointsRedeemed() == null ? 0 : order.getLoyaltyPointsRedeemed();
+        if (redeemed <= 0 || Boolean.TRUE.equals(order.getLoyaltyPointsRestored()) || order.getUser() == null) return;
+        User user = userRepository.findByIdForUpdate(order.getUser().getId()).orElseThrow(
+                () -> new IllegalStateException("Không tìm thấy khách để hoàn điểm đơn hàng."));
+        user.setLoyaltyPoints(Math.max(0, user.getLoyaltyPoints() == null ? 0 : user.getLoyaltyPoints()) + redeemed);
+        userRepository.save(user);
+        order.setLoyaltyPointsRestored(true);
     }
 
     private void releaseOrderStock(Order order, String movementType, String note) {

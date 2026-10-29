@@ -204,6 +204,7 @@ public class WebController {
         model.addAttribute("cart", cart);
         model.addAttribute("cartItems", cart.getItems());
         model.addAttribute("customerLoyaltyPoints", points);
+        model.addAttribute("redeemPoints", 0);
         model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
 
         addQuoteAttributes(model, cart, points, "DELIVERY");
@@ -261,6 +262,7 @@ public class WebController {
                              @RequestParam String fulfillmentType, @RequestParam String paymentMethod,
                              @RequestParam(required = false) Double deliveryLatitude,
                              @RequestParam(required = false) Double deliveryLongitude,
+                             @RequestParam(defaultValue = "0") Integer redeemPoints,
                              Authentication authentication, Model model) {
         try {
             if ("DELIVERY".equals(fulfillmentType)) {
@@ -270,7 +272,7 @@ public class WebController {
                     throw new IllegalArgumentException("Vui lòng chọn tỉnh/thành phố trong danh sách.");
             }
             Order order = orderService.placeOnlineOrder(currentUserId(authentication), storeId, name, phone,
-                    address, deliveryCity, fulfillmentType, paymentMethod, deliveryLatitude, deliveryLongitude);
+                    address, deliveryCity, fulfillmentType, paymentMethod, deliveryLatitude, deliveryLongitude, redeemPoints);
             return "redirect:/order-success?orderId=" + order.getId();
         } catch (RuntimeException ex) {
             Cart cart = cartService.getCart(currentUserId(authentication));
@@ -284,20 +286,33 @@ public class WebController {
             model.addAttribute("customer", userRepository.findById(currentUserId(authentication)).orElseThrow());
             int points = customerLoyaltyPoints(authentication);
             model.addAttribute("customerLoyaltyPoints", points);
-            addQuoteAttributes(model, cart, points, fulfillmentType);
+            model.addAttribute("redeemPoints", redeemPoints == null ? 0 : redeemPoints);
+            try {
+                addQuoteAttributes(model, cart, points, fulfillmentType, redeemPoints == null ? 0 : redeemPoints);
+            } catch (IllegalArgumentException invalidRedemption) {
+                addQuoteAttributes(model, cart, points, fulfillmentType, 0);
+            }
             model.addAttribute("checkoutError", ex.getMessage());
             return "checkout";
         }
     }
 
     private void addQuoteAttributes(Model model, Cart cart, int loyaltyPoints, String fulfillmentType) {
-        OrderPricingService.Quote quote = pricingService.quote(cart, loyaltyPoints, fulfillmentType);
+        addQuoteAttributes(model, cart, loyaltyPoints, fulfillmentType, 0);
+    }
+
+    private void addQuoteAttributes(Model model, Cart cart, int loyaltyPoints, String fulfillmentType, int redeemPoints) {
+        OrderPricingService.Quote quote = pricingService.quote(cart, loyaltyPoints, fulfillmentType, redeemPoints);
         model.addAttribute("subtotal", quote.subtotal().doubleValue());
         model.addAttribute("discount", quote.discount().doubleValue());
         model.addAttribute("merchandiseTotal", quote.merchandiseTotal().doubleValue());
         model.addAttribute("shipping", quote.shipping().doubleValue());
         model.addAttribute("deliveryShipping", quote.deliveryShipping().doubleValue());
         model.addAttribute("total", quote.total().doubleValue());
+        model.addAttribute("pointsDiscount", quote.pointsDiscount().doubleValue());
+        model.addAttribute("redeemedPoints", quote.redeemedPoints());
+        model.addAttribute("maxRedeemPoints", Math.min(Math.max(0, loyaltyPoints),
+                quote.merchandiseTotal().divideToIntegralValue(OrderPricingService.VND_PER_LOYALTY_POINT).intValue()));
         model.addAttribute("fulfillmentType", fulfillmentType);
     }
 

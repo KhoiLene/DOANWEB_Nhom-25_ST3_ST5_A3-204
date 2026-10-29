@@ -42,10 +42,22 @@ public class PointOfSaleService {
     public SalesInvoice sell(String username, Long customerUserId, String customerName, String customerPhone,
                              String paymentMethod, String paymentReference, boolean bankTransferConfirmed,
                              List<SaleLine> requestedLines) {
+        return sell(username, customerUserId, customerName, customerPhone, paymentMethod, paymentReference,
+                bankTransferConfirmed, requestedLines, 0);
+    }
+
+    @Transactional
+    public SalesInvoice sell(String username, Long customerUserId, String customerName, String customerPhone,
+                             String paymentMethod, String paymentReference, boolean bankTransferConfirmed,
+                             List<SaleLine> requestedLines, Integer redeemPoints) {
         validateSaleRequest(customerName, customerPhone, paymentMethod, paymentReference,
                 bankTransferConfirmed, requestedLines);
+        if (redeemPoints != null && redeemPoints < 0) throw new IllegalArgumentException("Số điểm đổi không hợp lệ.");
+        int pointsToRedeem = redeemPoints == null ? 0 : redeemPoints;
         User cashier = cashier(username);
         User customer = resolveCustomer(customerUserId, customerPhone);
+        if (customer == null && pointsToRedeem > 0)
+            throw new IllegalArgumentException("Khách lẻ không thể đổi điểm.");
         Store store = activeStore(cashier);
         List<SaleItem> items = new ArrayList<>();
         Map<Long, Integer> quantities = new TreeMap<>();
@@ -62,7 +74,7 @@ public class PointOfSaleService {
                     pricingService.listUnitPrice(product), pricingService.saleUnitPrice(product, loyaltyPoints(customer))));
         }
         return completeSale(cashier, store, customer, customerName, customerPhone, paymentMethod,
-                paymentReference, items, "POS_SALE", "POS", "STORE_SHIP");
+                paymentReference, items, "POS_SALE", "POS", "STORE_SHIP", pointsToRedeem);
     }
 
     /** Completes a held reservation without checking available stock or releasing the hold first. */
@@ -102,13 +114,13 @@ public class PointOfSaleService {
             items.add(new SaleItem(product, inventory, reservedItem.getQuantity(), listPrice, salePrice));
         }
         return completeSale(cashier, store, customer, customer.getFullName(), customer.getPhone(),
-                paymentMethod, paymentReference, items, "PICKUP_SALE", "PICKUP", "PICKUP");
+                paymentMethod, paymentReference, items, "PICKUP_SALE", "PICKUP", "PICKUP", 0);
     }
 
     private SalesInvoice completeSale(User cashier, Store store, User customer, String customerName,
                                       String customerPhone, String paymentMethod, String paymentReference,
                                       List<SaleItem> saleItems, String movementType, String invoicePrefix,
-                                      String fulfillmentType) {
+                                      String fulfillmentType, int requestedRedeemPoints) {
         Order order = Order.builder().user(customer).store(store).orderDate(LocalDateTime.now())
                 .status("COMPLETED").paymentMethod(paymentMethod).paymentStatus("PAID")
                 .fulfillmentType(fulfillmentType)
@@ -140,9 +152,26 @@ public class PointOfSaleService {
                     .listUnitPrice(saleItem.listPrice()).build());
         }
 
+        int availablePoints = customer == null ? 0 : loyaltyPoints(customer);
+        int maxRedeemablePoints = payable.divideToIntegralValue(OrderPricingService.VND_PER_LOYALTY_POINT).intValue();
+        if (requestedRedeemPoints > availablePoints)
+            throw new IllegalArgumentException("Thành viên không có đủ điểm để đổi.");
+        if (requestedRedeemPoints > maxRedeemablePoints)
+            throw new IllegalArgumentException("Số điểm đổi vượt quá số tiền hàng có thể giảm.");
+        BigDecimal pointsDiscount = OrderPricingService.VND_PER_LOYALTY_POINT
+                .multiply(BigDecimal.valueOf(requestedRedeemPoints));
+        payable = payable.subtract(pointsDiscount);
+        discount = discount.add(pointsDiscount);
+        if (customer != null && requestedRedeemPoints > 0) {
+            customer.setLoyaltyPoints(availablePoints - requestedRedeemPoints);
+            userRepository.save(customer);
+        }
+
         BigDecimal listSubtotal = payable.add(discount);
         order.setSubtotalAmount(listSubtotal);
         order.setDiscountAmount(discount);
+        order.setLoyaltyPointsRedeemed(requestedRedeemPoints);
+        order.setLoyaltyPointsRestored(false);
         order.setShippingAmount(BigDecimal.ZERO);
         order.setTotalAmount(payable);
         order.setOrderItems(items);

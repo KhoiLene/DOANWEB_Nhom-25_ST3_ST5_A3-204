@@ -171,7 +171,8 @@ public class StoreStaffController {
             var invoice = pointOfSaleService.sell(authentication.getName(), request.customerUserId(),
                     request.customerName(), request.customerPhone(), request.paymentMethod(), request.paymentReference(),
                     request.bankTransferConfirmed(), request.lines().stream()
-                            .map(line -> new PointOfSaleService.SaleLine(line.productId(), line.quantity())).toList());
+                            .map(line -> new PointOfSaleService.SaleLine(line.productId(), line.quantity())).toList(),
+                    request.redeemPoints());
             return org.springframework.http.ResponseEntity.ok(java.util.Map.of(
                     "invoiceUrl", "/staff/invoices/" + invoice.getId(), "invoiceNumber", invoice.getInvoiceNumber()));
         } catch (IllegalArgumentException | IllegalStateException exception) {
@@ -185,6 +186,6 @@ public class StoreStaffController {
 
     public record SaleRequest(Long customerUserId, String customerName, String customerPhone, String paymentMethod,
                               String paymentReference, boolean bankTransferConfirmed,
-                              java.util.List<SaleRequestLine> lines) {}
+                              java.util.List<SaleRequestLine> lines, Integer redeemPoints) {}
     public record SaleRequestLine(Long productId, Integer quantity) {}
 }

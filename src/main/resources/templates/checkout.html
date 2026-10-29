@@ -132,6 +132,16 @@
                   <strong><i class="fa-solid fa-star"></i> Tích điểm Techtra</strong>
                   <p>Điểm được cộng tự động sau khi đơn hàng thanh toán thành công: 1 điểm cho mỗi 10.000đ.</p>
                   <a th:href="@{/profile}">Xem hạng thành viên và chương trình ưu đãi</a>
+                  <div class="field field--full" style="margin-top:16px">
+                    <label for="redeemPoints">Đổi điểm giảm tiền (1 điểm = 100 đ)</label>
+                    <input id="redeemPoints" name="redeemPoints" type="number" min="0"
+                           th:max="${maxRedeemPoints}" th:value="${redeemPoints ?: 0}" step="1"
+                           th:attr="data-available-points=${customerLoyaltyPoints},data-max-redeem=${maxRedeemPoints}"
+                           th:disabled="${customerLoyaltyPoints == null or customerLoyaltyPoints < 1}">
+                    <small th:if="${customerLoyaltyPoints != null and customerLoyaltyPoints > 0}"
+                           th:text="|Bạn có ${customerLoyaltyPoints} điểm. Có thể đổi tối đa ${maxRedeemPoints} điểm cho giỏ hàng này.|">Điểm khả dụng</small>
+                    <small th:if="${customerLoyaltyPoints == null or customerLoyaltyPoints < 1}">Bạn chưa có điểm khả dụng để đổi.</small>
+                  </div>
                 </div>
               </div>
 
@@ -157,7 +167,8 @@
                 <div class="confirm-card">
                   <h3>Tóm tắt giá</h3>
                   <div class="summary-line"><span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
-                  <div class="summary-line summary-line--discount" th:if="${discount > 0}"><span>Giảm giá</span><strong th:text="${'-' + #numbers.formatDecimal(discount, 0, 'COMMA', 0, 'POINT') + ' đ'}">-0 đ</strong></div>
+                  <div class="summary-line summary-line--discount" id="confirmDiscountRow" th:style="${discount - pointsDiscount > 0 ? '' : 'display:none'}"><span>Ưu đãi sản phẩm</span><strong id="confirmDiscount" th:attr="data-campaign-discount=${discount - pointsDiscount}" th:text="${'-' + #numbers.formatDecimal(discount - pointsDiscount, 0, 'COMMA', 0, 'POINT') + ' đ'}">-0 đ</strong></div>
+                  <div class="summary-line" id="confirmPointsRow" th:style="${redeemedPoints > 0 ? '' : 'display:none'}"><span>Điểm đã đổi</span><strong id="confirmPoints" th:text="${redeemedPoints + ' điểm · -' + #numbers.formatDecimal(pointsDiscount, 0, 'COMMA', 0, 'POINT') + ' đ'}">0 điểm</strong></div>
                   <div class="summary-line"><span>Vận chuyển</span><strong id="confirmShipping" th:attr="data-delivery-shipping=${deliveryShipping}" th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
                   <div class="summary-line"><span>Điểm dự kiến sau thanh toán</span><strong th:text="${#numbers.formatInteger(merchandiseTotal / 10000, 1)} + ' điểm'">0 điểm</strong></div>
                   <div class="summary-total"><span>Tổng cộng</span><strong id="confirmTotal" th:attr="data-merchandise-total=${merchandiseTotal}" th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
@@ -187,7 +198,8 @@
               <div class="aside-divider"></div>
 
               <div class="aside-row"><span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
-              <div class="aside-row aside-row--discount" th:if="${discount > 0}"><span>Giảm giá</span><strong th:text="${'-' + #numbers.formatDecimal(discount, 0, 'COMMA', 0, 'POINT') + ' đ'}">-0 đ</strong></div>
+              <div class="aside-row aside-row--discount" id="asideDiscountRow" th:style="${discount - pointsDiscount > 0 ? '' : 'display:none'}"><span>Ưu đãi sản phẩm</span><strong id="asideDiscount" th:attr="data-campaign-discount=${discount - pointsDiscount}" th:text="${'-' + #numbers.formatDecimal(discount - pointsDiscount, 0, 'COMMA', 0, 'POINT') + ' đ'}">-0 đ</strong></div>
+              <div class="aside-row" id="asidePointsRow" th:style="${redeemedPoints > 0 ? '' : 'display:none'}"><span>Điểm đã đổi</span><strong id="asidePoints" th:text="${redeemedPoints + ' điểm · -' + #numbers.formatDecimal(pointsDiscount, 0, 'COMMA', 0, 'POINT') + ' đ'}">0 điểm</strong></div>
               <div class="aside-row"><span>Vận chuyển</span><strong id="asideShipping" th:attr="data-delivery-shipping=${deliveryShipping}" th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
               <div class="aside-row"><span>Điểm dự kiến sau thanh toán</span><strong th:text="${#numbers.formatInteger(merchandiseTotal / 10000, 1)} + ' điểm'">0 điểm</strong></div>
               <div class="aside-total"><span>Tổng</span><strong id="asideTotal" th:attr="data-merchandise-total=${merchandiseTotal}" th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
@@ -224,15 +236,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const deliveryCity = document.getElementById('deliveryCity');
   const storeSelect = document.getElementById('storeId');
   const pickupRadios = document.querySelectorAll('input[name="fulfillmentType"]');
+  const redeemPointsField = document.getElementById('redeemPoints');
   const formatMoney = amount => new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
   function updateQuote() {
     const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
     const shipping = pickup ? 0 : Number(document.getElementById('asideShipping').dataset.deliveryShipping || 0);
     const merchandise = Number(document.getElementById('asideTotal').dataset.merchandiseTotal || 0);
+    const points = redeemPointsField && !redeemPointsField.disabled
+      ? Math.max(0, Math.min(Number(redeemPointsField.value || 0), Number(redeemPointsField.dataset.maxRedeem || 0), Number(redeemPointsField.dataset.availablePoints || 0))) : 0;
+    const pointsDiscount = points * 100;
+    const campaignDiscount = Number(document.getElementById('asideDiscount').dataset.campaignDiscount || 0);
     document.getElementById('asideShipping').textContent = formatMoney(shipping);
     document.getElementById('confirmShipping').textContent = formatMoney(shipping);
-    document.getElementById('asideTotal').textContent = formatMoney(merchandise + shipping);
-    document.getElementById('confirmTotal').textContent = formatMoney(merchandise + shipping);
+    document.getElementById('asideTotal').textContent = formatMoney(merchandise - pointsDiscount + shipping);
+    document.getElementById('confirmTotal').textContent = formatMoney(merchandise - pointsDiscount + shipping);
+    document.getElementById('asideDiscount').textContent = '-' + formatMoney(campaignDiscount);
+    document.getElementById('confirmDiscount').textContent = '-' + formatMoney(campaignDiscount);
+    document.getElementById('asideDiscountRow').style.display = campaignDiscount > 0 ? '' : 'none';
+    document.getElementById('confirmDiscountRow').style.display = campaignDiscount > 0 ? '' : 'none';
+    document.getElementById('asidePointsRow').style.display = points > 0 ? '' : 'none';
+    document.getElementById('confirmPointsRow').style.display = points > 0 ? '' : 'none';
+    const pointsText = `${points} điểm · -${formatMoney(pointsDiscount)}`;
+    document.getElementById('asidePoints').textContent = pointsText;
+    document.getElementById('confirmPoints').textContent = pointsText;
   }
   let preferredStoreId = null;
   try { preferredStoreId = localStorage.getItem('preferredStoreId'); } catch (_) { }
@@ -277,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   pickupRadios.forEach(radio => radio.addEventListener('change', updateFulfillment));
+  if (redeemPointsField) redeemPointsField.addEventListener('input', updateQuote);
   deliveryCountry.addEventListener('change', () => {
     deliveryCity.value = '';
     updateFulfillment();

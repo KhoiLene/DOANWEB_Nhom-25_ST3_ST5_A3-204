@@ -57,6 +57,7 @@ class OrderServiceImplTest {
         ProductInventory stock = ProductInventory.builder().product(product).store(store).price(999_000d)
                 .stockQuantity(5).reservedQuantity(1).build();
         when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(user));
         when(storeRepository.findForUpdateById(4L)).thenReturn(Optional.of(store));
         when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
         when(productRepository.findForUpdateById(3L)).thenReturn(Optional.of(product));
@@ -74,6 +75,39 @@ class OrderServiceImplTest {
         assertThat(order.getShippingAmount()).isEqualByComparingTo("30000");
         assertThat(order.getTotalAmount()).isEqualByComparingTo("508000");
         assertThat(stock.getStockQuantity()).isEqualTo(3);
+    }
+
+    @Test
+    void onlineOrderRedeemsAndRecordsPointsThenCancellationRestoresThemOnce() {
+        User user = user();
+        user.setLoyaltyPoints(1200);
+        Store store = store();
+        Product product = product(true, 239_000d);
+        Cart cart = Cart.builder().user(user).items(new ArrayList<>(List.of(
+                CartItem.builder().product(product).quantity(2).build()))).build();
+        ProductInventory stock = ProductInventory.builder().product(product).store(store).stockQuantity(5)
+                .reservedQuantity(0).build();
+        when(userRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(user));
+        when(storeRepository.findForUpdateById(4L)).thenReturn(Optional.of(store));
+        when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
+        when(productRepository.findForUpdateById(3L)).thenReturn(Optional.of(product));
+        when(inventoryRepository.findForUpdateByProductIdAndStoreId(3L, 4L)).thenReturn(Optional.of(stock));
+        when(movementRepository.saveAll(anyList())).thenAnswer(call -> call.getArgument(0));
+
+        Order order = service.placeOnlineOrder(7L, 4L, "Demo", "0900000000", "", "Hồ Chí Minh",
+                "DELIVERY", "COD", null, null, 1000);
+
+        assertThat(user.getLoyaltyPoints()).isEqualTo(200);
+        assertThat(order.getLoyaltyPointsRedeemed()).isEqualTo(1000);
+        assertThat(order.getDiscountAmount()).isEqualByComparingTo("100000");
+        assertThat(order.getTotalAmount()).isEqualByComparingTo("408000");
+        when(orderRepository.findByIdForUpdate(order.getId())).thenReturn(Optional.of(order));
+        service.updateOrderStatus(order.getId(), "CANCELLED");
+        assertThat(user.getLoyaltyPoints()).isEqualTo(1200);
+        assertThat(order.getLoyaltyPointsRestored()).isTrue();
+        assertThatThrownBy(() -> service.updateOrderStatus(order.getId(), "CANCELLED"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(user.getLoyaltyPoints()).isEqualTo(1200);
     }
 
     @Test
@@ -133,11 +167,14 @@ class OrderServiceImplTest {
         Store store = store();
         Order order = order("PENDING", "VNPAY", "UNPAID");
         order.setPaymentExpiresAt(LocalDateTime.now().minusSeconds(1));
+        order.getUser().setLoyaltyPoints(60);
+        order.setLoyaltyPointsRedeemed(40);
         order.setOrderItems(new ArrayList<>(List.of(OrderItem.builder().order(order).product(product)
                 .quantity(1).price(new java.math.BigDecimal("20000")).build())));
         ProductInventory inventory = ProductInventory.builder().product(product).store(store).price(20_000d)
                 .stockQuantity(4).reservedQuantity(0).build();
         when(orderRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(order));
+        when(userRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(order.getUser()));
         when(inventoryRepository.findForUpdateByProductIdAndStoreId(3L, 4L)).thenReturn(Optional.of(inventory));
         when(movementRepository.saveAll(anyList())).thenAnswer(call -> call.getArgument(0));
 
@@ -146,6 +183,8 @@ class OrderServiceImplTest {
 
         assertThat(order.getStatus()).isEqualTo("CANCELLED");
         assertThat(order.getPaymentStatus()).isEqualTo("EXPIRED");
+        assertThat(order.getUser().getLoyaltyPoints()).isEqualTo(100);
+        assertThat(order.getLoyaltyPointsRestored()).isTrue();
         assertThat(inventory.getStockQuantity()).isEqualTo(5);
         verify(inventoryRepository, times(1)).save(inventory);
     }
@@ -158,6 +197,7 @@ class OrderServiceImplTest {
         Cart cart = Cart.builder().user(user).items(new ArrayList<>(List.of(
                 CartItem.builder().product(inactive).quantity(1).build()))).build();
         when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(user));
         when(storeRepository.findForUpdateById(4L)).thenReturn(Optional.of(store));
         when(cartRepository.findByUser(user)).thenReturn(Optional.of(cart));
         when(productRepository.findForUpdateById(3L)).thenReturn(Optional.of(inactive));
