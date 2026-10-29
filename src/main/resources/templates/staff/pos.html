@@ -27,7 +27,31 @@
             <div class="card__header"><div><h2>Hóa đơn hiện tại</h2><span class="workspace-muted"><span id="cartCount">0</span> sản phẩm</span></div><button type="button" class="pos-clear" id="clearCart">Xóa giỏ</button></div>
             <div class="card__body">
                 <div id="cart" class="pos-cart" aria-live="polite"><p class="workspace-muted pos-cart__empty">Chưa có sản phẩm. Chọn sản phẩm ở danh sách bên trái.</p></div>
-                <div class="pos-customer-fields"><label for="customerName">Tên khách <span>(không bắt buộc)</span></label><input class="workspace-field" id="customerName" autocomplete="name" placeholder="Khách lẻ"><label for="customerPhone">Số điện thoại <span>(không bắt buộc)</span></label><div class="pos-member-phone"><input class="workspace-field" id="customerPhone" autocomplete="tel" inputmode="tel" placeholder="Số điện thoại"><button type="button" class="btn-outline" id="lookupMember">Tra cứu thành viên</button></div><p id="memberLookupStatus" class="workspace-muted" role="status" aria-live="polite"></p><section id="memberCard" class="pos-member-card" hidden aria-label="Thông tin thành viên"></section><div id="redeemPointsPanel" hidden><label for="redeemPoints">Đổi điểm (1 điểm = 100 đ)</label><input class="workspace-field" id="redeemPoints" type="number" min="0" step="1" value="0"><small id="redeemPointsHint" class="workspace-muted"></small></div><p id="guestPointsNote" class="workspace-muted">Khách lẻ không áp dụng đổi điểm.</p></div>
+                <div class="pos-customer-fields">
+                    <label for="customerName">Tên khách <span>(không bắt buộc)</span></label>
+                    <input class="workspace-field" id="customerName" autocomplete="name" placeholder="Khách lẻ">
+                    <label for="customerPhone">Số điện thoại <span>(không bắt buộc)</span></label>
+                    <div class="pos-member-phone">
+                        <input class="workspace-field" id="customerPhone" autocomplete="tel" inputmode="tel" placeholder="Số điện thoại">
+                        <button type="button" class="btn-outline" id="lookupMember">Tra cứu thành viên</button>
+                    </div>
+                    <p id="memberLookupStatus" class="workspace-muted" role="status" aria-live="polite"></p>
+                    <section id="memberCard" class="pos-member-card" hidden aria-label="Thông tin thành viên"></section>
+                    <div id="redeemPointsPanel" hidden style="margin-top: 10px; padding: 10px; background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; margin-bottom: 6px; color: #1e40af;">
+                            <input type="checkbox" id="posUsePointsCheckbox">
+                            <span>Đổi điểm giảm tiền (1 điểm = 100 đ)</span>
+                        </label>
+                        <div id="posPointsInputWrap" hidden style="margin-top: 6px;">
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input class="workspace-field" id="redeemPoints" type="number" min="0" step="1" value="0" style="flex: 1;">
+                                <button type="button" class="btn-outline" id="posUseMaxPoints" style="padding: 6px 12px; font-size: 0.8rem; white-space: nowrap;">Dùng tối đa</button>
+                            </div>
+                            <small id="redeemPointsHint" class="workspace-muted" style="display: block; margin-top: 4px;"></small>
+                        </div>
+                    </div>
+                    <p id="guestPointsNote" class="workspace-muted"><i class="fa-solid fa-circle-info"></i> Khách lẻ: không áp dụng đổi điểm.</p>
+                </div>
                 <label for="payment">Phương thức thanh toán</label><select id="payment" class="workspace-field"><option value="CASH">Tiền mặt</option><option value="CARD">Thẻ</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="OTHER">Khác</option></select>
                 <p class="workspace-muted" id="manualTransferNotice" hidden>QR chỉ điền thông tin chuyển khoản. Nhân viên phải tự kiểm tra tiền đã vào tài khoản; hệ thống không xác minh ngân hàng tự động.</p>
                 <section id="bankTransferQrPanel" class="pos-bank-qr" hidden
@@ -187,9 +211,12 @@
       memberAvailablePoints = 0;
       document.getElementById('redeemPointsPanel').hidden = true;
       document.getElementById('guestPointsNote').hidden = false;
+      const chk = document.getElementById('posUsePointsCheckbox'); if (chk) chk.checked = false;
+      const wrap = document.getElementById('posPointsInputWrap'); if (wrap) wrap.hidden = true;
       document.getElementById('redeemPoints').value = '0';
       memberCard.hidden = true;
       refreshMemberPrices(0);
+      renderCart();
       return null;
     }
     if (!response.ok) throw new Error(result.error || 'Chưa tra cứu được thành viên.');
@@ -198,8 +225,13 @@
     memberAvailablePoints = Math.max(0, Number(result.loyaltyPoints) || 0);
     document.getElementById('redeemPointsPanel').hidden = !memberCustomerId;
     document.getElementById('guestPointsNote').hidden = !!memberCustomerId;
-    if (!memberCustomerId) document.getElementById('redeemPoints').value = '0';
+    if (!memberCustomerId) {
+      const chk = document.getElementById('posUsePointsCheckbox'); if (chk) chk.checked = false;
+      const wrap = document.getElementById('posPointsInputWrap'); if (wrap) wrap.hidden = true;
+      document.getElementById('redeemPoints').value = '0';
+    }
     refreshMemberPrices(result.loyaltyPoints || 0);
+    renderCart();
     if (!document.getElementById('customerName').value.trim() && result.name)
       document.getElementById('customerName').value = result.name;
     renderMember(result);
@@ -215,7 +247,20 @@
     } catch (exception) { memberStatus.textContent = exception.message || 'Chưa tra cứu được thành viên.'; }
     finally { lookupButton.disabled = false; lookupButton.textContent = 'Tra cứu thành viên'; }
   });
-  memberPhone.addEventListener('input', () => { memberCard.hidden = true; memberStatus.textContent = ''; memberLookupForPhone = ''; memberCustomerId = null; memberAvailablePoints = 0; document.getElementById('redeemPointsPanel').hidden = true; document.getElementById('guestPointsNote').hidden = false; document.getElementById('redeemPoints').value = '0'; refreshMemberPrices(0); });
+  memberPhone.addEventListener('input', () => {
+    memberCard.hidden = true;
+    memberStatus.textContent = '';
+    memberLookupForPhone = '';
+    memberCustomerId = null;
+    memberAvailablePoints = 0;
+    document.getElementById('redeemPointsPanel').hidden = true;
+    document.getElementById('guestPointsNote').hidden = false;
+    const chk = document.getElementById('posUsePointsCheckbox'); if (chk) chk.checked = false;
+    const wrap = document.getElementById('posPointsInputWrap'); if (wrap) wrap.hidden = true;
+    document.getElementById('redeemPoints').value = '0';
+    refreshMemberPrices(0);
+    renderCart();
+  });
 
   function updateSearch() {
     const term = search.value.trim().toLocaleLowerCase('vi');
@@ -261,18 +306,23 @@
       controls.append(minus, quantity, plus, remove); row.append(detail, controls); cart.append(row);
     });
     if (!basket.size) { const empty = document.createElement('p'); empty.className = 'workspace-muted pos-cart__empty'; empty.textContent = 'Chưa có sản phẩm. Chọn sản phẩm ở danh sách bên trái.'; cart.append(empty); }
-    const requestedPoints = memberCustomerId ? Math.max(0, Number(document.getElementById('redeemPoints').value) || 0) : 0;
+    const usePoints = memberCustomerId && document.getElementById('posUsePointsCheckbox')?.checked;
+    const requestedPoints = usePoints ? Math.max(0, Number(document.getElementById('redeemPoints').value) || 0) : 0;
     const maxPoints = Math.min(memberAvailablePoints, Math.floor(total / 100));
     const points = Math.min(requestedPoints, maxPoints);
     const pointsField = document.getElementById('redeemPoints');
-    pointsField.max = String(maxPoints);
-    document.getElementById('redeemPointsHint').textContent = `Có ${memberAvailablePoints} điểm · tối đa ${maxPoints} điểm cho hóa đơn này.`;
-    document.getElementById('total').textContent = fmt(total - points * 100);
+    if (pointsField) pointsField.max = String(maxPoints);
+    const hintEl = document.getElementById('redeemPointsHint');
+    if (hintEl) hintEl.textContent = `Khách có ${memberAvailablePoints} điểm · tối đa ${maxPoints} điểm (giảm ${fmt(maxPoints * 100)}) cho hóa đơn này.`;
+    const finalTotal = Math.max(0, total - points * 100);
+    document.getElementById('total').textContent = fmt(finalTotal);
     const pointsSummary = document.getElementById('pointsDiscountSummary');
-    pointsSummary.hidden = points < 1;
-    pointsSummary.textContent = points > 0 ? `Đổi ${points} điểm · giảm ${fmt(points * 100)}` : '';
+    if (pointsSummary) {
+      pointsSummary.hidden = points < 1;
+      pointsSummary.textContent = points > 0 ? `Đổi ${points} điểm · giảm ${fmt(points * 100)}` : '';
+    }
     document.getElementById('cartCount').textContent = itemCount;
-    updateBankQr(total);
+    updateBankQr(finalTotal);
   }
 
   document.querySelectorAll('.add-item').forEach(button => button.addEventListener('click', () => addProduct(button.closest('.pos-product'))));
@@ -285,6 +335,34 @@
   });
   document.getElementById('clearCart').addEventListener('click', () => { basket.clear(); error.textContent = ''; renderCart(); search.focus(); });
   document.getElementById('redeemPoints').addEventListener('input', renderCart);
+
+  const posUsePointsCheckbox = document.getElementById('posUsePointsCheckbox');
+  const posPointsInputWrap = document.getElementById('posPointsInputWrap');
+  const posUseMaxPoints = document.getElementById('posUseMaxPoints');
+
+  function getRawCartTotal() {
+    let raw = 0;
+    basket.forEach(item => { raw += item.price * item.quantity; });
+    return raw;
+  }
+
+  posUsePointsCheckbox?.addEventListener('change', () => {
+    if (posUsePointsCheckbox.checked) {
+      if (posPointsInputWrap) posPointsInputWrap.hidden = false;
+      const maxPts = Math.min(memberAvailablePoints, Math.floor(getRawCartTotal() / 100));
+      document.getElementById('redeemPoints').value = String(maxPts);
+    } else {
+      if (posPointsInputWrap) posPointsInputWrap.hidden = true;
+      document.getElementById('redeemPoints').value = '0';
+    }
+    renderCart();
+  });
+
+  posUseMaxPoints?.addEventListener('click', () => {
+    const maxPts = Math.min(memberAvailablePoints, Math.floor(getRawCartTotal() / 100));
+    document.getElementById('redeemPoints').value = String(maxPts);
+    renderCart();
+  });
   paymentMethod.addEventListener('change', () => {
     updateBankQr();
     document.getElementById('manualTransferNotice').hidden = paymentMethod.value !== 'BANK_TRANSFER';
@@ -305,8 +383,10 @@
     }
     checkoutButton.disabled = true;
     checkoutButton.textContent = 'Đang tạo biên nhận…';
+    const usePoints = memberCustomerId && posUsePointsCheckbox?.checked;
+    const pointsToRedeem = usePoints ? Math.max(0, Number(document.getElementById('redeemPoints').value || 0)) : 0;
     try {
-      const response = await fetch('/staff/sales', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ customerUserId: memberCustomerId, customerName: document.getElementById('customerName').value, customerPhone: document.getElementById('customerPhone').value, paymentMethod: paymentMethod.value, paymentReference: paymentMethod.value === 'BANK_TRANSFER' ? transferReference : null, bankTransferConfirmed, redeemPoints: memberCustomerId ? Number(document.getElementById('redeemPoints').value || 0) : 0, lines: [...basket.values()].map(({ productId, quantity }) => ({ productId, quantity })) }) });
+      const response = await fetch('/staff/sales', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ customerUserId: memberCustomerId, customerName: document.getElementById('customerName').value, customerPhone: document.getElementById('customerPhone').value, paymentMethod: paymentMethod.value, paymentReference: paymentMethod.value === 'BANK_TRANSFER' ? transferReference : null, bankTransferConfirmed, redeemPoints: memberCustomerId ? pointsToRedeem : 0, lines: [...basket.values()].map(({ productId, quantity }) => ({ productId, quantity })) }) });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || result.message || 'Không thể hoàn tất giao dịch.');
       location.href = result.invoiceUrl;

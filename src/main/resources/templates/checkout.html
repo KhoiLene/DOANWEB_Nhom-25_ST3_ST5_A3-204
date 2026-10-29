@@ -129,18 +129,31 @@
                 </div>
 
                 <div class="pay-card checkout-points-note">
-                  <strong><i class="fa-solid fa-star"></i> Tích điểm Techtra</strong>
+                  <strong><i class="fa-solid fa-star"></i> Tích &amp; Đổi điểm Techtra</strong>
                   <p>Điểm được cộng tự động sau khi đơn hàng thanh toán thành công: 1 điểm cho mỗi 10.000đ.</p>
                   <a th:href="@{/profile}">Xem hạng thành viên và chương trình ưu đãi</a>
                   <div class="field field--full" style="margin-top:16px">
-                    <label for="redeemPoints">Đổi điểm giảm tiền (1 điểm = 100 đ)</label>
-                    <input id="redeemPoints" name="redeemPoints" type="number" min="0"
-                           th:max="${maxRedeemPoints}" th:value="${redeemPoints ?: 0}" step="1"
-                           th:attr="data-available-points=${customerLoyaltyPoints},data-max-redeem=${maxRedeemPoints}"
-                           th:disabled="${customerLoyaltyPoints == null or customerLoyaltyPoints < 1}">
-                    <small th:if="${customerLoyaltyPoints != null and customerLoyaltyPoints > 0}"
-                           th:text="|Bạn có ${customerLoyaltyPoints} điểm. Có thể đổi tối đa ${maxRedeemPoints} điểm cho giỏ hàng này.|">Điểm khả dụng</small>
-                    <small th:if="${customerLoyaltyPoints == null or customerLoyaltyPoints < 1}">Bạn chưa có điểm khả dụng để đổi.</small>
+                    <div th:if="${customerLoyaltyPoints != null and customerLoyaltyPoints > 0 and maxRedeemPoints > 0}">
+                      <label class="checkbox-label" style="display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; margin-bottom:8px;">
+                        <input type="checkbox" id="usePointsCheckbox" th:checked="${redeemPoints != null and redeemPoints > 0}">
+                        <span>Đổi điểm tích lũy để giảm tiền (1 điểm = 100 đ)</span>
+                      </label>
+                      <div id="redeemPointsInputGroup" th:style="${redeemPoints != null and redeemPoints > 0 ? '' : 'display:none'}">
+                        <div style="display:flex; gap:8px; align-items:center;">
+                          <input id="redeemPoints" name="redeemPoints" type="number" min="0"
+                                 th:max="${maxRedeemPoints}" th:value="${redeemPoints ?: 0}" step="1"
+                                 th:attr="data-available-points=${customerLoyaltyPoints},data-max-redeem=${maxRedeemPoints}"
+                                 class="field-input" style="flex:1;">
+                          <button type="button" class="btn btn-outline" id="useMaxPointsBtn" style="padding:6px 12px; font-size:0.85rem; white-space:nowrap;">Dùng tối đa</button>
+                        </div>
+                        <small style="display:block; margin-top:4px;"
+                               th:text="|Bạn có ${customerLoyaltyPoints} điểm. Có thể đổi tối đa ${maxRedeemPoints} điểm (giảm ${#numbers.formatDecimal(maxRedeemPoints * 100, 0, 'COMMA', 0, 'POINT')} đ) cho giỏ hàng này.|">Điểm khả dụng</small>
+                      </div>
+                    </div>
+                    <div th:unless="${customerLoyaltyPoints != null and customerLoyaltyPoints > 0 and maxRedeemPoints > 0}">
+                      <input type="hidden" id="redeemPoints" name="redeemPoints" value="0">
+                      <small style="color:#64748b;"><i class="fa-solid fa-circle-info"></i> Bạn chưa có điểm tích lũy khả dụng để đổi giảm tiền.</small>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -242,7 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
     const shipping = pickup ? 0 : Number(document.getElementById('asideShipping').dataset.deliveryShipping || 0);
     const merchandise = Number(document.getElementById('asideTotal').dataset.merchandiseTotal || 0);
-    const points = redeemPointsField && !redeemPointsField.disabled
+    const usePointsCheckbox = document.getElementById('usePointsCheckbox');
+    const isUsingPoints = usePointsCheckbox ? usePointsCheckbox.checked : true;
+    const points = (redeemPointsField && !redeemPointsField.disabled && isUsingPoints)
       ? Math.max(0, Math.min(Number(redeemPointsField.value || 0), Number(redeemPointsField.dataset.maxRedeem || 0), Number(redeemPointsField.dataset.availablePoints || 0))) : 0;
     const pointsDiscount = points * 100;
     const campaignDiscount = Number(document.getElementById('asideDiscount').dataset.campaignDiscount || 0);
@@ -304,6 +319,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
   pickupRadios.forEach(radio => radio.addEventListener('change', updateFulfillment));
   if (redeemPointsField) redeemPointsField.addEventListener('input', updateQuote);
+  const usePointsCheckbox = document.getElementById('usePointsCheckbox');
+  const redeemPointsInputGroup = document.getElementById('redeemPointsInputGroup');
+  const useMaxPointsBtn = document.getElementById('useMaxPointsBtn');
+  if (usePointsCheckbox) {
+    usePointsCheckbox.addEventListener('change', () => {
+      if (usePointsCheckbox.checked) {
+        if (redeemPointsInputGroup) redeemPointsInputGroup.style.display = 'block';
+        if (redeemPointsField) {
+          redeemPointsField.value = Number(redeemPointsField.dataset.maxRedeem || 0);
+        }
+      } else {
+        if (redeemPointsInputGroup) redeemPointsInputGroup.style.display = 'none';
+        if (redeemPointsField) {
+          redeemPointsField.value = '0';
+        }
+      }
+      updateQuote();
+    });
+  }
+  if (useMaxPointsBtn && redeemPointsField) {
+    useMaxPointsBtn.addEventListener('click', () => {
+      redeemPointsField.value = Number(redeemPointsField.dataset.maxRedeem || 0);
+      updateQuote();
+    });
+  }
+  form.addEventListener('submit', () => {
+    if (usePointsCheckbox && !usePointsCheckbox.checked && redeemPointsField) {
+      redeemPointsField.value = '0';
+    }
+  });
   deliveryCountry.addEventListener('change', () => {
     deliveryCity.value = '';
     updateFulfillment();

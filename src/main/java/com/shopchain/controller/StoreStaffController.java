@@ -118,6 +118,16 @@ public class StoreStaffController {
         if (user.getStore() == null) throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
         model.addAttribute("store", user.getStore());
         model.addAttribute("reservations", reservationService.staffReservations(user.getStore().getId()));
+        String qrBankCode = java.util.Objects.toString(systemSettingService.getSetting("payment.qrBankCode", ""), "").trim();
+        String qrAccountNumber = java.util.Objects.toString(systemSettingService.getSetting("payment.qrAccountNumber", ""), "").trim();
+        String qrAccountName = java.util.Objects.toString(systemSettingService.getSetting("payment.qrAccountName", ""), "").trim();
+        boolean bankQrConfigured = qrBankCode.matches("[A-Za-z0-9]{3,12}")
+                && qrAccountNumber.matches("[A-Za-z0-9]{4,19}")
+                && qrAccountName.length() <= 100;
+        model.addAttribute("bankQrConfigured", bankQrConfigured);
+        model.addAttribute("qrBankCode", qrBankCode);
+        model.addAttribute("qrAccountNumber", qrAccountNumber);
+        model.addAttribute("qrAccountName", qrAccountName);
         return "staff/reservations";
     }
 

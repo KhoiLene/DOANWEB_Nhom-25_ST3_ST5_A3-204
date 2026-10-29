@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Giữ hàng tại chi nhánh | Techtra Beauty</title><link rel="stylesheet" th:href="@{/css/workspace.css}"><link rel="stylesheet" th:href="@{/css/assistant-widget.css}"><script defer th:src="@{/js/assistant-widget.js}"></script></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giữ hàng tại chi nhánh | Techtra Beauty</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" th:href="@{/css/workspace.css}">
+  <link rel="stylesheet" th:href="@{/css/assistant-widget.css}">
+  <script defer th:src="@{/js/assistant-widget.js}"></script>
+</head>
 <body class="workspace-body">
 <th:block th:replace="~{fragments/portal-header :: header('Nhân viên cửa hàng', ${store.name})}"></th:block>
 <main class="workspace-page">
@@ -12,9 +20,61 @@
       <tr th:each="reservation : ${reservations}">
         <td><strong th:text="${reservation.code}">TH12345678</strong></td>
         <td><span th:text="${reservation.customerName ?: 'Khách hàng'}">Tên khách</span><br><small th:text="${reservation.customerPhone ?: 'Không có số điện thoại'}">Điện thoại</small></td>
-        <td><span th:each="line,iter : ${reservation.items}" th:text="${line.productName + ' × ' + line.quantity + (iter.last ? '' : ', ')}">Sản phẩm</span></td>
+        <td>
+          <span th:each="line,iter : ${reservation.items}" th:text="${line.productName + ' × ' + line.quantity + (iter.last ? '' : ', ')}">Sản phẩm</span>
+          <br><small style="color: #2563eb; font-weight: 600;" th:text="'Tổng: ' + ${#numbers.formatDecimal(reservation.totalAmount, 1, 'COMMA', 0, 'POINT')} + ' ₫'"></small>
+        </td>
         <td th:text="${#temporals.format(reservation.expiresAt, 'dd/MM/yyyy HH:mm')}">Hạn giữ</td>
-        <td class="reservation-actions"><form class="reservation-pickup-form" th:action="@{/staff/reservations/{id}/pickup(id=${reservation.id})}" method="post"><label>Thanh toán<select name="paymentMethod" required><option value="CASH">Tiền mặt</option><option value="CARD">Thẻ</option><option value="BANK_TRANSFER">Chuyển khoản</option><option value="OTHER">Khác</option></select></label><input type="hidden" name="paymentReference" th:value="${'RES-' + reservation.code}"><div class="reservation-transfer-confirm" hidden><p>Ghi nhận chuyển khoản theo nội dung <strong th:text="${'RES-' + reservation.code}">RES-TH12345678</strong>. Nhân viên phải tự kiểm tra tiền đã vào tài khoản; không có xác minh ngân hàng tự động.</p><label><input type="checkbox" name="bankTransferConfirmed" value="true"> Tôi đã kiểm tra tiền thực nhận</label></div><button type="submit">Giao hàng &amp; xuất biên nhận</button></form><form th:action="@{/staff/reservations/{id}/cancel(id=${reservation.id})}" method="post"><button type="submit" class="workspace-button--secondary">Hủy giữ</button></form></td>
+        <td class="reservation-actions">
+          <form class="reservation-pickup-form" th:action="@{/staff/reservations/{id}/pickup(id=${reservation.id})}" method="post">
+            <label>Thanh toán
+              <select name="paymentMethod" required>
+                <option value="CASH">Tiền mặt</option>
+                <option value="CARD">Thẻ</option>
+                <option value="BANK_TRANSFER">Chuyển khoản</option>
+                <option value="OTHER">Khác</option>
+              </select>
+            </label>
+            <input type="hidden" name="paymentReference" th:value="${'RES-' + reservation.code}">
+
+            <div class="reservation-transfer-confirm" hidden>
+              <!-- QR Panel for Bank Transfer -->
+              <div th:if="${bankQrConfigured}" class="reservation-qr-panel pos-bank-qr" style="margin: 8px 0; padding: 12px; background: #f8fbff; border: 1px solid #c9dcff; border-radius: 12px; text-align: center; max-width: 280px;">
+                <h4 style="margin: 0 0 6px; font-size: 0.88rem; color: #1e3a8a;"><i class="fa-solid fa-qrcode"></i> Quét QR chuyển khoản</h4>
+                <img th:src="@{'https://img.vietqr.io/image/' + ${qrBankCode} + '-' + ${qrAccountNumber} + '-qr_only.svg'(amount=${#numbers.formatDecimal(reservation.totalAmount, 0, 'POINT', 0, 'POINT')},addInfo=${'RES-' + reservation.code},accountName=${qrAccountName})}"
+                     alt="Mã QR chuyển khoản VietQR"
+                     style="width: 160px; height: 160px; object-fit: contain; background: #fff; padding: 6px; border: 1px solid #dbeafe; border-radius: 8px; margin: 4px auto; display: block;"
+                     loading="lazy">
+                <div class="pos-bank-qr__details" style="font-size: 0.78rem; margin: 6px 0; text-align: left;">
+                  <span>Ngân hàng:</span><strong th:text="${qrBankCode}">VCB</strong>
+                  <span>Số TK:</span><strong th:text="${qrAccountNumber}">123456789</strong>
+                  <span>Chủ TK:</span><strong th:text="${qrAccountName}">TECHTRA BEAUTY</strong>
+                  <span>Số tiền:</span><strong style="color: #2563eb;" th:text="${#numbers.formatDecimal(reservation.totalAmount, 1, 'COMMA', 0, 'POINT') + ' ₫'}">0 ₫</strong>
+                  <span>Nội dung:</span><strong style="color: #b91c1c;" th:text="${'RES-' + reservation.code}">RES-TH12345678</strong>
+                </div>
+                <p style="font-size: 0.74rem; color: #64748b; margin: 0 0 6px;">Khách mở app ngân hàng quét mã để chuyển đúng số tiền và nội dung.</p>
+                <div style="background: #fff3cd; color: #856404; padding: 6px 8px; border-radius: 6px; font-size: 0.74rem; border: 1px solid #ffeeba; text-align: left; line-height: 1.4;">
+                  <i class="fa-solid fa-triangle-exclamation"></i> <strong>Xác nhận thủ công:</strong> Thu ngân bắt buộc phải kiểm tra thông báo tiền vào tài khoản trước khi tích xác nhận và giao hàng.
+                </div>
+              </div>
+
+              <div th:unless="${bankQrConfigured}" class="pos-bank-qr pos-bank-qr--notice" style="margin: 8px 0; padding: 10px; background: #fff4f2; border: 1px solid #f1c4c0; border-radius: 8px; max-width: 280px;">
+                <strong style="color: #b42318; font-size: 0.82rem;">Chưa cấu hình tài khoản nhận tiền.</strong>
+                <p style="font-size: 0.76rem; color: #5a6b7d; margin: 4px 0 0;">Quản trị viên cần thêm mã ngân hàng và số tài khoản tại mục Cài đặt hệ thống.</p>
+              </div>
+
+              <p th:unless="${bankQrConfigured}" style="font-size: 0.8rem; color: #475569; margin: 6px 0;">Nội dung chuyển khoản: <strong th:text="${'RES-' + reservation.code}">RES-TH12345678</strong></p>
+              <label style="font-size: 0.84rem; display: flex; align-items: center; gap: 6px; margin: 8px 0; cursor: pointer;">
+                <input type="checkbox" name="bankTransferConfirmed" value="true"> Tôi đã kiểm tra tiền thực nhận
+              </label>
+            </div>
+
+            <button type="submit">Giao hàng &amp; xuất biên nhận</button>
+          </form>
+          <form th:action="@{/staff/reservations/{id}/cancel(id=${reservation.id})}" method="post">
+            <button type="submit" class="workspace-button--secondary">Hủy giữ</button>
+          </form>
+        </td>
       </tr>
       <tr th:if="${#lists.isEmpty(reservations)}"><td colspan="5" class="workspace-empty">Không có phiếu giữ hàng đang hiệu lực.</td></tr>
     </tbody></table></div>
@@ -34,4 +94,5 @@ document.querySelectorAll('.reservation-pickup-form').forEach(form => {
   update();
 });
 </script>
-</body></html>
+</body>
+</html>

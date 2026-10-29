@@ -68,7 +68,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/products/**", "/api/locations/**", "/api/payment/vnpay-return", "/api/payment/vnpay-ipn", "/css/**", "/js/**", "/images/**", "/img/**", "/", "/products", "/search", "/product/**", "/news", "/news/**", "/about", "/stores", "/login", "/login-process", "/register", "/register-process", "/forgot-password", "/forgot-password-process", "/reset-password-process", "/order-success").permitAll()
+                .requestMatchers("/api/auth/**", "/api/products/**", "/api/locations/**", "/api/payment/vnpay-return", "/css/**", "/js/**", "/images/**", "/img/**", "/", "/products", "/search", "/product/**", "/news", "/news/**", "/about", "/stores", "/login", "/login-process", "/register", "/register-process", "/forgot-password", "/forgot-password-process", "/reset-password", "/reset-password-process", "/order-success").permitAll()
                 .requestMatchers("/api/payment/vnpay").hasAnyRole("USER", "ADMIN")
                 .requestMatchers("/api/reviews/**").hasRole("USER")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -89,4 +89,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-

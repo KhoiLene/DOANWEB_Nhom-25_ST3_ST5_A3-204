@@ -152,6 +152,11 @@ public class StoreReservationService {
     }
 
     @Transactional
+    public PickupResult pickup(Long reservationId, Long storeId, String username) {
+        return pickup(reservationId, storeId, username, "CASH", null, false);
+    }
+
+    @Transactional
     public PickupResult pickup(Long reservationId, Long storeId, String username,
                                String paymentMethod, String paymentReference, boolean bankTransferConfirmed) {
         StoreReservation reservation = reservationRepository.findForUpdateById(reservationId)
@@ -258,7 +263,22 @@ public class StoreReservationService {
                                       java.math.BigDecimal unitPrice, java.math.BigDecimal listUnitPrice) { }
     public record ReservationView(Long id, String code, String status, Long storeId, String storeName, String storeAddress,
                                   String customerName, String customerPhone, LocalDateTime createdAt, LocalDateTime expiresAt,
-                                  LocalDateTime pickedUpAt, List<ReservationItemView> items) { }
+                                  LocalDateTime pickedUpAt, List<ReservationItemView> items) {
+        public java.math.BigDecimal totalAmount() {
+            if (items == null || items.isEmpty()) return java.math.BigDecimal.ZERO;
+            java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+            for (ReservationItemView item : items) {
+                java.math.BigDecimal price = item.unitPrice() != null ? item.unitPrice() : java.math.BigDecimal.ZERO;
+                int qty = item.quantity() != null ? item.quantity() : 0;
+                total = total.add(price.multiply(java.math.BigDecimal.valueOf(qty)));
+            }
+            return total;
+        }
+
+        public java.math.BigDecimal getTotalAmount() {
+            return totalAmount();
+        }
+    }
     public record PickupOrderItemView(String productName, Integer quantity) { }
     public record PickupOrderView(Long id, String status, String paymentStatus, String storeName, String storeAddress,
                                   LocalDateTime createdAt, Double totalAmount, List<PickupOrderItemView> items) { }

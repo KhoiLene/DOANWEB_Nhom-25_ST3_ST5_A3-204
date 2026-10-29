@@ -94,10 +94,13 @@
               <a th:href="@{/profile}">Xem chương trình ưu đãi <i class="fa-solid fa-arrow-right"></i></a>
             </div>
 
-            <div class="summary-actions">
-              <a th:href="@{/checkout}" class="btn btn-primary" th:if="${not #lists.isEmpty(cartItems)}">Thanh toán</a>
-              <form th:action="@{/cart/clear}" method="post" style="display:inline" th:if="${not #lists.isEmpty(cartItems)}">
-                <button type="submit" class="btn btn-ghost">Xoá giỏ</button>
+            <div class="summary-actions" style="display: flex; flex-direction: column; gap: 8px;">
+              <a th:href="@{/checkout}" class="btn btn-primary" th:if="${not #lists.isEmpty(cartItems)}" style="width: 100%; text-align: center;">Thanh toán</a>
+              <button type="button" class="btn btn-outline" id="btnCartReserve" th:if="${not #lists.isEmpty(cartItems)}" style="width: 100%; border: 1.5px solid #2563eb; color: #2563eb; background: #fff; font-weight: 600; padding: 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fa-solid fa-store"></i> Giữ hàng tại chi nhánh
+              </button>
+              <form th:action="@{/cart/clear}" method="post" style="display:inline; width: 100%;" th:if="${not #lists.isEmpty(cartItems)}">
+                <button type="submit" class="btn btn-ghost" style="width: 100%;">Xoá giỏ</button>
               </form>
             </div>
 
@@ -117,5 +120,142 @@
 
     <div th:replace="~{fragments/footer :: footer}"></div>
 
+    <!-- Modal Giữ hàng tại chi nhánh từ Giỏ hàng -->
+    <div id="cartReserveModal" style="display:none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+      <div style="background: #ffffff; padding: 28px; border-radius: 16px; max-width: 500px; width: 92%; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+          <h3 style="margin: 0; font-size: 1.2rem; color: #1e3a8a; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-store" style="color: #2563eb;"></i> Giữ hàng tại chi nhánh
+          </h3>
+          <button type="button" id="closeReserveModal" style="background: none; border: none; font-size: 1.6rem; line-height: 1; cursor: pointer; color: #64748b; padding: 0 4px;">&times;</button>
+        </div>
+        
+        <p style="font-size: 0.88rem; color: #475569; margin-bottom: 14px; line-height: 1.5;">
+          Sản phẩm trong giỏ hàng sẽ được giữ tại chi nhánh bạn chọn trong <strong>30 phút</strong> để bạn có thể đến xem, thử và thanh toán trực tiếp tại quầy.
+        </p>
+
+        <div style="margin-bottom: 16px;">
+          <label for="cartStoreSelect" style="font-weight: 600; font-size: 0.88rem; display: block; margin-bottom: 6px; color: #1e293b;">
+            Chọn chi nhánh nhận hàng:
+          </label>
+          <select id="cartStoreSelect" style="width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; color: #1e293b; background: #f8fafc;">
+            <option value="">-- Chọn chi nhánh nhận hàng --</option>
+            <option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name + ' · ' + store.address + ', ' + store.city}">Chi nhánh</option>
+          </select>
+        </div>
+
+        <div id="cartReserveError" style="background: #fef2f2; color: #b91c1c; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 14px; border: 1px solid #fecaca; display: none;"></div>
+        <div id="cartReserveSuccess" style="background: #f0fdf4; color: #15803d; padding: 12px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 14px; border: 1px solid #bbf7d0; display: none;"></div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px;">
+          <button type="button" id="cancelReserveBtn" class="btn btn-ghost" style="padding: 10px 16px; border-radius: 8px;">Đóng</button>
+          <button type="button" id="confirmReserveBtn" class="btn btn-primary" style="padding: 10px 20px; border-radius: 8px; font-weight: 600;">
+            Xác nhận giữ hàng
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const btnOpen = document.getElementById('btnCartReserve');
+      const modal = document.getElementById('cartReserveModal');
+      const btnClose = document.getElementById('closeReserveModal');
+      const btnCancel = document.getElementById('cancelReserveBtn');
+      const btnConfirm = document.getElementById('confirmReserveBtn');
+      const storeSelect = document.getElementById('cartStoreSelect');
+      const errorBox = document.getElementById('cartReserveError');
+      const successBox = document.getElementById('cartReserveSuccess');
+
+      if (btnOpen && modal) {
+        btnOpen.addEventListener('click', () => {
+          errorBox.style.display = 'none';
+          errorBox.textContent = '';
+          successBox.style.display = 'none';
+          successBox.textContent = '';
+          btnConfirm.disabled = false;
+          btnConfirm.textContent = 'Xác nhận giữ hàng';
+          modal.style.display = 'flex';
+        });
+
+        const closeModal = () => { modal.style.display = 'none'; };
+        if (btnClose) btnClose.addEventListener('click', closeModal);
+        if (btnCancel) btnCancel.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+        btnConfirm.addEventListener('click', async () => {
+          errorBox.style.display = 'none';
+          errorBox.textContent = '';
+          const storeId = storeSelect.value;
+          if (!storeId) {
+            errorBox.textContent = 'Vui lòng chọn một chi nhánh để giữ hàng.';
+            errorBox.style.display = 'block';
+            return;
+          }
+
+          const rows = document.querySelectorAll('.cart-rows .cart-row');
+          const lines = [];
+          rows.forEach(row => {
+            const pInput = row.querySelector('input[name="productId"]');
+            const qInput = row.querySelector('input[name="quantity"]');
+            if (pInput && qInput) {
+              const productId = Number(pInput.value);
+              const quantity = Number(qInput.value);
+              if (productId && quantity > 0) {
+                lines.push({ productId, quantity });
+              }
+            }
+          });
+
+          if (!lines.length) {
+            errorBox.textContent = 'Giỏ hàng đang trống, không thể giữ hàng.';
+            errorBox.style.display = 'block';
+            return;
+          }
+
+          btnConfirm.disabled = true;
+          btnConfirm.textContent = 'Đang xử lý giữ hàng…';
+
+          try {
+            const response = await fetch('/api/customer/reservations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ storeId: Number(storeId), lines })
+            });
+
+            if (response.status === 401 || response.status === 403) {
+              window.location.href = '/login?returnTo=%2Fcart';
+              return;
+            }
+
+            const result = await response.json();
+            if (!response.ok) {
+              throw new Error(result.error || result.message || 'Không thể giữ hàng tại chi nhánh này.');
+            }
+
+            const expireTime = result.expiresAt ? new Date(result.expiresAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) : '30 phút';
+            successBox.innerHTML = `<strong><i class="fa-solid fa-circle-check"></i> Giữ hàng thành công!</strong><br>` +
+              `Mã phiếu: <strong>${result.code}</strong> tại <strong>${result.storeName}</strong>.<br>` +
+              `Hạn giữ: đến <strong>${expireTime}</strong> hôm nay.<br>` +
+              `Bạn có thể đến chi nhánh nhận hàng và thanh toán tại quầy. Đang chuyển đến trang quản lý phiếu…`;
+            successBox.style.display = 'block';
+
+            // Clear cart in background and redirect to profile after 2s
+            fetch('/cart/clear', { method: 'POST' }).finally(() => {
+              setTimeout(() => {
+                window.location.href = '/profile';
+              }, 2000);
+            });
+
+          } catch (err) {
+            errorBox.textContent = err.message || 'Chưa thể giữ hàng lúc này. Vui lòng thử lại sau.';
+            errorBox.style.display = 'block';
+            btnConfirm.disabled = false;
+            btnConfirm.textContent = 'Xác nhận giữ hàng';
+          }
+        });
+      }
+    });
+    </script>
   </body>
 </html>
