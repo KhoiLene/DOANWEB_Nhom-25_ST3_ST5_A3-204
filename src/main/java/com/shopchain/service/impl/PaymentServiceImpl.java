@@ -1,8 +1,7 @@
 package com.shopchain.service.impl;
 
 import com.shopchain.service.PaymentService;
-import com.shopchain.service.SystemSettingService;
-import org.springframework.beans.factory.annotation.Value;
+import com.shopchain.service.IntegrationConfigurationService;
 import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
@@ -21,21 +20,17 @@ import javax.crypto.spec.SecretKeySpec;
 @Service
 public class PaymentServiceImpl implements PaymentService {
 
-    @Value("${vnpay.vnp_url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")
-    private String vnpUrl;
-    @Value("${vnpay.return_url:http://localhost:8080/api/payment/vnpay-return}")
-    private String returnUrl;
+    private final IntegrationConfigurationService configuration;
 
-    private final SystemSettingService settingService;
-
-    public PaymentServiceImpl(SystemSettingService settingService) {
-        this.settingService = settingService;
+    public PaymentServiceImpl(IntegrationConfigurationService configuration) {
+        this.configuration = configuration;
     }
 
     @Override
     public String createVnPayPaymentUrl(Long orderId, BigDecimal amount, String clientIp, LocalDateTime expiresAt) {
-        String tmnCode = settingService.getSetting("vnpay.tmnCode", "");
-        String hashSecret = settingService.getSetting("vnpay.hashSecret", "");
+        IntegrationConfigurationService.VnPaySettings config = configuration.vnPay();
+        String tmnCode = config.tmnCode();
+        String hashSecret = config.hashSecret();
         if (tmnCode.isBlank() || hashSecret.isBlank()) {
             throw new IllegalStateException("Chưa cấu hình thông tin kết nối VNPay.");
         }
@@ -66,7 +61,7 @@ public class PaymentServiceImpl implements PaymentService {
         params.put("vnp_Version", vnp_Version);
         params.put("vnp_TmnCode", tmnCode);
         params.put("vnp_OrderInfo", vnp_OrderInfo);
-        params.put("vnp_ReturnUrl", returnUrl);
+        params.put("vnp_ReturnUrl", config.returnUrl());
         params.put("vnp_BankCode", "VNPAYQR");
         params.put("vnp_CreateDate", now.format(vnpDateFormat));
         params.put("vnp_ExpireDate", expiry.format(vnpDateFormat));
@@ -87,7 +82,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         String vnp_SecureHash = hmacSHA512(query.toString(), hashSecret);
-        return vnpUrl + "?" + query.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
+        return config.url() + "?" + query + "&vnp_SecureHash=" + vnp_SecureHash;
     }
 
     private String normalizeIpAddress(String clientIp) {
@@ -99,8 +94,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public boolean verifyVnPayPayment(Map<String, String> params) {
-        String hashSecret = settingService.getSetting("vnpay.hashSecret", "");
-        String expectedMerchantCode = settingService.getSetting("vnpay.tmnCode", "");
+        IntegrationConfigurationService.VnPaySettings config = configuration.vnPay();
+        String hashSecret = config.hashSecret();
+        String expectedMerchantCode = config.tmnCode();
         if (hashSecret.isBlank() || expectedMerchantCode.isBlank() || params == null
                 || !expectedMerchantCode.equals(params.get("vnp_TmnCode"))) {
             return false;

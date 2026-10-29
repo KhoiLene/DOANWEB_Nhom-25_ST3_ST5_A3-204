@@ -37,6 +37,7 @@ ALTER TABLE IF EXISTS store_reservations ADD COLUMN IF NOT EXISTS order_id BIGIN
 ALTER TABLE IF EXISTS store_reservation_items ADD COLUMN IF NOT EXISTS list_unit_price NUMERIC(14,2);
 ALTER TABLE IF EXISTS orders ALTER COLUMN user_id DROP NOT NULL;
 ALTER TABLE IF EXISTS store_reservation_items ALTER COLUMN unit_price TYPE NUMERIC(14,2) USING round(unit_price::numeric, 2);
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS auth_token_version INTEGER NOT NULL DEFAULT 0;
 
 -- Convert legacy floating point money columns to fixed precision before JPA uses BigDecimal.
 ALTER TABLE IF EXISTS orders ALTER COLUMN total_amount TYPE NUMERIC(14,2) USING round(total_amount::numeric, 2);
@@ -46,34 +47,3 @@ ALTER TABLE IF EXISTS sales_invoices ALTER COLUMN tax_amount TYPE NUMERIC(14,2) 
 ALTER TABLE IF EXISTS sales_invoices ALTER COLUMN total_amount TYPE NUMERIC(14,2) USING round(total_amount::numeric, 2);
 ALTER TABLE IF EXISTS sales_invoice_lines ALTER COLUMN unit_price TYPE NUMERIC(14,2) USING round(unit_price::numeric, 2);
 ALTER TABLE IF EXISTS sales_invoice_lines ALTER COLUMN line_total TYPE NUMERIC(14,2) USING round(line_total::numeric, 2);
-
--- Safe backfill for existing orders and receipts. Historical shipping/discount breakdown was not stored.
-DO $$
-BEGIN
-    IF to_regclass('public.orders') IS NOT NULL THEN
-        UPDATE orders SET subtotal_amount = total_amount, discount_amount = 0, shipping_amount = 0
-        WHERE subtotal_amount IS NULL;
-        UPDATE orders SET payment_expires_at = order_date + INTERVAL '15 minutes'
-        WHERE payment_expires_at IS NULL AND upper(coalesce(payment_method, '')) = 'VNPAY'
-          AND upper(coalesce(payment_status, '')) = 'UNPAID' AND upper(coalesce(status, '')) = 'PENDING';
-    END IF;
-    IF to_regclass('public.order_items') IS NOT NULL THEN
-        UPDATE order_items SET list_unit_price = price WHERE list_unit_price IS NULL;
-    END IF;
-    IF to_regclass('public.sales_invoice_lines') IS NOT NULL THEN
-        UPDATE sales_invoice_lines SET list_unit_price = unit_price WHERE list_unit_price IS NULL;
-    END IF;
-    IF to_regclass('public.store_reservation_items') IS NOT NULL THEN
-        UPDATE store_reservation_items SET list_unit_price = unit_price WHERE list_unit_price IS NULL;
-    END IF;
-    IF to_regclass('public.store_reservations') IS NOT NULL THEN
-        CREATE UNIQUE INDEX IF NOT EXISTS ux_store_reservations_order_id
-            ON store_reservations(order_id) WHERE order_id IS NOT NULL;
-        IF to_regclass('public.orders') IS NOT NULL AND NOT EXISTS (
-            SELECT 1 FROM pg_constraint WHERE conname = 'fk_store_reservations_order'
-        ) THEN
-            ALTER TABLE store_reservations ADD CONSTRAINT fk_store_reservations_order
-                FOREIGN KEY (order_id) REFERENCES orders(id);
-        END IF;
-    END IF;
-END $$;

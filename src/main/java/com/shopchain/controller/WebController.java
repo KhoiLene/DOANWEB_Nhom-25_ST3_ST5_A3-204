@@ -499,7 +499,8 @@ public class WebController {
     }
 
     @PostMapping("/logout-process")
-    public String logout(jakarta.servlet.http.HttpServletResponse response) {
+    public String logout(Authentication authentication, jakarta.servlet.http.HttpServletResponse response) {
+        if (authentication != null && authentication.isAuthenticated()) authService.logout(authentication.getName());
         ResponseCookie cookie = ResponseCookie.from("access_token", "")
                 .httpOnly(true).path("/").sameSite("Strict").maxAge(Duration.ZERO).build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());

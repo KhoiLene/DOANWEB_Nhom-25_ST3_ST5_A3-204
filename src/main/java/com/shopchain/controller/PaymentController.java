@@ -13,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Map;
@@ -78,36 +79,63 @@ public class PaymentController {
                 .build());
     }
 
+    @Transactional
     @GetMapping("/vnpay-return")
     public ResponseEntity<?> vnpayReturn(@RequestParam Map<String, String> params) {
-        if (params == null || !paymentService.verifyVnPayPayment(params)) {
+        CallbackResult result = processVnPayCallback(params);
+        if (result.outcome() == Outcome.INVALID_SIGNATURE || result.outcome() == Outcome.NOT_FOUND
+                || result.outcome() == Outcome.INVALID_AMOUNT || result.orderId() == null)
             return ResponseEntity.badRequest().body("Payment Failed!");
-        }
+        return orderResultRedirect(result.orderId(), result.outcome() == Outcome.SUCCESS
+                || result.outcome() == Outcome.ALREADY_CONFIRMED ? "success" : "failed");
+    }
 
+    /** VNPAY calls this server-to-server endpoint even when the customer never returns to the site. */
+    @Transactional
+    @GetMapping("/vnpay-ipn")
+    public ResponseEntity<Map<String, String>> vnpayIpn(@RequestParam Map<String, String> params) {
+        CallbackResult result = processVnPayCallback(params);
+        return switch (result.outcome()) {
+            case SUCCESS -> ipnResponse("00", "Ghi nhận thanh toán thành công.");
+            case ALREADY_CONFIRMED -> ipnResponse("02", "Giao dịch đã được xác nhận trước đó.");
+            case INVALID_SIGNATURE -> ipnResponse("97", "Chữ ký không hợp lệ.");
+            case NOT_FOUND -> ipnResponse("01", "Không tìm thấy giao dịch.");
+            case INVALID_AMOUNT -> ipnResponse("04", "Số tiền giao dịch không hợp lệ.");
+            case FAILED -> ipnResponse("00", "Đã ghi nhận kết quả giao dịch không thành công.");
+            case PROCESSING_ERROR -> ipnResponse("99", "Chưa thể cập nhật giao dịch; VNPAY có thể thử gửi lại.");
+        };
+    }
+
+    private CallbackResult processVnPayCallback(Map<String, String> params) {
+        if (params == null || !paymentService.verifyVnPayPayment(params))
+            return new CallbackResult(Outcome.INVALID_SIGNATURE, null);
         try {
             String transactionReference = params.get("vnp_TxnRef");
-            if (transactionReference == null || !transactionReference.matches("[1-9][0-9]{0,17}")) {
-                return ResponseEntity.badRequest().body("Payment Failed!");
-            }
+            if (transactionReference == null || !transactionReference.matches("[1-9][0-9]{0,17}"))
+                return new CallbackResult(Outcome.NOT_FOUND, null);
             Order order = orderRepository.findById(Long.parseLong(transactionReference)).orElse(null);
-            if (order == null || order.getTotalAmount() == null
-                    || !"VNPAY".equalsIgnoreCase(order.getPaymentMethod())
-                    || !matchesAmount(params.get("vnp_Amount"), order.getTotalAmount())) {
-                return ResponseEntity.badRequest().body("Payment Failed!");
-            }
-
+            if (order == null) return new CallbackResult(Outcome.NOT_FOUND, null);
+            if (order.getTotalAmount() == null || !"VNPAY".equalsIgnoreCase(order.getPaymentMethod())
+                    || !matchesAmount(params.get("vnp_Amount"), order.getTotalAmount()))
+                return new CallbackResult(Outcome.INVALID_AMOUNT, order.getId());
             if (!"00".equals(params.get("vnp_ResponseCode"))
-                    || !"00".equals(params.get("vnp_TransactionStatus"))) {
-                return orderResultRedirect(order.getId(), "failed");
-            }
+                    || !"00".equals(params.get("vnp_TransactionStatus")))
+                return new CallbackResult(Outcome.FAILED, order.getId());
+
+            boolean alreadyPaid = "PAID".equalsIgnoreCase(order.getPaymentStatus());
             Order confirmed = orderService.confirmVnPayPayment(order.getId());
-            if (!"PAID".equalsIgnoreCase(confirmed.getPaymentStatus())) return orderResultRedirect(order.getId(), "failed");
+            if (!"PAID".equalsIgnoreCase(confirmed.getPaymentStatus()))
+                return new CallbackResult(Outcome.PROCESSING_ERROR, order.getId());
             loyaltyService.awardForPaidOrder(confirmed.getId());
             invoiceService.issueForPaidOrder(confirmed.getId());
-            return orderResultRedirect(order.getId(), "success");
+            return new CallbackResult(alreadyPaid ? Outcome.ALREADY_CONFIRMED : Outcome.SUCCESS, order.getId());
         } catch (NumberFormatException | ArithmeticException | IllegalStateException exception) {
-            return ResponseEntity.badRequest().body("Payment Failed!");
+            return new CallbackResult(Outcome.PROCESSING_ERROR, null);
         }
+    }
+
+    private ResponseEntity<Map<String, String>> ipnResponse(String code, String message) {
+        return ResponseEntity.ok(Map.of("RspCode", code, "Message", message));
     }
 
     private ResponseEntity<?> orderResultRedirect(Long orderId, String result) {
@@ -122,4 +150,7 @@ public class PaymentController {
                 .setScale(0, RoundingMode.HALF_UP).longValueExact();
         return Long.parseLong(callbackAmount) == expected;
     }
+
+    private enum Outcome { SUCCESS, ALREADY_CONFIRMED, INVALID_SIGNATURE, NOT_FOUND, INVALID_AMOUNT, FAILED, PROCESSING_ERROR }
+    private record CallbackResult(Outcome outcome, Long orderId) { }
 }

@@ -1,4 +1,4 @@
-# Gemini RAG theo role và đồ thị embedding
+# Gemini Vector RAG theo role và đồ thị láng giềng
 
 > Trạng thái: luồng Gemini chat, Gemini Embedding 2, Qdrant và quản lý chỉ mục đã được tích hợp. Kế hoạch bên dưới mô tả kiến trúc hiện hành và các phần mở rộng có thể làm sau.
 
@@ -27,8 +27,10 @@ Người dùng → widget → Spring Security
   ├─ PostgreSQL xác nhận lại nguồn, role, hash và trạng thái index
   └─ Gemini Flash-Lite trả lời với các đoạn phù hợp và tên nguồn
 
-Admin → API đồ thị → tìm láng giềng vector trong từng role → quả cầu tương tác
+Admin → API láng giềng embedding → tìm điểm gần trong từng role → quả cầu tương tác
 ```
+
+Chat hiện dùng truy xuất vector top-k. Quả cầu admin chỉ trực quan hóa các điểm embedding gần nhau; nó không tạo quan hệ ngữ nghĩa và không tham gia truy hồi câu trả lời. Vì vậy hệ thống hiện tại là Vector RAG, không phải GraphRAG.
 
 Project dùng `GeminiApiClient` gọi Gemini REST trực tiếp để chat và embedding. `GeminiEmbeddingModel` cắm adapter này vào Spring AI `VectorStore`; Qdrant là nơi lưu và tìm vector. Cách này hỗ trợ Gemini Embedding 2 và cho phép ứng dụng chạy khi API key chưa được cấu hình. Khi thiếu key, nguồn ở trạng thái `PENDING`, còn chatbot báo cần cấu hình thay vì dùng model khác.
 
@@ -42,7 +44,7 @@ docker compose up -d qdrant
 .\mvnw.cmd spring-boot:run
 ```
 
-Mặc định: chat `gemini-3.1-flash-lite`, embedding `gemini-embedding-2`, dimension 768, collection `techtra_knowledge_gemini_embedding_2_768`. Biến có thể cấu hình gồm `ASSISTANT_CHAT_MODEL`, `ASSISTANT_EMBEDDING_MODEL`, `ASSISTANT_EMBEDDING_DIMENSIONS`, `ASSISTANT_QDRANT_COLLECTION`, `GEMINI_API_BASE_URL`, `GEMINI_TIMEOUT_SECONDS`, `ASSISTANT_RAG_TOP_K`, `ASSISTANT_RAG_SIMILARITY_THRESHOLD`, `QDRANT_HOST` và `QDRANT_GRPC_PORT`.
+Mặc định hiện tại: chat `gemini-3.5-flash-lite`, embedding `gemini-embedding-2`, dimension 768, collection `techtra_knowledge_gemini_embedding_2_768`. Biến có thể cấu hình gồm `ASSISTANT_CHAT_MODEL`, `ASSISTANT_EMBEDDING_MODEL`, `ASSISTANT_EMBEDDING_DIMENSIONS`, `ASSISTANT_QDRANT_COLLECTION`, `GEMINI_API_BASE_URL`, `GEMINI_TIMEOUT_SECONDS`, `ASSISTANT_RAG_TOP_K`, `ASSISTANT_RAG_SIMILARITY_THRESHOLD`, `QDRANT_HOST` và `QDRANT_GRPC_PORT`.
 
 Đổi model hoặc dimension phải tạo collection mới và index lại toàn bộ. Không trộn vector của các embedding space khác nhau.
 

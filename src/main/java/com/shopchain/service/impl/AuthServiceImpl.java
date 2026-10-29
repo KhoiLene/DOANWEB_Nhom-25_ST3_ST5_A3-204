@@ -5,14 +5,12 @@ import com.shopchain.entity.*;
 import com.shopchain.repository.*;
 import com.shopchain.security.JwtTokenProvider;
 import com.shopchain.service.AuthService;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import com.shopchain.service.SmtpMailService;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Map;
 import java.nio.charset.StandardCharsets;
@@ -35,25 +33,19 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender;
+    private final SmtpMailService smtpMailService;
     private final JwtTokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
-    private final String mailUsername;
-    private final String mailPassword;
 
     public AuthServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
-                           PasswordEncoder passwordEncoder, JavaMailSender mailSender,
-                           JwtTokenProvider tokenProvider, AuthenticationManager authenticationManager,
-                           @Value("${spring.mail.username:}") String mailUsername,
-                           @Value("${spring.mail.password:}") String mailPassword) {
+                           PasswordEncoder passwordEncoder, SmtpMailService smtpMailService,
+                           JwtTokenProvider tokenProvider, AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
-        this.mailSender = mailSender;
+        this.smtpMailService = smtpMailService;
         this.tokenProvider = tokenProvider;
         this.authenticationManager = authenticationManager;
-        this.mailUsername = mailUsername;
-        this.mailPassword = mailPassword;
     }
 
     // In-memory challenges are temporary; production multi-instance deployments should use shared Redis storage.
@@ -122,10 +114,11 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(username, password)
         );
 
-        String jwt = tokenProvider.generateToken(authentication);
         User user = userRepository.findByUsername(username)
                 .or(() -> userRepository.findByEmailIgnoreCase(username))
                 .orElseThrow();
+        String jwt = tokenProvider.generateToken(authentication,
+                user.getAuthTokenVersion() == null ? 0 : user.getAuthTokenVersion());
 
         return AuthResponse.builder()
                 .accessToken(jwt)
@@ -155,10 +148,12 @@ public class AuthServiceImpl implements AuthService {
                 || newPassword.getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new IllegalArgumentException("Mật khẩu cần từ 8 ký tự và tối đa 72 byte.");
         }
-        User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElseThrow(this::invalidOtpException);
+        User identifiedUser = userRepository.findByEmailIgnoreCase(normalizedEmail).orElseThrow(this::invalidOtpException);
         verifyAndConsumeOtp(normalizedEmail, otp, "forgot-password");
 
+        User user = userRepository.findByIdForUpdate(identifiedUser.getId()).orElseThrow(this::invalidOtpException);
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setAuthTokenVersion((user.getAuthTokenVersion() == null ? 0 : user.getAuthTokenVersion()) + 1);
         userRepository.save(user);
         return "Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại.";
     }
@@ -173,13 +168,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout() {
+    @Transactional
+    public void logout(String username) {
+        User identifiedUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản."));
+        User user = userRepository.findByIdForUpdate(identifiedUser.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản."));
+        user.setAuthTokenVersion((user.getAuthTokenVersion() == null ? 0 : user.getAuthTokenVersion()) + 1);
+        userRepository.save(user);
     }
 
     private void sendOtpChallenge(String email, String type) {
-        if (mailUsername == null || mailUsername.isBlank() || mailPassword == null || mailPassword.isBlank()) {
-            throw new IllegalStateException("Chưa cấu hình Gmail SMTP. Vui lòng thêm MAIL_USERNAME và MAIL_PASSWORD (Google App Password).");
-        }
         Instant now = Instant.now();
         pruneOtpEntries(now);
         AtomicBoolean allowed = new AtomicBoolean(false);
@@ -248,16 +247,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void sendOtpEmail(String to, String otp) {
-        if (mailUsername == null || mailUsername.isBlank() || mailPassword == null || mailPassword.isBlank()) {
-            throw new IllegalStateException("Chưa cấu hình Gmail SMTP. Vui lòng thêm MAIL_USERNAME và MAIL_PASSWORD (Google App Password).");
-        }
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailUsername.trim());
-        message.setTo(to);
-        message.setSubject("Techtra Beauty | Mã đặt lại mật khẩu");
-        message.setText("Xin chào,\n\nMã xác minh đặt lại mật khẩu của bạn là: " + otp
+        smtpMailService.send(to, "Techtra Beauty | Mã xác minh tài khoản",
+                "Xin chào,\n\nMã xác minh của bạn là: " + otp
                 + "\n\nMã có hiệu lực trong 5 phút và chỉ sử dụng một lần. Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.\n\nTechtra Beauty");
-        mailSender.send(message);
     }
 
     private record OtpChallenge(String code, String type, Instant expiresAt, int failedAttempts) { }

@@ -112,30 +112,27 @@ Script hỏi xác nhận vì sẽ thay thế database `shop_chain_db` trên máy
 
 ---
 
-## ⚙️ Cấu hình tùy chọn
+## ⚙️ Cấu hình tích hợp
 
-Nếu cần dùng các tính năng tích hợp bên ngoài, mở file `src/main/resources/application.properties` và điền thông tin:
+Không ghi khóa bí mật vào `application.properties`, Git, HTML hoặc JavaScript. Khi chạy IntelliJ, thêm giá trị vào **Run > Edit Configurations > Environment variables**; với Docker/hosting, dùng secrets/environment variables của môi trường.
 
-```properties
-# Upload ảnh sản phẩm (Cloudinary)
-cloudinary.cloud-name=YOUR_CLOUD_NAME
-cloudinary.api-key=YOUR_API_KEY
-cloudinary.api-secret=YOUR_API_SECRET
+| Biến | Dùng cho | Bắt buộc khi |
+|---|---|---|
+| `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` | PostgreSQL | Luôn luôn |
+| `JWT_SECRET` | Ký JWT ổn định; tối thiểu 32 byte | Môi trường dùng lâu dài/production |
+| `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` | Tạo admin lần đầu (mật khẩu tối thiểu 12 ký tự) | Chỉ lần khởi tạo khi chưa có tài khoản đó |
+| `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | VNPay | Khi bật thanh toán VNPay |
+| `VNPAY_URL`, `VNPAY_RETURN_URL` | Cổng thanh toán và trang kết quả quay về | Có thể để mặc định sandbox/local khi phát triển |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | Gửi OTP qua SMTP/Gmail App Password | Khi đăng ký hoặc đặt lại mật khẩu cần OTP |
+| `GEMINI_API_KEY` | Chat và embedding Gemini | Khi bật chatbot RAG |
+| `QDRANT_HOST`, `QDRANT_GRPC_PORT`, `QDRANT_API_KEY`, `QDRANT_USE_TLS` | Vector store Qdrant | Khi bật chatbot RAG |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Lưu ảnh Cloudinary | Khi dùng upload ảnh |
 
-# Thanh toán VNPay
-vnpay.tmn_code=YOUR_TMN_CODE
-vnpay.hash_secret=YOUR_HASH_SECRET
+VNPay và SMTP hỗ trợ cấu hình trong DB tại **Cài đặt hệ thống**. Quy tắc ưu tiên cho từng trường là **giá trị DB không trống > biến môi trường > mặc định không bí mật**. VNPay tạo URL và kiểm tra callback dùng cùng một cấu hình hiệu lực. SMTP tạo sender theo cấu hình hiệu lực cho từng OTP; thay đổi ở trang admin có hiệu lực ở lần gửi tiếp theo. Thay đổi biến môi trường cần khởi động lại ứng dụng. Secret được lưu trống khi lưu form sẽ giữ nguyên giá trị cũ; trang không trả secret về trình duyệt.
 
-# Gửi Email OTP (Gmail / SMTP)
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=your-email@gmail.com
-spring.mail.password=your-app-password
-```
+Trong bảng điều khiển merchant VNPay, cấu hình IPN URL thành `https://<domain>/api/payment/vnpay-ipn` (HTTPS bắt buộc khi public). Return URL chỉ hiển thị kết quả cho khách; IPN server-to-server mới cập nhật thanh toán nếu khách đóng trình duyệt hoặc không quay về. Bản tích hợp chưa có truy vấn giao dịch/hoàn tiền tự động; giao dịch không thể cập nhật sẽ được VNPAY thử gửi lại và cần đối soát nếu vẫn lỗi. Xem [tài liệu chính thức VNPay PAY](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html).
 
-> Nếu không điền, các tính năng trên sẽ không hoạt động nhưng **project vẫn chạy bình thường**.
-
-Bản đồ chi nhánh dùng Leaflet/OpenStreetMap, chatbot dùng RAG cục bộ trong PostgreSQL; không cần thẻ thanh toán hay API key. Hướng dẫn bật Ollama tùy chọn và các giới hạn dịch vụ bản đồ công cộng nằm tại [`docs/integrations-setup.md`](docs/integrations-setup.md).
+Gmail và Zalo cho thông báo đơn hàng ngoài OTP hiện **chưa được hỗ trợ**. Kênh thông báo nội bộ trên web vẫn dùng WebSocket. Chatbot hiện là **Vector RAG theo role**: PostgreSQL giữ tài liệu, Gemini tạo câu trả lời/embedding và Qdrant tìm vector; hệ thống chưa truy hồi quan hệ đồ thị nên không gọi là GraphRAG. Bản đồ dùng Leaflet/OpenStreetMap. Xem [`docs/integrations-setup.md`](docs/integrations-setup.md), [`docs/GMAIL_OTP_SETUP.md`](docs/GMAIL_OTP_SETUP.md) và [`docs/deploy-free-host.md`](docs/deploy-free-host.md).
 
 ---
 

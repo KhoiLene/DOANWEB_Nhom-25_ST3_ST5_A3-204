@@ -45,4 +45,53 @@ class PaymentControllerTest {
         verify(loyalty, times(2)).awardForPaidOrder(22L);
         verify(invoices, times(2)).issueForPaidOrder(22L);
     }
+
+    @Test
+    void validServerToServerIpnConfirmsPaymentWithoutBrowserReturn() {
+        PaymentService payment = mock(PaymentService.class);
+        OrderRepository orders = mock(OrderRepository.class);
+        InvoiceService invoices = mock(InvoiceService.class);
+        LoyaltyService loyalty = mock(LoyaltyService.class);
+        UserRepository users = mock(UserRepository.class);
+        OrderService orderService = mock(OrderService.class);
+        Order pending = Order.builder().id(22L).totalAmount(new java.math.BigDecimal("100"))
+                .paymentMethod("VNPAY").paymentStatus("UNPAID").status("PENDING").build();
+        Order paid = Order.builder().id(22L).totalAmount(new java.math.BigDecimal("100"))
+                .paymentMethod("VNPAY").paymentStatus("PAID").status("CONFIRMED").build();
+        Map<String, String> callback = Map.of("vnp_TxnRef", "22", "vnp_Amount", "10000",
+                "vnp_ResponseCode", "00", "vnp_TransactionStatus", "00");
+        when(payment.verifyVnPayPayment(callback)).thenReturn(true);
+        when(orders.findById(22L)).thenReturn(Optional.of(pending));
+        when(orderService.confirmVnPayPayment(22L)).thenReturn(paid);
+        PaymentController controller = new PaymentController(payment, orders, invoices, loyalty, users, orderService);
+
+        var response = controller.vnpayIpn(callback);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsEntry("RspCode", "00");
+        verify(orderService).confirmVnPayPayment(22L);
+        verify(loyalty).awardForPaidOrder(22L);
+        verify(invoices).issueForPaidOrder(22L);
+    }
+
+    @Test
+    void invalidSignatureAndTamperedAmountAreRejectedByIpn() {
+        PaymentService payment = mock(PaymentService.class);
+        OrderRepository orders = mock(OrderRepository.class);
+        Order pending = Order.builder().id(22L).totalAmount(new java.math.BigDecimal("100"))
+                .paymentMethod("VNPAY").paymentStatus("UNPAID").status("PENDING").build();
+        Map<String, String> callback = Map.of("vnp_TxnRef", "22", "vnp_Amount", "10000",
+                "vnp_ResponseCode", "00", "vnp_TransactionStatus", "00");
+        when(payment.verifyVnPayPayment(anyMap())).thenReturn(false, true);
+        when(orders.findById(22L)).thenReturn(Optional.of(pending));
+        PaymentController controller = new PaymentController(payment, orders, mock(InvoiceService.class),
+                mock(LoyaltyService.class), mock(UserRepository.class), mock(OrderService.class));
+
+        var invalidSignature = controller.vnpayIpn(callback);
+        var wrongAmount = controller.vnpayIpn(Map.of("vnp_TxnRef", "22", "vnp_Amount", "10001",
+                "vnp_ResponseCode", "00", "vnp_TransactionStatus", "00"));
+
+        assertThat(invalidSignature.getBody()).containsEntry("RspCode", "97");
+        assertThat(wrongAmount.getBody()).containsEntry("RspCode", "04");
+    }
 }

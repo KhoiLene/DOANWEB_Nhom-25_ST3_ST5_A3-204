@@ -29,7 +29,7 @@ Luồng Gemini đã được nối vào ứng dụng. Chat và embedding đều 
 3. Mở `/admin/assistant-knowledge`. Nguồn cũ trong PostgreSQL sẽ được đưa vào hàng chờ index sau khi ứng dụng khởi động; nút **Lập chỉ mục tất cả** sẽ tạo lại vector khi cần.
 4. Trạng thái nguồn chuyển từ `PENDING` sang `INDEXED`, `FAILED` hoặc `DISABLED`. Chat chỉ bật khi có Gemini key, Qdrant kết nối được và role có nguồn `INDEXED`.
 
-Mặc định dùng `gemini-3.1-flash-lite` cho câu trả lời, `gemini-embedding-2` với vector 768 chiều cho truy xuất, và collection `techtra_knowledge_gemini_embedding_2_768`. Có thể đổi qua `ASSISTANT_CHAT_MODEL`, `ASSISTANT_EMBEDDING_MODEL`, `ASSISTANT_EMBEDDING_DIMENSIONS`, `ASSISTANT_QDRANT_COLLECTION`, `QDRANT_HOST` và `QDRANT_GRPC_PORT`. Khi đổi embedding model hoặc dimension, dùng collection mới rồi index lại tất cả nguồn.
+Mặc định dùng `gemini-3.5-flash-lite` cho câu trả lời, `gemini-embedding-2` với vector 768 chiều cho truy xuất, và collection `techtra_knowledge_gemini_embedding_2_768`. Đây là Vector RAG: truy xuất theo độ gần embedding và lọc role, chưa dùng truy hồi quan hệ đồ thị nên chưa phải GraphRAG. Có thể đổi qua `ASSISTANT_CHAT_MODEL`, `ASSISTANT_EMBEDDING_MODEL`, `ASSISTANT_EMBEDDING_DIMENSIONS`, `ASSISTANT_QDRANT_COLLECTION`, `QDRANT_HOST` và `QDRANT_GRPC_PORT`. Khi đổi embedding model hoặc dimension, dùng collection mới rồi index lại tất cả nguồn.
 
 Nếu chưa đặt `GEMINI_API_KEY`, website vẫn khởi động nhưng chatbot hiển thị trạng thái chưa cấu hình. API key chỉ được đọc ở backend và không được log. Qdrant chỉ bind vào loopback `127.0.0.1` trong Compose.
 
@@ -46,3 +46,36 @@ Nếu chưa đặt `GEMINI_API_KEY`, website vẫn khởi động nhưng chatbot
 Spring AI 2.0.2 cung cấp abstraction vector store cho Qdrant; adapter embedding trong project gọi Gemini REST trực tiếp để hỗ trợ `gemini-embedding-2`. Chat cũng gọi Gemini REST trực tiếp. Điều này giúp không tạo đường fallback tới model khác và giữ ứng dụng chạy được khi thiếu key.
 
 Xem thêm: [Gemini Embedding 2](https://ai.google.dev/gemini-api/docs/embeddings), [Gemini API embeddings](https://ai.google.dev/api/embeddings), [Spring AI Qdrant](https://docs.spring.io/spring-ai/reference/2.1/api/vectordbs/qdrant.html), [Spring AI và Spring Boot](https://docs.spring.io/spring-ai/reference/2.1/getting-started.html), [kế hoạch và chi tiết triển khai](graph-rag-integration-plan.md).
+
+## VNPay và SMTP
+
+### Thứ tự cấu hình hiệu lực
+
+- Mỗi khóa VNPay/SMTP dùng giá trị DB không trống trước, rồi fallback sang biến môi trường tương ứng. Mặc định URL VNPay là sandbox; mã merchant/secret và thông tin gửi SMTP không có giá trị mặc định.
+- Trang **Admin > Cài đặt hệ thống** hiển thị cấu hình đang hoạt động (không hiển thị secret). Ô secret luôn để trống; gửi form với ô secret trống giữ nguyên giá trị đã lưu.
+- SMTP được dựng theo cấu hình hiệu lực cho mỗi lần gửi OTP. Giá trị DB đổi có hiệu lực ngay; đổi biến môi trường cần restart ứng dụng.
+- SMTP chỉ dùng cho OTP đăng ký và khôi phục mật khẩu. Gmail thông báo đơn hàng và Zalo OA hiện chưa được cài đặt; việc lưu credentials Zalo cũ không kích hoạt việc gửi.
+
+### VNPay server callback
+
+Thiết lập `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, tùy chọn `VNPAY_URL` và `VNPAY_RETURN_URL`. Có thể nhập mã merchant và hash secret trong trang cài đặt; giá trị DB không trống sẽ ưu tiên biến môi trường. Cùng cấu hình hiệu lực được dùng để tạo chữ ký URL thanh toán và xác minh chữ ký callback.
+
+Trong merchant portal VNPay, cấu hình IPN URL `https://<domain>/api/payment/vnpay-ipn`. Endpoint nhận GET server-to-server, kiểm tra chữ ký, mã merchant, mã đơn và số tiền; sau đó cập nhật đơn, điểm và biên nhận theo luồng idempotent. Trang `/api/payment/vnpay-return` hiển thị kết quả cho trình duyệt và vẫn xử lý callback hợp lệ như một đường dự phòng. Nếu khách không quay về, IPN cập nhật giao dịch. Giao dịch đến sau khi đơn đã hết hạn/không thể xác nhận sẽ được trả lỗi xử lý để VNPay thử lại; project chưa có truy vấn trạng thái hoặc hoàn tiền tự động, nên cần đối soát thủ công nếu retry vẫn thất bại.
+
+Mã phản hồi IPN dùng định nghĩa PAY của VNPay: `00` xử lý thành công, `02` đã xác nhận, `01` không tìm thấy đơn, `04` sai số tiền, `97` sai chữ ký và `99` lỗi xử lý/đối soát. Tham khảo [tài liệu tích hợp PAY chính thức](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html), nơi mô tả riêng Return URL cho trình duyệt và IPN URL để merchant cập nhật trạng thái từ server.
+
+### Bật môi trường local
+
+Thêm vào IntelliJ Run Configuration hoặc PowerShell, không commit giá trị thật:
+
+```powershell
+$env:VNPAY_TMN_CODE = "YOUR_TMN_CODE"
+$env:VNPAY_HASH_SECRET = "YOUR_HASH_SECRET"
+$env:VNPAY_RETURN_URL = "http://localhost:8080/api/payment/vnpay-return"
+$env:MAIL_HOST = "smtp.gmail.com"
+$env:MAIL_PORT = "587"
+$env:MAIL_USERNAME = "your-address@gmail.com"
+$env:MAIL_PASSWORD = "your-google-app-password"
+```
+
+Chỉ chạy kiểm thử dùng mock/stub; không gửi email hoặc thanh toán thật. Việc IPN public cần domain HTTPS và cấu hình URL trong merchant portal; chưa xác minh đầu cuối nếu không có merchant sandbox credentials và endpoint public.

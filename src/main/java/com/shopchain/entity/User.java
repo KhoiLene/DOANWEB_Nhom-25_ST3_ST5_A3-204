@@ -32,6 +32,10 @@ public class User {
     @Column(name = "is_active")
     private boolean enabled = false;
 
+    @Builder.Default
+    @Column(name = "auth_token_version", nullable = false)
+    private Integer authTokenVersion = 0;
+
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;

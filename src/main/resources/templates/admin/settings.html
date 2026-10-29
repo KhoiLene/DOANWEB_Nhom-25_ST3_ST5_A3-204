@@ -10,6 +10,10 @@
                 <h4 style="margin-bottom: 15px; color: var(--admin-accent); border-bottom: 2px solid var(--admin-accent); display: inline-block;">
                     <i class="fa-solid fa-envelope"></i> Cấu hình Gmail SMTP
                 </h4>
+                <p style="margin: 0 0 15px; color: var(--admin-muted);">
+                    OTP dùng cấu hình đang hiệu lực bên dưới. Giá trị DB được ưu tiên; nếu DB để trống, ứng dụng dùng biến môi trường. Thay đổi trong trang này có hiệu lực ở lần gửi tiếp theo; thay đổi biến môi trường cần khởi động lại ứng dụng.
+                    Hiện dùng <strong th:text="${smtpStatus.host() + ':' + smtpStatus.port() + ' / ' + smtpStatus.username()}">SMTP</strong>, nguồn: <strong th:text="${smtpStatus.source()}">Cấu hình</strong>.
+                </p>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
                     <div class="form-group">
                         <label class="form-label">SMTP Host</label>
@@ -26,30 +30,24 @@
                     <div class="form-group">
                         <label class="form-label">Mật khẩu ứng dụng (App Password)</label>
                         <input type="password" name="smtp.pass" class="form-control" autocomplete="new-password" placeholder="Để trống nếu không đổi">
-                        <small th:text="${smtpPasswordConfigured ? 'Đã lưu mật khẩu SMTP.' : 'Chưa cấu hình mật khẩu SMTP.'}">Trạng thái SMTP</small>
+                        <small th:text="${smtpPasswordConfigured ? 'SMTP đang có đủ thông tin gửi OTP. Mật khẩu không được hiển thị.' : 'SMTP chưa đủ thông tin gửi OTP.'}">Trạng thái SMTP</small>
                     </div>
                 </div>
 
-                <!-- Zalo Section -->
                 <h4 style="margin-bottom: 15px; color: var(--admin-accent); border-bottom: 2px solid var(--admin-accent); display: inline-block;">
-                    <i class="fa-brands fa-zalo"></i> Cấu hình Zalo OA
+                    <i class="fa-brands fa-zalo"></i> Thông báo ngoài hệ thống
                 </h4>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
-                    <div class="form-group">
-                        <label class="form-label">Zalo Access Token</label>
-                        <input type="password" name="zalo.accessToken" class="form-control" autocomplete="new-password" placeholder="Để trống nếu không đổi">
-                        <small th:text="${zaloTokenConfigured ? 'Đã lưu Zalo Access Token.' : 'Chưa cấu hình Zalo Access Token.'}">Trạng thái Zalo</small>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Zalo App ID</label>
-                        <input type="text" name="zalo.appId" th:value="${settings['zalo.appId']}" class="form-control">
-                    </div>
-                </div>
+                <p style="margin: 0 0 30px; color: var(--admin-muted);">Gửi thông báo Gmail ngoài luồng OTP và gửi Zalo OA hiện chưa được hỗ trợ. Lưu thông tin cũ không làm phát sinh gửi tin.</p>
 
                 <!-- VNPay Section -->
                 <h4 style="margin-bottom: 15px; color: var(--admin-accent); border-bottom: 2px solid var(--admin-accent); display: inline-block;">
                     <i class="fa-solid fa-credit-card"></i> Cấu hình VNPay
                 </h4>
+                <p style="margin: 0 0 15px; color: var(--admin-muted);">
+                    DB được ưu tiên cho mã merchant và secret; nếu DB để trống sẽ dùng <code>VNPAY_TMN_CODE</code> / <code>VNPAY_HASH_SECRET</code>. Đổi cấu hình DB có hiệu lực ngay; đổi biến môi trường cần khởi động lại.
+                    Đang dùng merchant <strong th:text="${vnPayStatus.tmnCode()}">chưa cấu hình</strong> tại <strong th:text="${vnPayStatus.url()}">URL</strong>; nguồn: <strong th:text="${vnPayStatus.source()}">Cấu hình</strong>. Secret không được hiển thị.
+                    IPN server-to-server: <code>/api/payment/vnpay-ipn</code>. Secret không được hiển thị.
+                </p>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
                     <div class="form-group">
                         <label class="form-label">vnp_TmnCode</label>

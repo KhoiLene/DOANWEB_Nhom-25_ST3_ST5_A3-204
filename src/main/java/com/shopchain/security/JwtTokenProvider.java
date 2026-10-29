@@ -37,9 +37,14 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(Authentication authentication) {
+        return generateToken(authentication, 0);
+    }
+
+    public String generateToken(Authentication authentication, int tokenVersion) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
         return Jwts.builder()
                 .setSubject(userPrincipal.getUsername())
+                .claim("tokenVersion", tokenVersion)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(key)
@@ -60,6 +65,17 @@ public class JwtTokenProvider {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(authToken);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public boolean isTokenVersionCurrent(String authToken, Integer currentVersion) {
+        try {
+            Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(authToken).getBody();
+            int tokenVersion = claims.get("tokenVersion", Integer.class) == null ? 0
+                    : claims.get("tokenVersion", Integer.class);
+            return tokenVersion == (currentVersion == null ? 0 : currentVersion);
+        } catch (JwtException | IllegalArgumentException exception) {
             return false;
         }
     }

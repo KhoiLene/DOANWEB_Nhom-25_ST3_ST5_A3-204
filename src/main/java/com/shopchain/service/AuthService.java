@@ -10,7 +10,7 @@ public interface AuthService {
     AuthResponse login(String username, String password);
     String forgotPassword(String email);
     String resetPassword(String email, String otp, String newPassword);
-    void logout();
+    void logout(String username);
 
     // Thêm phương thức gửi OTP độc lập cho JS
     String sendRegistrationOtp(String email);
