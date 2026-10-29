@@ -6,6 +6,7 @@ import com.shopchain.repository.*;
 import com.shopchain.service.OrderService;
 import com.shopchain.service.NotificationService;
 import com.shopchain.service.LoyaltyService;
+import com.shopchain.service.OrderPricingService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -14,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -28,6 +29,8 @@ public class OrderServiceImpl implements OrderService {
     private final NotificationService notificationService;
     private final WarehouseRepository warehouseRepository;
     private final LoyaltyService loyaltyService;
+    private final ProductRepository productRepository;
+    private final OrderPricingService pricingService;
     @Value("${shipping.store-fulfillment-radius-km:50}")
     private double storeFulfillmentRadiusKm;
 
@@ -35,7 +38,8 @@ public class OrderServiceImpl implements OrderService {
                             UserRepository userRepository, StoreRepository storeRepository,
                             ProductInventoryRepository inventoryRepository, InventoryMovementRepository movementRepository,
                             NotificationService notificationService,
-                            WarehouseRepository warehouseRepository, LoyaltyService loyaltyService) {
+                            WarehouseRepository warehouseRepository, LoyaltyService loyaltyService,
+                            ProductRepository productRepository, OrderPricingService pricingService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
@@ -45,6 +49,8 @@ public class OrderServiceImpl implements OrderService {
         this.notificationService = notificationService;
         this.warehouseRepository = warehouseRepository;
         this.loyaltyService = loyaltyService;
+        this.productRepository = productRepository;
+        this.pricingService = pricingService;
     }
 
     @Override
@@ -53,13 +59,15 @@ public class OrderServiceImpl implements OrderService {
                                   String deliveryCity, String fulfillmentType, String paymentMethod,
                                   Double deliveryLatitude, Double deliveryLongitude) {
         User user = userRepository.findById(userId).orElseThrow();
-        Store store = storeRepository.findById(storeId).orElseThrow();
-        if (!store.isActive() || !store.isPickupEnabled()) throw new IllegalArgumentException("Chi nhánh này không nhận đơn.");
+        Store store = storeRepository.findForUpdateById(storeId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chi nhánh."));
+        if (!store.isActive()) throw new IllegalArgumentException("Chi nhánh này hiện không hoạt động.");
         Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new IllegalArgumentException("Giỏ hàng đang trống."));
         if (cart.getItems().isEmpty()) throw new IllegalArgumentException("Giỏ hàng đang trống.");
         boolean pickup = "PICKUP".equals(fulfillmentType);
         if (!pickup && !"DELIVERY".equals(fulfillmentType)) throw new IllegalArgumentException("Vui lòng chọn cách nhận hàng.");
-        if (!List.of("COD", "vnpay", "VNPAY").contains(paymentMethod)) throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
+        if (pickup && !store.isPickupEnabled()) throw new IllegalArgumentException("Chi nhánh này không nhận đơn lấy tại cửa hàng.");
+        if (paymentMethod == null || !("COD".equalsIgnoreCase(paymentMethod) || "VNPAY".equalsIgnoreCase(paymentMethod)))
+            throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
         boolean otherCity = deliveryCity != null && store.getCity() != null
                 && !normalize(deliveryCity).equals(normalize(store.getCity()));
         boolean outsideStoreRadius = hasValidCoordinates(deliveryLatitude, deliveryLongitude)
@@ -67,47 +75,69 @@ public class OrderServiceImpl implements OrderService {
                 && distanceKm(deliveryLatitude, deliveryLongitude, store.getLatitude(), store.getLongitude()) > storeFulfillmentRadiusKm;
         boolean remote = !pickup && (otherCity || outsideStoreRadius);
         Warehouse warehouse = null;
-        if (remote) warehouse = chooseWarehouse(deliveryLatitude, deliveryLongitude)
-                .orElseThrow(() -> new IllegalArgumentException("Đơn giao xa cần có kho đang hoạt động. Vui lòng liên hệ cửa hàng."));
+        if (remote) {
+            Warehouse candidate = chooseWarehouse(deliveryLatitude, deliveryLongitude)
+                    .orElseThrow(() -> new IllegalArgumentException("Đơn giao xa cần có kho đang hoạt động. Vui lòng liên hệ cửa hàng."));
+            warehouse = warehouseRepository.findForUpdateById(candidate.getId())
+                    .filter(Warehouse::isActive)
+                    .orElseThrow(() -> new IllegalArgumentException("Kho xử lý đơn hiện không hoạt động."));
+        }
+
+        List<CartItem> orderedItems = cart.getItems().stream()
+                .sorted(java.util.Comparator.comparing(entry -> entry.getProduct().getId())).toList();
+        List<Product> lockedProducts = new java.util.ArrayList<>();
+        for (CartItem item : orderedItems) {
+            Product product = productRepository.findForUpdateById(item.getProduct().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không còn tồn tại."));
+            if (Boolean.FALSE.equals(product.getIsActive()))
+                throw new IllegalArgumentException("Sản phẩm " + product.getName() + " hiện không còn được phép bán.");
+            lockedProducts.add(product);
+        }
+        List<CartItem> currentItems = new java.util.ArrayList<>();
+        for (int i = 0; i < orderedItems.size(); i++) {
+            currentItems.add(CartItem.builder().product(lockedProducts.get(i)).quantity(orderedItems.get(i).getQuantity()).build());
+        }
+        OrderPricingService.Quote quote = pricingService.quote(currentItems, user.getLoyaltyPoints(), pickup ? "PICKUP" : "DELIVERY");
 
         Order order = Order.builder().user(user).store(store).orderDate(java.time.LocalDateTime.now())
                 .status("PENDING").paymentMethod(paymentMethod).paymentStatus("UNPAID")
                 .customerName(name.trim()).customerPhone(phone.trim()).deliveryAddress(address == null ? "" : address.trim())
                 .deliveryCity(deliveryCity == null ? "" : deliveryCity.trim())
                 .fulfillmentType(pickup ? "PICKUP" : (remote ? "WAREHOUSE_SHIP" : "STORE_SHIP"))
-                .fulfillmentWarehouse(warehouse).totalAmount(0d).build();
+                .fulfillmentWarehouse(warehouse).totalAmount(quote.total())
+                .subtotalAmount(quote.subtotal()).discountAmount(quote.discount()).shippingAmount(quote.shipping())
+                .paymentExpiresAt("VNPAY".equalsIgnoreCase(paymentMethod) ? LocalDateTime.now().plusMinutes(15) : null).build();
         // Initialize explicitly even when Lombok builder defaults differ between build outputs.
         order.setOrderItems(new java.util.ArrayList<>());
-        double total = 0;
         List<InventoryMovement> movements = new java.util.ArrayList<>();
-        for (CartItem item : cart.getItems().stream()
-                .sorted(java.util.Comparator.comparing(entry -> entry.getProduct().getId())).toList()) {
+        for (int i = 0; i < orderedItems.size(); i++) {
+            CartItem item = orderedItems.get(i);
+            Product product = lockedProducts.get(i);
             ProductInventory inventory = warehouse == null
-                    ? inventoryRepository.findForUpdateByProductIdAndStoreId(item.getProduct().getId(), storeId)
-                        .orElseThrow(() -> new IllegalArgumentException("Sản phẩm " + item.getProduct().getName() + " chưa có tại chi nhánh."))
-                    : inventoryRepository.findForUpdateByProductIdAndWarehouseId(item.getProduct().getId(), warehouse.getId())
-                        .orElseThrow(() -> new IllegalArgumentException("Sản phẩm " + item.getProduct().getName() + " chưa có tại kho."));
+                    ? inventoryRepository.findForUpdateByProductIdAndStoreId(product.getId(), storeId)
+                        .orElseThrow(() -> new IllegalArgumentException("Sản phẩm " + product.getName() + " chưa có tại chi nhánh."))
+                    : inventoryRepository.findForUpdateByProductIdAndWarehouseId(product.getId(), warehouse.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Sản phẩm " + product.getName() + " chưa có tại kho."));
             if (inventory.availableQuantity() < item.getQuantity())
-                throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm " + item.getProduct().getName());
+                throw new IllegalArgumentException("Tồn kho không đủ cho sản phẩm " + product.getName());
             inventory.setStockQuantity(inventory.getStockQuantity() - item.getQuantity());
             inventoryRepository.save(inventory);
             InventoryMovement.InventoryMovementBuilder movement = InventoryMovement.builder()
-                    .product(item.getProduct()).performedBy(user).movementType("ONLINE_SALE")
+                    .product(product).performedBy(user).movementType("ONLINE_SALE")
                     .quantity(item.getQuantity());
             if (warehouse == null) movement.store(store);
             else movement.warehouse(warehouse);
             movements.add(movement.build());
-            double unitPrice = item.getProduct().effectivePrice(inventory.getPrice(), user.getLoyaltyPoints());
-            total += unitPrice * item.getQuantity();
-            order.getOrderItems().add(OrderItem.builder().order(order).product(item.getProduct())
-                    .quantity(item.getQuantity()).price(unitPrice).build());
+            java.math.BigDecimal unitPrice = pricingService.saleUnitPrice(product, user.getLoyaltyPoints());
+            order.getOrderItems().add(OrderItem.builder().order(order).product(product)
+                    .quantity(item.getQuantity()).price(unitPrice)
+                    .listUnitPrice(pricingService.listUnitPrice(product)).build());
         }
-        order.setTotalAmount(total);
         Order saved = orderRepository.save(order);
         movements.forEach(movement -> movement.setNote("Đơn trực tuyến #" + saved.getId()));
         movementRepository.saveAll(movements);
         notificationService.sendNotificationToStore(storeId, NotificationRequest.builder()
-                .message("Đơn trực tuyến #" + saved.getId() + " mới được tạo")
+                .message("Đơn trực tuyến #" + saved.getId() + ("VNPAY".equalsIgnoreCase(paymentMethod) ? " đang chờ thanh toán" : " mới được tạo"))
                 .type("ORDER_NEW").orderId(saved.getId()).build());
         cart.getItems().clear();
         cartRepository.save(cart);
@@ -147,108 +177,128 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Order placeOrder(Long userId, Long storeId, Long addressId, String paymentMethod) {
         User user = userRepository.findById(userId).orElseThrow();
-        Store store = storeRepository.findById(storeId).orElseThrow();
-        Cart cart = cartRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Cart is empty"));
-
-        List<CartItem> orderedItems = cart.getItems().stream()
-                .sorted(java.util.Comparator.comparing(entry -> entry.getProduct().getId())).toList();
-        java.util.Map<Long, ProductInventory> lockedInventory = new java.util.LinkedHashMap<>();
-        for (CartItem item : orderedItems) {
-            ProductInventory inv = inventoryRepository.findForUpdateByProductIdAndStoreId(item.getProduct().getId(), storeId)
-                    .orElseThrow(() -> new RuntimeException("Product " + item.getProduct().getName() + " not available in this store"));
-            if (inv.availableQuantity() < item.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + item.getProduct().getName());
-            }
-            lockedInventory.put(item.getProduct().getId(), inv);
-        }
-
-        double total = 0;
-        List<InventoryMovement> movements = new java.util.ArrayList<>();
-        Order order = Order.builder()
-                .user(user)
-                .store(store)
-                .status("PENDING")
-                .paymentMethod(paymentMethod)
-                .paymentStatus("UNPAID")
-                .build();
-
-        for (CartItem item : orderedItems) {
-            ProductInventory inv = lockedInventory.get(item.getProduct().getId());
-
-            double unitPrice = item.getProduct().effectivePrice(inv.getPrice(), user.getLoyaltyPoints());
-            OrderItem orderItem = OrderItem.builder()
-                    .order(order)
-                    .product(item.getProduct())
-                    .quantity(item.getQuantity())
-                    .price(unitPrice)
-                    .build();
-
-            order.getOrderItems().add(orderItem);
-
-            total += unitPrice * item.getQuantity();
-            inv.setStockQuantity(inv.getStockQuantity() - item.getQuantity());
-            inventoryRepository.save(inv);
-            movements.add(InventoryMovement.builder().product(item.getProduct()).store(store)
-                    .performedBy(user).movementType("ONLINE_SALE").quantity(item.getQuantity()).build());
-            // Note: orderItem saving logic would normally be handled by JPA cascade
-        }
-
-        order.setTotalAmount(total);
-        Order savedOrder = orderRepository.save(order);
-        movements.forEach(movement -> movement.setNote("Đơn trực tuyến #" + savedOrder.getId()));
-        movementRepository.saveAll(movements);
-
-        // --- INTEGRATE WEBSOCKET NOTIFICATION ---
-        notificationService.sendNotificationToStore(storeId, NotificationRequest.builder()
-                .message("New Order #" + savedOrder.getId() + " received!")
-                .type("ORDER_NEW")
-                .orderId(savedOrder.getId())
-                .build());
-
-        cart.getItems().clear();
-        cartRepository.save(cart);
-
-        return savedOrder;
+        Store store = storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chi nhánh."));
+        return placeOnlineOrder(userId, storeId, user.getFullName(), user.getPhone(), "", store.getCity(),
+                "DELIVERY", paymentMethod, null, null);
     }
 
     @Override
     @Transactional
     public Order updateOrderStatus(Long orderId, String status) {
-        Order order = orderRepository.findById(orderId).orElseThrow();
-        if ("CANCELLED".equals(status) && !"CANCELLED".equals(order.getStatus())) {
-            for (OrderItem item : order.getOrderItems()) {
-                ProductInventory inventory = order.getFulfillmentWarehouse() == null
-                        ? inventoryRepository.findForUpdateByProductIdAndStoreId(item.getProduct().getId(), order.getStore().getId()).orElse(null)
-                        : inventoryRepository.findForUpdateByProductIdAndWarehouseId(item.getProduct().getId(), order.getFulfillmentWarehouse().getId()).orElse(null);
-                if (inventory != null) {
-                    inventory.setStockQuantity(inventory.getStockQuantity() + item.getQuantity());
-                    inventoryRepository.save(inventory);
-                    InventoryMovement.InventoryMovementBuilder movement = InventoryMovement.builder()
-                            .product(item.getProduct())
-                            .movementType("ORDER_CANCEL_RETURN").quantity(item.getQuantity())
-                            .note("Hoàn tồn đơn #" + order.getId());
-                    if (order.getFulfillmentWarehouse() == null) movement.store(order.getStore());
-                    else movement.warehouse(order.getFulfillmentWarehouse());
-                    movementRepository.save(movement.build());
-                }
-            }
+        Order order = orderRepository.findByIdForUpdate(orderId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng."));
+        String target = status == null ? "" : status.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("CANCELLED".equals(target) && "PAID".equalsIgnoreCase(order.getPaymentStatus())) {
+            throw new IllegalStateException("Đơn đã thanh toán không thể hủy khi chưa xử lý hoàn tiền.");
         }
-        order.setStatus(status);
-        if ("DELIVERED".equals(status) && "COD".equalsIgnoreCase(order.getPaymentMethod())) {
-            order.setPaymentStatus("PAID");
+        if (!OrderStatus.canTransition(order, target)) {
+            throw new IllegalStateException("Không thể chuyển đơn từ " + order.getStatus() + " sang " + target + ".");
         }
+        if ("CANCELLED".equals(target)) {
+            releaseOrderStock(order, "ORDER_CANCEL_RETURN", "Hoàn tồn đơn hủy #" + order.getId());
+            if ("VNPAY".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("CANCELLED");
+        }
+        order.setStatus(target);
+        if ("DELIVERED".equals(target) && "COD".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("PAID");
         Order savedOrder = orderRepository.save(order);
-        if ("CANCELLED".equals(status)) loyaltyService.revokeForCancelledOrder(savedOrder.getId());
-        else loyaltyService.awardForPaidOrder(savedOrder.getId());
-
-        // Thông báo cho User khi đơn hàng thay đổi trạng thái
-        notificationService.sendNotificationToUser(order.getUser().getId(), NotificationRequest.builder()
-                .message("Order #" + orderId + " status updated to: " + status)
-                .type("ORDER_STATUS_UPDATE")
-                .orderId(orderId)
-                .build());
-
+        if ("PAID".equalsIgnoreCase(savedOrder.getPaymentStatus())) loyaltyService.awardForPaidOrder(savedOrder.getId());
+        notificationService.sendNotificationToUser(savedOrder.getUser().getId(), NotificationRequest.builder()
+                .message("Đơn hàng #" + orderId + " đã chuyển sang " + target)
+                .type("ORDER_STATUS_UPDATE").orderId(orderId).build());
         return savedOrder;
+    }
+
+    @Override
+    @Transactional
+    public Order prepareVnPayPayment(Long orderId) {
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng."));
+        if (!"VNPAY".equalsIgnoreCase(order.getPaymentMethod()) || !"PENDING".equalsIgnoreCase(order.getStatus())
+                || !"UNPAID".equalsIgnoreCase(order.getPaymentStatus())) {
+            throw new IllegalStateException("Đơn hàng không còn ở trạng thái chờ thanh toán.");
+        }
+        if (order.getPaymentExpiresAt() == null) {
+            LocalDateTime orderExpiry = order.getOrderDate() == null
+                    ? LocalDateTime.now() : order.getOrderDate().plusMinutes(15);
+            order.setPaymentExpiresAt(orderExpiry);
+        }
+        if (!order.getPaymentExpiresAt().isAfter(LocalDateTime.now())) {
+            expireLockedOrder(order, LocalDateTime.now());
+            return order;
+        }
+        return orderRepository.save(order);
+    }
+
+    @Override
+    @Transactional
+    public Order confirmVnPayPayment(Long orderId) {
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng."));
+        if ("PAID".equalsIgnoreCase(order.getPaymentStatus())) {
+            if ("CANCELLED".equalsIgnoreCase(order.getStatus()) || "RETURNED".equalsIgnoreCase(order.getStatus()))
+                throw new IllegalStateException("Đơn thanh toán đã kết thúc ở trạng thái không thể xử lý.");
+            return order;
+        }
+        if (!"VNPAY".equalsIgnoreCase(order.getPaymentMethod()) || !"PENDING".equalsIgnoreCase(order.getStatus())
+                || !"UNPAID".equalsIgnoreCase(order.getPaymentStatus())) {
+            throw new IllegalStateException("Đơn hàng không còn ở trạng thái chờ thanh toán.");
+        }
+        if (order.getPaymentExpiresAt() == null || !order.getPaymentExpiresAt().isAfter(LocalDateTime.now())) {
+            expireLockedOrder(order, LocalDateTime.now());
+            return order;
+        }
+        order.setPaymentStatus("PAID");
+        order.setStatus("CONFIRMED");
+        return orderRepository.save(order);
+    }
+
+    @Override
+    @Transactional
+    public boolean expireUnpaidVnPayOrder(Long orderId, LocalDateTime now) {
+        Order order = orderRepository.findByIdForUpdate(orderId).orElse(null);
+        if (order == null || !isExpirableVnPay(order) || order.getPaymentExpiresAt().isAfter(now)) return false;
+        expireLockedOrder(order, now);
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> allowedStatusTargets(Order order) {
+        return OrderStatus.allowedTargets(order);
+    }
+
+    private boolean isExpirableVnPay(Order order) {
+        return "PENDING".equalsIgnoreCase(order.getStatus())
+                && "VNPAY".equalsIgnoreCase(order.getPaymentMethod())
+                && "UNPAID".equalsIgnoreCase(order.getPaymentStatus())
+                && order.getPaymentExpiresAt() != null;
+    }
+
+    private void expireLockedOrder(Order order, LocalDateTime now) {
+        if (!isExpirableVnPay(order) || order.getPaymentExpiresAt().isAfter(now)) return;
+        releaseOrderStock(order, "ORDER_PAYMENT_EXPIRED_RETURN", "Hoàn tồn đơn VNPay hết hạn #" + order.getId());
+        order.setStatus("CANCELLED");
+        order.setPaymentStatus("EXPIRED");
+        orderRepository.save(order);
+    }
+
+    private void releaseOrderStock(Order order, String movementType, String note) {
+        List<InventoryMovement> movements = new java.util.ArrayList<>();
+        for (OrderItem item : order.getOrderItems().stream()
+                .sorted(java.util.Comparator.comparing(line -> line.getProduct().getId())).toList()) {
+            ProductInventory inventory = order.getFulfillmentWarehouse() == null
+                    ? inventoryRepository.findForUpdateByProductIdAndStoreId(item.getProduct().getId(), order.getStore().getId())
+                        .orElseThrow(() -> new IllegalStateException("Thiếu tồn chi nhánh để hoàn đơn #" + order.getId()))
+                    : inventoryRepository.findForUpdateByProductIdAndWarehouseId(item.getProduct().getId(), order.getFulfillmentWarehouse().getId())
+                        .orElseThrow(() -> new IllegalStateException("Thiếu tồn kho để hoàn đơn #" + order.getId()));
+            inventory.setStockQuantity(inventory.getStockQuantity() + item.getQuantity());
+            inventoryRepository.save(inventory);
+            InventoryMovement.InventoryMovementBuilder movement = InventoryMovement.builder()
+                    .product(item.getProduct()).movementType(movementType).quantity(item.getQuantity()).note(note);
+            if (order.getFulfillmentWarehouse() == null) movement.store(order.getStore());
+            else movement.warehouse(order.getFulfillmentWarehouse());
+            movements.add(movement.build());
+        }
+        movementRepository.saveAll(movements);
     }
 
     @Override

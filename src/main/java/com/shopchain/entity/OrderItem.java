@@ -2,6 +2,7 @@ package com.shopchain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "order_items")
@@ -26,5 +27,8 @@ public class OrderItem {
     private Integer quantity;
 
     @Column(nullable = false)
-    private Double price; // Price at checkout time.
+    private BigDecimal price; // Final unit price captured at checkout.
+
+    @Column(name = "list_unit_price")
+    private BigDecimal listUnitPrice;
 }

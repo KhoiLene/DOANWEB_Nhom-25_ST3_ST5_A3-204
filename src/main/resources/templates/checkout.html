@@ -103,7 +103,7 @@
                   <small id="locationMessage"></small>
                   <small>Chọn vị trí hoặc thành phố để gợi ý tối đa 5 chi nhánh gần nhất. Địa chỉ chỉ gửi tới OpenStreetMap khi bạn yêu cầu tìm.</small>
                 </div>
-                <div class="field field--full"><label>Cách nhận hàng</label><label><input type="radio" name="fulfillmentType" value="DELIVERY" checked> Giao đến địa chỉ</label> <label><input type="radio" name="fulfillmentType" value="PICKUP"> Nhận tại chi nhánh</label><p class="muted">Nếu địa chỉ giao khác tỉnh/thành phố chi nhánh, hệ thống sẽ chuyển xử lý tồn kho qua kho trung tâm.</p></div>
+                <div class="field field--full"><label>Cách nhận hàng</label><label><input type="radio" name="fulfillmentType" value="DELIVERY" th:checked="${fulfillmentType != 'PICKUP'}"> Giao đến địa chỉ</label> <label><input type="radio" name="fulfillmentType" value="PICKUP" th:checked="${fulfillmentType == 'PICKUP'}"> Nhận tại chi nhánh</label><p class="muted">Nếu địa chỉ giao khác tỉnh/thành phố chi nhánh, hệ thống sẽ chuyển xử lý tồn kho qua kho trung tâm.</p></div>
                 <div class="form-actions">
                   <button type="button" class="btn btn-primary" id="checkoutToStep2">Tiếp tục</button>
                 </div>
@@ -157,9 +157,10 @@
                 <div class="confirm-card">
                   <h3>Tóm tắt giá</h3>
                   <div class="summary-line"><span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
-                  <div class="summary-line"><span>Vận chuyển</span><strong th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
-                  <div class="summary-line"><span>Điểm dự kiến sau thanh toán</span><strong th:text="${#numbers.formatInteger(subtotal / 10000, 1)} + ' điểm'">0 điểm</strong></div>
-                  <div class="summary-total"><span>Tổng cộng</span><strong th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+                  <div class="summary-line summary-line--discount" th:if="${discount > 0}"><span>Giảm giá</span><strong th:text="${'-' + #numbers.formatDecimal(discount, 0, 'COMMA', 0, 'POINT') + ' đ'}">-0 đ</strong></div>
+                  <div class="summary-line"><span>Vận chuyển</span><strong id="confirmShipping" th:attr="data-delivery-shipping=${deliveryShipping}" th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+                  <div class="summary-line"><span>Điểm dự kiến sau thanh toán</span><strong th:text="${#numbers.formatInteger(merchandiseTotal / 10000, 1)} + ' điểm'">0 điểm</strong></div>
+                  <div class="summary-total"><span>Tổng cộng</span><strong id="confirmTotal" th:attr="data-merchandise-total=${merchandiseTotal}" th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
                   <div class="summary-method"><span>Phương thức</span><strong id="sumPayment">—</strong></div>
                 </div>
               </div>
@@ -186,9 +187,10 @@
               <div class="aside-divider"></div>
 
               <div class="aside-row"><span>Tạm tính</span><strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
-              <div class="aside-row"><span>Vận chuyển</span><strong th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
-              <div class="aside-row"><span>Điểm dự kiến sau thanh toán</span><strong th:text="${#numbers.formatInteger(subtotal / 10000, 1)} + ' điểm'">0 điểm</strong></div>
-              <div class="aside-total"><span>Tổng</span><strong th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+              <div class="aside-row aside-row--discount" th:if="${discount > 0}"><span>Giảm giá</span><strong th:text="${'-' + #numbers.formatDecimal(discount, 0, 'COMMA', 0, 'POINT') + ' đ'}">-0 đ</strong></div>
+              <div class="aside-row"><span>Vận chuyển</span><strong id="asideShipping" th:attr="data-delivery-shipping=${deliveryShipping}" th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
+              <div class="aside-row"><span>Điểm dự kiến sau thanh toán</span><strong th:text="${#numbers.formatInteger(merchandiseTotal / 10000, 1)} + ' điểm'">0 điểm</strong></div>
+              <div class="aside-total"><span>Tổng</span><strong id="asideTotal" th:attr="data-merchandise-total=${merchandiseTotal}" th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong></div>
 
               <div class="aside-hint">
                 Miễn phí vận chuyển cho đơn từ 500.000đ (demo).
@@ -222,6 +224,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const deliveryCity = document.getElementById('deliveryCity');
   const storeSelect = document.getElementById('storeId');
   const pickupRadios = document.querySelectorAll('input[name="fulfillmentType"]');
+  const formatMoney = amount => new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+  function updateQuote() {
+    const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
+    const shipping = pickup ? 0 : Number(document.getElementById('asideShipping').dataset.deliveryShipping || 0);
+    const merchandise = Number(document.getElementById('asideTotal').dataset.merchandiseTotal || 0);
+    document.getElementById('asideShipping').textContent = formatMoney(shipping);
+    document.getElementById('confirmShipping').textContent = formatMoney(shipping);
+    document.getElementById('asideTotal').textContent = formatMoney(merchandise + shipping);
+    document.getElementById('confirmTotal').textContent = formatMoney(merchandise + shipping);
+  }
   let preferredStoreId = null;
   try { preferredStoreId = localStorage.getItem('preferredStoreId'); } catch (_) { }
 
@@ -237,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     deliveryCity.required = !pickup;
     deliveryCity.disabled = pickup || deliveryCountry.value !== 'VN';
     address.placeholder = pickup ? 'Không cần nhập nếu nhận tại cửa hàng' : 'VD: 12 Nguyễn Trãi';
+    updateQuote();
   }
   function validateRecipient() {
     const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';

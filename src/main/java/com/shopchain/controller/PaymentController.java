@@ -7,11 +7,11 @@ import com.shopchain.repository.UserRepository;
 import com.shopchain.service.PaymentService;
 import com.shopchain.service.InvoiceService;
 import com.shopchain.service.LoyaltyService;
+import com.shopchain.service.OrderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -28,15 +28,17 @@ public class PaymentController {
     private final InvoiceService invoiceService;
     private final LoyaltyService loyaltyService;
     private final UserRepository userRepository;
+    private final OrderService orderService;
 
     public PaymentController(PaymentService paymentService, OrderRepository orderRepository,
                              InvoiceService invoiceService, LoyaltyService loyaltyService,
-                             UserRepository userRepository) {
+                             UserRepository userRepository, OrderService orderService) {
         this.paymentService = paymentService;
         this.orderRepository = orderRepository;
         this.invoiceService = invoiceService;
         this.loyaltyService = loyaltyService;
         this.userRepository = userRepository;
+        this.orderService = orderService;
     }
 
     @GetMapping("/vnpay")
@@ -54,17 +56,17 @@ public class PaymentController {
                 return ResponseEntity.notFound().build();
             }
         }
-        if (!"VNPAY".equalsIgnoreCase(order.getPaymentMethod())
-                || "PAID".equalsIgnoreCase(order.getPaymentStatus())
-                || order.getTotalAmount() == null || order.getTotalAmount() <= 0
-                || "CANCELLED".equalsIgnoreCase(order.getStatus())
-                || "RETURNED".equalsIgnoreCase(order.getStatus())) {
+        if (!"VNPAY".equalsIgnoreCase(order.getPaymentMethod())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Đơn hàng không thể thanh toán qua VNPay."));
         }
 
         String paymentUrl;
         try {
-            paymentUrl = paymentService.createVnPayPaymentUrl(order.getId(), order.getTotalAmount(), request.getRemoteAddr());
+            order = orderService.prepareVnPayPayment(orderId);
+            if (order.getTotalAmount() == null || order.getTotalAmount().signum() <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Đơn hàng không thể thanh toán qua VNPay."));
+            }
+            paymentUrl = paymentService.createVnPayPaymentUrl(order.getId(), order.getTotalAmount(), request.getRemoteAddr(), order.getPaymentExpiresAt());
         } catch (IllegalStateException | IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(Map.of("error", exception.getMessage()));
         }
@@ -77,7 +79,6 @@ public class PaymentController {
     }
 
     @GetMapping("/vnpay-return")
-    @Transactional
     public ResponseEntity<?> vnpayReturn(@RequestParam Map<String, String> params) {
         if (params == null || !paymentService.verifyVnPayPayment(params)) {
             return ResponseEntity.badRequest().body("Payment Failed!");
@@ -88,7 +89,7 @@ public class PaymentController {
             if (transactionReference == null || !transactionReference.matches("[1-9][0-9]{0,17}")) {
                 return ResponseEntity.badRequest().body("Payment Failed!");
             }
-            Order order = orderRepository.findByIdForUpdate(Long.parseLong(transactionReference)).orElse(null);
+            Order order = orderRepository.findById(Long.parseLong(transactionReference)).orElse(null);
             if (order == null || order.getTotalAmount() == null
                     || !"VNPAY".equalsIgnoreCase(order.getPaymentMethod())
                     || !matchesAmount(params.get("vnp_Amount"), order.getTotalAmount())) {
@@ -99,20 +100,12 @@ public class PaymentController {
                     || !"00".equals(params.get("vnp_TransactionStatus"))) {
                 return orderResultRedirect(order.getId(), "failed");
             }
-            if ("PAID".equalsIgnoreCase(order.getPaymentStatus())) {
-                return orderResultRedirect(order.getId(), "success");
-            }
-            if ("CANCELLED".equalsIgnoreCase(order.getStatus()) || "RETURNED".equalsIgnoreCase(order.getStatus())) {
-                return ResponseEntity.badRequest().body("Payment Failed!");
-            }
-
-            order.setPaymentStatus("PAID");
-            if ("PENDING".equalsIgnoreCase(order.getStatus())) order.setStatus("CONFIRMED");
-            orderRepository.save(order);
-            loyaltyService.awardForPaidOrder(order.getId());
-            invoiceService.issueForPaidOrder(order.getId());
+            Order confirmed = orderService.confirmVnPayPayment(order.getId());
+            if (!"PAID".equalsIgnoreCase(confirmed.getPaymentStatus())) return orderResultRedirect(order.getId(), "failed");
+            loyaltyService.awardForPaidOrder(confirmed.getId());
+            invoiceService.issueForPaidOrder(confirmed.getId());
             return orderResultRedirect(order.getId(), "success");
-        } catch (NumberFormatException | ArithmeticException exception) {
+        } catch (NumberFormatException | ArithmeticException | IllegalStateException exception) {
             return ResponseEntity.badRequest().body("Payment Failed!");
         }
     }
@@ -123,9 +116,9 @@ public class PaymentController {
                 .build();
     }
 
-    private boolean matchesAmount(String callbackAmount, Double orderAmount) {
+    private boolean matchesAmount(String callbackAmount, BigDecimal orderAmount) {
         if (callbackAmount == null || !callbackAmount.matches("[0-9]{1,18}")) return false;
-        long expected = BigDecimal.valueOf(orderAmount).movePointRight(2)
+        long expected = orderAmount.movePointRight(2)
                 .setScale(0, RoundingMode.HALF_UP).longValueExact();
         return Long.parseLong(callbackAmount) == expected;
     }

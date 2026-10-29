@@ -39,6 +39,7 @@ public class AdminOrderController {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid order Id:" + id));
         model.addAttribute("order", order);
+        model.addAttribute("allowedStatusTargets", orderService.allowedStatusTargets(order));
         model.addAttribute("title", "Chi tiết đơn hàng #" + id);
         model.addAttribute("activePage", "orders");
         model.addAttribute("content", "admin/orders/detail");
@@ -47,18 +48,9 @@ public class AdminOrderController {
 
     @PostMapping("/update-status")
     public String updateStatus(@RequestParam Long orderId, @RequestParam String status) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
-
-        if (!List.of("PENDING", "CONFIRMED", "PROCESSING", "SHIPPING", "DELIVERED", "CANCELLED").contains(status))
-            throw new IllegalArgumentException("Trạng thái không hợp lệ.");
-        orderService.updateOrderStatus(orderId, status);
-        order = orderRepository.findById(orderId).orElseThrow();
-        if ("DELIVERED".equals(status) && "COD".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("PAID");
-        if ("DELIVERED".equals(status) && "PAID".equals(order.getPaymentStatus())) {
-            orderRepository.save(order);
+        Order order = orderService.updateOrderStatus(orderId, status);
+        if ("DELIVERED".equalsIgnoreCase(order.getStatus()) && "PAID".equalsIgnoreCase(order.getPaymentStatus()))
             invoiceService.issueForPaidOrder(orderId);
-        }
         return "redirect:/admin/orders";
     }
 }

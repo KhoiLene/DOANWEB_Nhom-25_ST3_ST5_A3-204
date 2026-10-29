@@ -12,11 +12,19 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select orderEntity from Order orderEntity where orderEntity.id = :id")
     Optional<Order> findByIdForUpdate(@Param("id") Long id);
+
+    @Query("select orderEntity.id from Order orderEntity where upper(coalesce(orderEntity.status, '')) = 'PENDING' "
+            + "and upper(coalesce(orderEntity.paymentMethod, '')) = 'VNPAY' "
+            + "and upper(coalesce(orderEntity.paymentStatus, '')) = 'UNPAID' "
+            + "and orderEntity.paymentExpiresAt is not null and orderEntity.paymentExpiresAt <= :now "
+            + "order by orderEntity.paymentExpiresAt asc")
+    List<Long> findExpiredUnpaidVnPayOrderIds(@Param("now") LocalDateTime now, Pageable pageable);
 
     List<Order> findByUserOrderByOrderDateDesc(User user);
     @EntityGraph(attributePaths = {"store", "orderItems", "orderItems.product"})
@@ -26,7 +34,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             + "where o.user.id = :userId and ("
             + "(upper(coalesce(o.paymentStatus, '')) = 'PAID' and upper(coalesce(o.status, '')) not in ('CANCELLED', 'RETURNED')) "
             + "or (upper(coalesce(o.paymentMethod, '')) = 'COD' and upper(coalesce(o.status, '')) = 'DELIVERED'))")
-    Double sumCompletedPaidSpendForUser(@Param("userId") Long userId);
+    java.math.BigDecimal sumCompletedPaidSpendForUser(@Param("userId") Long userId);
 
     List<Order> findByStoreId(Long storeId);
     List<Order> findByStoreIdAndFulfillmentWarehouseIsNullOrderByOrderDateDesc(Long storeId);

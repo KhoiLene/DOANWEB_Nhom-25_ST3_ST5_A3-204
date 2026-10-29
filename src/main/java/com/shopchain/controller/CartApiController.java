@@ -3,6 +3,7 @@ package com.shopchain.controller;
 import com.shopchain.entity.Cart;
 import com.shopchain.entity.CartItem;
 import com.shopchain.service.CartService;
+import com.shopchain.service.OrderPricingService;
 import com.shopchain.repository.UserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +19,12 @@ public class CartApiController {
 
     private final CartService cartService;
     private final UserRepository userRepository;
+    private final OrderPricingService pricingService;
 
-    public CartApiController(CartService cartService, UserRepository userRepository) {
+    public CartApiController(CartService cartService, UserRepository userRepository, OrderPricingService pricingService) {
         this.cartService = cartService;
         this.userRepository = userRepository;
+        this.pricingService = pricingService;
     }
 
     @PostMapping("/add")
@@ -76,11 +79,14 @@ public class CartApiController {
         int count = items.stream().mapToInt(item -> item.getQuantity()).sum();
         int loyaltyPoints = cart.getUser() == null || cart.getUser().getLoyaltyPoints() == null
                 ? 0 : cart.getUser().getLoyaltyPoints();
-        double subtotal = items.stream()
-                .mapToDouble(item -> item.getProduct().effectivePrice(loyaltyPoints) * item.getQuantity()).sum();
+        OrderPricingService.Quote quote = pricingService.quote(items, loyaltyPoints, "DELIVERY");
         Map<String, Object> result = new HashMap<>();
         result.put("count", count);
-        result.put("subtotal", subtotal);
+        result.put("subtotal", quote.merchandiseTotal().doubleValue());
+        result.put("listSubtotal", quote.subtotal().doubleValue());
+        result.put("discount", quote.discount().doubleValue());
+        result.put("shipping", quote.shipping().doubleValue());
+        result.put("total", quote.total().doubleValue());
         if (cart.getId() != null) result.put("cartId", cart.getId());
         if (message != null && !message.isBlank()) result.put("message", message);
         return result;

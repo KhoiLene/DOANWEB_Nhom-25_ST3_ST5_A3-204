@@ -4,18 +4,15 @@
             <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
         </a>
         <div class="btn-group" style="display: flex; gap: 10px;">
-            <form th:action="@{/admin/orders/update-status}" method="post">
+            <form th:if="${not #lists.isEmpty(allowedStatusTargets)}" th:action="@{/admin/orders/update-status}" method="post">
                 <input type="hidden" name="orderId" th:value="${order.id}">
                 <select name="status" class="form-control" style="display: inline-block; width: auto; margin-right: 10px;">
-                    <option value="PENDING" th:selected="${order.status == 'PENDING'}">Chờ xử lý</option>
-                    <option value="PROCESSING" th:selected="${order.status == 'PROCESSING'}">Đang chuẩn bị</option>
-                    <option value="CONFIRMED" th:selected="${order.status == 'CONFIRMED'}">Đã xác nhận</option>
-                    <option value="SHIPPING" th:selected="${order.status == 'SHIPPING'}">Đang giao hàng</option>
-                    <option value="DELIVERED" th:selected="${order.status == 'DELIVERED'}">Đã giao hàng</option>
-                    <option value="CANCELLED" th:selected="${order.status == 'CANCELLED'}">Đã hủy</option>
+                    <option th:each="target : ${allowedStatusTargets}" th:value="${target}"
+                            th:text="${target == 'PROCESSING' ? 'Đang chuẩn bị' : (target == 'SHIPPING' ? 'Đang giao hàng' : (target == 'DELIVERED' ? 'Đã giao hàng' : 'Hủy đơn'))}">Trạng thái</option>
                 </select>
                 <button type="submit" class="btn btn-primary">Cập nhật</button>
             </form>
+            <span th:if="${#lists.isEmpty(allowedStatusTargets)}" class="workspace-status" th:text="${order.status == 'CANCELLED' ? 'Đơn đã hủy, không thể mở lại' : 'Đơn đã hoàn tất'}">Đơn đã hoàn tất</span>
         </div>
     </div>
 
@@ -62,6 +59,9 @@
                     <span th:text="${order.deliveryCity ?: ''}"></span>
                 </div>
                 <hr style="border: 0; border-top: 1px solid var(--admin-border); margin: 20px 0;">
+                <div style="display:flex;justify-content:space-between;margin:8px 0"><span>Tiền hàng</span><span th:text="${#numbers.formatDecimal(order.subtotalAmount != null ? order.subtotalAmount : order.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span></div>
+                <div style="display:flex;justify-content:space-between;margin:8px 0"><span>Giảm giá</span><span th:text="${'-' + #numbers.formatDecimal(order.discountAmount != null ? order.discountAmount : 0, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span></div>
+                <div style="display:flex;justify-content:space-between;margin:8px 0"><span>Phí vận chuyển</span><span th:text="${#numbers.formatDecimal(order.shippingAmount != null ? order.shippingAmount : 0, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span></div>
                 <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold;">
                     <span>Tổng cộng:</span>
                     <span style="color: var(--admin-accent);" th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>

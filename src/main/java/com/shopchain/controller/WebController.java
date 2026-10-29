@@ -37,6 +37,7 @@ public class WebController {
     private final OrderRepository orderRepository;
     private final SalesInvoiceRepository salesInvoiceRepository;
     private final CustomerProgramService customerProgramService;
+    private final OrderPricingService pricingService;
 
     public WebController(ProductService productService, NewsService newsService, AboutService aboutService,
                          CartService cartService, AuthService authService, HomepageValueRepository homepageValueRepository,
@@ -44,7 +45,7 @@ public class WebController {
                          CategoryRepository categoryRepository, ReviewService reviewService,
                          UserRepository userRepository, StoreRepository storeRepository, OrderService orderService,
                          OrderRepository orderRepository, SalesInvoiceRepository salesInvoiceRepository,
-                         CustomerProgramService customerProgramService) {
+                         CustomerProgramService customerProgramService, OrderPricingService pricingService) {
         this.productService = productService;
         this.newsService = newsService;
         this.aboutService = aboutService;
@@ -61,6 +62,7 @@ public class WebController {
         this.orderRepository = orderRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.customerProgramService = customerProgramService;
+        this.pricingService = pricingService;
     }
 
     @GetMapping("/")
@@ -201,13 +203,7 @@ public class WebController {
         model.addAttribute("customerLoyaltyPoints", points);
         model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
 
-        double subtotal = cart.getItems().stream()
-                .mapToDouble(item -> item.getProduct().effectivePrice(points) * item.getQuantity())
-                .sum();
-
-        model.addAttribute("subtotal", subtotal);
-        model.addAttribute("shipping", subtotal >= 500000 ? 0 : 30000);
-        model.addAttribute("total", subtotal + (subtotal >= 500000 ? 0 : 30000));
+        addQuoteAttributes(model, cart, points, "DELIVERY");
 
         return "cart";
     }
@@ -250,13 +246,7 @@ public class WebController {
         model.addAttribute("customer", userRepository.findById(userId).orElseThrow());
         model.addAttribute("customerLoyaltyPoints", points);
 
-        double subtotal = cart.getItems().stream()
-                .mapToDouble(item -> item.getProduct().effectivePrice(points) * item.getQuantity())
-                .sum();
-
-        model.addAttribute("subtotal", subtotal);
-        model.addAttribute("shipping", subtotal >= 500000 ? 0 : 30000);
-        model.addAttribute("total", subtotal + (subtotal >= 500000 ? 0 : 30000));
+        addQuoteAttributes(model, cart, points, "DELIVERY");
 
         return "checkout";
     }
@@ -291,13 +281,21 @@ public class WebController {
             model.addAttribute("customer", userRepository.findById(currentUserId(authentication)).orElseThrow());
             int points = customerLoyaltyPoints(authentication);
             model.addAttribute("customerLoyaltyPoints", points);
-            double subtotal = cart.getItems().stream().mapToDouble(item -> item.getProduct().effectivePrice(points) * item.getQuantity()).sum();
-            model.addAttribute("subtotal", subtotal);
-            model.addAttribute("shipping", subtotal >= 500000 ? 0 : 30000);
-            model.addAttribute("total", subtotal + (subtotal >= 500000 ? 0 : 30000));
+            addQuoteAttributes(model, cart, points, fulfillmentType);
             model.addAttribute("checkoutError", ex.getMessage());
             return "checkout";
         }
+    }
+
+    private void addQuoteAttributes(Model model, Cart cart, int loyaltyPoints, String fulfillmentType) {
+        OrderPricingService.Quote quote = pricingService.quote(cart, loyaltyPoints, fulfillmentType);
+        model.addAttribute("subtotal", quote.subtotal().doubleValue());
+        model.addAttribute("discount", quote.discount().doubleValue());
+        model.addAttribute("merchandiseTotal", quote.merchandiseTotal().doubleValue());
+        model.addAttribute("shipping", quote.shipping().doubleValue());
+        model.addAttribute("deliveryShipping", quote.deliveryShipping().doubleValue());
+        model.addAttribute("total", quote.total().doubleValue());
+        model.addAttribute("fulfillmentType", fulfillmentType);
     }
 
     private List<String> checkoutDeliveryCities() {
@@ -477,7 +475,7 @@ public class WebController {
     public String profile(Model model, Authentication authentication) {
         User user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         List<Order> orders = orderService.getUserOrders(user.getId(), PageRequest.of(0, 50)).getContent();
-        double totalSpent = orderRepository.sumCompletedPaidSpendForUser(user.getId());
+        double totalSpent = orderRepository.sumCompletedPaidSpendForUser(user.getId()).doubleValue();
         int points = user.getLoyaltyPoints() == null ? 0 : user.getLoyaltyPoints();
         model.addAttribute("customer", user);
         model.addAttribute("customerOrders", orders);

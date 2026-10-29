@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import javax.crypto.Mac;
@@ -32,24 +33,29 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public String createVnPayPaymentUrl(Long orderId, Double amount, String clientIp) {
+    public String createVnPayPaymentUrl(Long orderId, BigDecimal amount, String clientIp, LocalDateTime expiresAt) {
         String tmnCode = settingService.getSetting("vnpay.tmnCode", "");
         String hashSecret = settingService.getSetting("vnpay.hashSecret", "");
         if (tmnCode.isBlank() || hashSecret.isBlank()) {
             throw new IllegalStateException("Chưa cấu hình thông tin kết nối VNPay.");
         }
-        if (orderId == null || orderId <= 0 || amount == null || !Double.isFinite(amount) || amount <= 0) {
+        if (orderId == null || orderId <= 0 || amount == null || amount.signum() <= 0) {
             throw new IllegalArgumentException("Thông tin thanh toán không hợp lệ.");
         }
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        ZonedDateTime expiry = expiresAt == null
+                ? now.plusMinutes(15)
+                : expiresAt.atZone(ZoneId.systemDefault())
+                        .withZoneSameInstant(ZoneId.of("Asia/Ho_Chi_Minh"));
+        if (!expiry.isAfter(now)) throw new IllegalArgumentException("Thời hạn thanh toán đã hết.");
 
         String vnp_TxnRef = String.valueOf(orderId);
-        String vnp_Amount = String.valueOf(BigDecimal.valueOf(amount).movePointRight(2)
+        String vnp_Amount = String.valueOf(amount.movePointRight(2)
                 .setScale(0, RoundingMode.HALF_UP).longValueExact());
         String vnp_Command = "pay";
         String vnp_CurrCode = "VND";
         String vnp_Version = "2.1.0";
         String vnp_OrderInfo = "Payment for Order ID: " + orderId;
-        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         DateTimeFormatter vnpDateFormat = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
         Map<String, String> params = new HashMap<>();
@@ -63,7 +69,7 @@ public class PaymentServiceImpl implements PaymentService {
         params.put("vnp_ReturnUrl", returnUrl);
         params.put("vnp_BankCode", "VNPAYQR");
         params.put("vnp_CreateDate", now.format(vnpDateFormat));
-        params.put("vnp_ExpireDate", now.plusMinutes(15).format(vnpDateFormat));
+        params.put("vnp_ExpireDate", expiry.format(vnpDateFormat));
         params.put("vnp_IpAddr", normalizeIpAddress(clientIp));
         params.put("vnp_Locale", "vn");
         params.put("vnp_OrderType", "other");

@@ -55,7 +55,10 @@ public class StoreStaffController {
         }
         Long storeId = user.getStore().getId();
         model.addAttribute("store", user.getStore());
-        model.addAttribute("orders", orderRepository.findByStoreIdAndFulfillmentWarehouseIsNullOrderByOrderDateDesc(storeId));
+        var orders = orderRepository.findByStoreIdAndFulfillmentWarehouseIsNullOrderByOrderDateDesc(storeId);
+        model.addAttribute("orders", orders);
+        model.addAttribute("allowedTransitions", orders.stream().collect(java.util.stream.Collectors.toMap(
+                com.shopchain.entity.Order::getId, orderService::allowedStatusTargets)));
         model.addAttribute("inventory", inventoryRepository.findByStoreId(storeId));
         model.addAttribute("movements", movementRepository.findTop100ByStoreIdOrderByCreatedAtDesc(storeId));
         model.addAttribute("transfers", transferRepository.findByDestinationStoreIdAndStatusOrderByCreatedAtAsc(storeId, "IN_TRANSIT"));
@@ -68,10 +71,6 @@ public class StoreStaffController {
         var order = orderRepository.findById(orderId).orElseThrow();
         if (user.getStore() == null || !order.getStore().getId().equals(user.getStore().getId()) || order.getFulfillmentWarehouse() != null)
             throw new IllegalArgumentException("Đơn hàng không thuộc chi nhánh được phân công.");
-        if (!("PROCESSING".equals(status) && "PENDING".equals(order.getStatus())
-                || "SHIPPING".equals(status) && "PROCESSING".equals(order.getStatus())
-                || "DELIVERED".equals(status) && "SHIPPING".equals(order.getStatus())))
-            throw new IllegalArgumentException("Trạng thái đơn hàng không hợp lệ.");
         orderService.updateOrderStatus(orderId, status);
         order = orderRepository.findById(orderId).orElseThrow();
         if ("DELIVERED".equals(status) && "PAID".equals(order.getPaymentStatus())) invoiceService.issueForPaidOrder(order.getId());

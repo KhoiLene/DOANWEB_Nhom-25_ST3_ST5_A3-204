@@ -110,7 +110,7 @@ public class StoreReservationService {
                 .map(order -> new PickupOrderView(order.getId(), order.getStatus(), order.getPaymentStatus(),
                         order.getStore() == null ? "Chi nhánh" : order.getStore().getName(),
                         order.getStore() == null ? "" : order.getStore().getAddress(), order.getOrderDate(),
-                        order.getTotalAmount(), order.getOrderItems() == null ? List.of() : order.getOrderItems().stream()
+                        (order.getTotalAmount() == null ? java.math.BigDecimal.ZERO : order.getTotalAmount()).doubleValue(), order.getOrderItems() == null ? List.of() : order.getOrderItems().stream()
                         .map(item -> new PickupOrderItemView(item.getProduct() == null
                                 ? "Sản phẩm đã ngừng kinh doanh" : item.getProduct().getName(), item.getQuantity()))
                         .toList()))

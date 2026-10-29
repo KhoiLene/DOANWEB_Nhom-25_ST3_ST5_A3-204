@@ -112,7 +112,7 @@ public class OperationsControlTowerService {
                 .filter(order -> "DELIVERED".equalsIgnoreCase(status(order)))
                 .filter(order -> "PAID".equalsIgnoreCase(order.getPaymentStatus()))
                 .filter(order -> order.getOrderDate() != null && !order.getOrderDate().isBefore(monthStart))
-                .map(Order::getTotalAmount).filter(Objects::nonNull).mapToDouble(Double::doubleValue).sum();
+                .map(Order::getTotalAmount).filter(Objects::nonNull).mapToDouble(amount -> amount.doubleValue()).sum();
 
         Map<Long, List<Order>> ordersByStore = orders.stream().filter(order -> order.getStore() != null)
                 .collect(Collectors.groupingBy(order -> order.getStore().getId()));
@@ -154,7 +154,7 @@ public class OperationsControlTowerService {
                 lowStockCount, outOfStockCount, transfersWaiting, monthRevenue, BASE_REORDER_POINT,
                 LEAD_TIME_DAYS, TARGET_COVER_DAYS, actionOrders.stream().map(order -> new OrderPulse(order.getId(),
                         order.getCustomerName(), order.getStore() == null ? "Chưa gán điểm bán" : order.getStore().getName(),
-                        order.getStatus(), order.getTotalAmount(), order.getOrderDate())).toList(),
+                        order.getStatus(), order.getTotalAmount() == null ? 0d : order.getTotalAmount().doubleValue(), order.getOrderDate())).toList(),
                 stockAlerts, branches, pendingTransfers, LocalDateTime.now());
     }
 

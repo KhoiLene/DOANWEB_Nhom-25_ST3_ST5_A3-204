@@ -4,11 +4,18 @@ import com.shopchain.entity.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select product from Product product where product.id = :id")
+    Optional<Product> findForUpdateById(@Param("id") Long id);
+
     @Query("SELECT p FROM Product p WHERE (p.isActive = true OR p.isActive IS NULL) " +
             "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
             "AND (:keyword IS NULL OR :keyword = '' OR " +

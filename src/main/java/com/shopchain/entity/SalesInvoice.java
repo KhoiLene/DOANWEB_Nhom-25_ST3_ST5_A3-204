@@ -3,6 +3,7 @@ package com.shopchain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,13 +34,19 @@ public class SalesInvoice {
     private String customerPhone;
 
     @Column(nullable = false)
-    private Double subtotal;
+    private BigDecimal subtotal;
+
+    @Column(name = "discount_amount")
+    private BigDecimal discountAmount;
+
+    @Column(name = "shipping_amount")
+    private BigDecimal shippingAmount;
 
     @Column(nullable = false)
-    private Double taxAmount;
+    private BigDecimal taxAmount;
 
     @Column(nullable = false)
-    private Double totalAmount;
+    private BigDecimal totalAmount;
 
     @Column(nullable = false)
     private String paymentMethod;

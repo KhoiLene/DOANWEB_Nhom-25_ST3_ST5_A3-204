@@ -77,6 +77,7 @@
               <span>Tạm tính</span>
               <strong th:text="${#numbers.formatDecimal(subtotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
             </div>
+            <div class="summary-line summary-line--discount" th:if="${discount > 0}"><span>Giảm giá</span><strong th:text="${'-' + #numbers.formatDecimal(discount, 0, 'COMMA', 0, 'POINT') + ' đ'}">-0 đ</strong></div>
             <div class="summary-line">
               <span>Vận chuyển</span>
               <strong th:text="${#numbers.formatDecimal(shipping, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>

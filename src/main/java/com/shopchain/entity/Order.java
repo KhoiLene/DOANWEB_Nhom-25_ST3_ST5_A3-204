@@ -3,6 +3,7 @@ package com.shopchain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.*;
 
 @Entity
@@ -28,7 +29,19 @@ public class Order {
     private LocalDateTime orderDate = LocalDateTime.now();
 
     @Column(nullable = false)
-    private Double totalAmount;
+    private BigDecimal totalAmount;
+
+    @Column(name = "subtotal_amount")
+    private BigDecimal subtotalAmount;
+
+    @Column(name = "discount_amount")
+    private BigDecimal discountAmount;
+
+    @Column(name = "shipping_amount")
+    private BigDecimal shippingAmount;
+
+    @Column(name = "payment_expires_at")
+    private LocalDateTime paymentExpiresAt;
 
     @Column(nullable = false)
     private String status; // PENDING, CONFIRMED, SHIPPING, DELIVERED, CANCELLED, RETURNED

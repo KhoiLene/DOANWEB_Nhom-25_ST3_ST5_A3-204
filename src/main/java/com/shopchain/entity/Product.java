@@ -92,8 +92,12 @@ public class Product {
     }
 
     public double effectivePrice(Double basePrice, Integer loyaltyPoints) {
-        double safeBase = basePrice == null ? 0d : basePrice;
-        if (!campaignEligibleFor(loyaltyPoints)) return safeBase;
-        return Math.max(0d, Math.round(safeBase * (1d - discountPercent / 100d)));
+        java.math.BigDecimal safeBase = java.math.BigDecimal.valueOf(basePrice == null ? 0d : basePrice)
+                .setScale(0, java.math.RoundingMode.HALF_UP);
+        if (!campaignEligibleFor(loyaltyPoints)) return safeBase.doubleValue();
+        java.math.BigDecimal multiplier = java.math.BigDecimal.ONE
+                .subtract(java.math.BigDecimal.valueOf(discountPercent).movePointLeft(2));
+        return safeBase.multiply(multiplier).setScale(0, java.math.RoundingMode.HALF_UP)
+                .max(java.math.BigDecimal.ZERO).doubleValue();
     }
 }
