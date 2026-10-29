@@ -11,6 +11,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/**
+ * Dịch vụ quản lý nghiệp vụ Giữ hàng tại chi nhánh (Store Reservation / Click & Collect).
+ * <p>
+ * Chức năng:
+ * - Tra cứu tồn kho khả dụng tại các chi nhánh đang hoạt động.
+ * - Khách hàng đặt giữ hàng trực tuyến với thời gian giữ cấu hình được (mặc định 30 phút).
+ * - Tăng lượng giữ (reservedQuantity) tại chi nhánh, ghi nhận lịch sử di biến động tồn kho.
+ * - Tự động quét và giải phóng các phiếu giữ quá hạn (expireReservations) qua Spring Scheduler.
+ * - Hỗ trợ nhân viên chi nhánh xác nhận giao hàng (pickup) và thanh toán bằng Tiền mặt hoặc Chuyển khoản (VietQR).
+ */
 @Service
 public class StoreReservationService {
     private final StoreRepository storeRepository;
@@ -44,6 +54,9 @@ public class StoreReservationService {
         this.holdMinutes = Math.max(10, Math.min(holdMinutes, 120));
     }
 
+    /**
+     * Tra cứu số lượng khả dụng của sản phẩm tại tất cả các chi nhánh có hỗ trợ nhận tại quầy.
+     */
     @Transactional(readOnly = true)
     public List<BranchAvailability> availability(Long productId) {
         Product product = activeProduct(productId);
@@ -60,6 +73,10 @@ public class StoreReservationService {
                 .toList();
     }
 
+    /**
+     * Đặt phiếu giữ hàng tại chi nhánh cho người dùng.
+     * Cập nhật tăng số lượng đang giữ (reservedQuantity) tại chi nhánh để giữ chỗ cho khách.
+     */
     @Transactional
     public ReservationView reserve(String username, CreateReservationRequest request) {
         expireReservations();
@@ -104,6 +121,9 @@ public class StoreReservationService {
         return toView(reservationRepository.save(reservation));
     }
 
+    /**
+     * Lấy danh sách phiếu giữ hàng của khách hàng đang đăng nhập.
+     */
     @Transactional
     public List<ReservationView> customerReservations(String username) {
         expireReservations();
@@ -111,6 +131,9 @@ public class StoreReservationService {
         return reservationRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream().map(this::toView).toList();
     }
 
+    /**
+     * Lấy lịch sử các đơn nhận tại chi nhánh (PICKUP) của khách hàng.
+     */
     @Transactional(readOnly = true)
     public List<PickupOrderView> customerPickupOrders(String username) {
         User user = userRepository.findByUsername(username)
@@ -128,6 +151,9 @@ public class StoreReservationService {
                 .toList();
     }
 
+    /**
+     * Khách hàng tự hủy phiếu giữ hàng của mình; hoàn trả số lượng đang giữ về tồn khả dụng.
+     */
     @Transactional
     public ReservationView cancelForCustomer(Long reservationId, String username) {
         User user = userRepository.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản."));
@@ -137,12 +163,18 @@ public class StoreReservationService {
         return cancel(reservation, "CANCELLED");
     }
 
+    /**
+     * Nhân viên lấy danh sách các phiếu giữ hàng đang ở trạng thái HELD tại chi nhánh mình quản lý.
+     */
     @Transactional
     public List<ReservationView> staffReservations(Long storeId) {
         expireReservations();
         return reservationRepository.findByStoreIdAndStatusOrderByCreatedAtAsc(storeId, "HELD").stream().map(this::toView).toList();
     }
 
+    /**
+     * Nhân viên cửa hàng hủy phiếu giữ hàng khi khách không đến hoặc có yêu cầu hủy.
+     */
     @Transactional
     public ReservationView cancelForStaff(Long reservationId, Long storeId) {
         StoreReservation reservation = reservationRepository.findForUpdateById(reservationId)
@@ -151,11 +183,17 @@ public class StoreReservationService {
         return cancel(reservation, "CANCELLED");
     }
 
+    /**
+     * Xác nhận giao hàng cho khách từ phiếu giữ (thanh toán mặc định CASH).
+     */
     @Transactional
     public PickupResult pickup(Long reservationId, Long storeId, String username) {
         return pickup(reservationId, storeId, username, "CASH", null, false);
     }
 
+    /**
+     * Xác nhận giao hàng cho khách từ phiếu giữ hàng với phương thức thanh toán cụ thể (CASH hoặc BANK_TRANSFER).
+     */
     @Transactional
     public PickupResult pickup(Long reservationId, Long storeId, String username,
                                String paymentMethod, String paymentReference, boolean bankTransferConfirmed) {
@@ -183,6 +221,9 @@ public class StoreReservationService {
         return pickupResult(reservationRepository.save(reservation), invoice);
     }
 
+    /**
+     * Quét định kỳ (mặc định mỗi 60 giây) để tự động hủy các phiếu giữ hàng đã hết hạn giữ.
+     */
     @Scheduled(fixedDelayString = "${reservation.expiry-scan-ms:60000}")
     @Transactional
     public void expireReservations() {
@@ -193,6 +234,9 @@ public class StoreReservationService {
         }
     }
 
+    /**
+     * Hủy phiếu giữ hàng và hoàn trả số lượng đã giữ về tồn kho chi nhánh.
+     */
     private ReservationView cancel(StoreReservation reservation, String status) {
         if (!"HELD".equals(reservation.getStatus())) {
             if (reservation.getStatus().equals(status)) return toView(reservation);
@@ -264,6 +308,9 @@ public class StoreReservationService {
     public record ReservationView(Long id, String code, String status, Long storeId, String storeName, String storeAddress,
                                   String customerName, String customerPhone, LocalDateTime createdAt, LocalDateTime expiresAt,
                                   LocalDateTime pickedUpAt, List<ReservationItemView> items) {
+        /**
+         * Tính tổng số tiền cần thanh toán cho phiếu giữ hàng để hiển thị và tạo mã VietQR.
+         */
         public java.math.BigDecimal totalAmount() {
             if (items == null || items.isEmpty()) return java.math.BigDecimal.ZERO;
             java.math.BigDecimal total = java.math.BigDecimal.ZERO;

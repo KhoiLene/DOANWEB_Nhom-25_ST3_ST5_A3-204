@@ -38,7 +38,7 @@
             <input type="hidden" name="paymentReference" th:value="${'RES-' + reservation.code}">
 
             <div class="reservation-transfer-confirm" hidden>
-              <!-- QR Panel for Bank Transfer -->
+              <!-- Khung hiển thị mã QR VietQR động theo tổng tiền phiếu giữ và mã chuyển khoản RES-{code} -->
               <div th:if="${bankQrConfigured}" class="reservation-qr-panel pos-bank-qr" style="margin: 8px 0; padding: 12px; background: #f8fbff; border: 1px solid #c9dcff; border-radius: 12px; text-align: center; max-width: 280px;">
                 <h4 style="margin: 0 0 6px; font-size: 0.88rem; color: #1e3a8a;"><i class="fa-solid fa-qrcode"></i> Quét QR chuyển khoản</h4>
                 <img th:src="@{'https://img.vietqr.io/image/' + ${qrBankCode} + '-' + ${qrAccountNumber} + '-qr_only.svg'(amount=${#numbers.formatDecimal(reservation.totalAmount, 0, 'POINT', 0, 'POINT')},addInfo=${'RES-' + reservation.code},accountName=${qrAccountName})}"

@@ -240,6 +240,7 @@
               `Bạn có thể đến chi nhánh nhận hàng và thanh toán tại quầy. Đang chuyển đến trang quản lý phiếu…`;
             successBox.style.display = 'block';
 
+            // Xóa giỏ hàng trên máy chủ sau khi đã tạo phiếu giữ thành công và chuyển hướng đến trang cá nhân
             // Clear cart in background and redirect to profile after 2s
             fetch('/cart/clear', { method: 'POST' }).finally(() => {
               setTimeout(() => {

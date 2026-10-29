@@ -306,6 +306,7 @@
       controls.append(minus, quantity, plus, remove); row.append(detail, controls); cart.append(row);
     });
     if (!basket.size) { const empty = document.createElement('p'); empty.className = 'workspace-muted pos-cart__empty'; empty.textContent = 'Chưa có sản phẩm. Chọn sản phẩm ở danh sách bên trái.'; cart.append(empty); }
+    // Xử lý đổi điểm thưởng thành viên: 1 điểm = 100 đ, khách lẻ không áp dụng
     const usePoints = memberCustomerId && document.getElementById('posUsePointsCheckbox')?.checked;
     const requestedPoints = usePoints ? Math.max(0, Number(document.getElementById('redeemPoints').value) || 0) : 0;
     const maxPoints = Math.min(memberAvailablePoints, Math.floor(total / 100));
@@ -346,6 +347,7 @@
     return raw;
   }
 
+  // Lắng nghe sự kiện bật/tắt checkbox đổi điểm để hiển thị ô nhập điểm và tự động gán điểm tối đa
   posUsePointsCheckbox?.addEventListener('change', () => {
     if (posUsePointsCheckbox.checked) {
       if (posPointsInputWrap) posPointsInputWrap.hidden = false;

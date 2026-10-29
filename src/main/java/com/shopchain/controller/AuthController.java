@@ -10,6 +10,10 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 
 import java.util.Map;
 
+/**
+ * REST Controller xử lý xác thực tài khoản và bảo mật người dùng.
+ * Cung cấp các endpoint: đăng nhập, gửi OTP qua email, xác minh OTP, đặt lại mật khẩu và đăng xuất.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -20,6 +24,9 @@ public class AuthController {
         this.authService = authService;
     }
 
+    /**
+     * Xác thực thông tin đăng nhập và cấp token phiên làm việc.
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest request) {
         try {
@@ -29,6 +36,9 @@ public class AuthController {
         }
     }
 
+    /**
+     * Gửi mã OTP về email người dùng phục vụ đăng ký hoặc quên mật khẩu.
+     */
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@RequestParam String email, @RequestParam String type) {
         try {
@@ -46,6 +56,9 @@ public class AuthController {
         }
     }
 
+    /**
+     * Xác thực tính hợp lệ của mã OTP gửi qua email.
+     */
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestParam String email, @RequestParam String otp) {
         try {
@@ -56,6 +69,9 @@ public class AuthController {
         }
     }
 
+    /**
+     * Đặt lại mật khẩu mới sau khi xác thực OTP thành công.
+     */
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestParam String email,
                                            @RequestParam String otp,
@@ -68,6 +84,9 @@ public class AuthController {
         }
     }
 
+    /**
+     * Hủy phiên đăng nhập của người dùng hiện tại.
+     */
     @PostMapping("/logout")
     public ResponseEntity<?> logout(Authentication authentication) {
         if (authentication != null && authentication.isAuthenticated()

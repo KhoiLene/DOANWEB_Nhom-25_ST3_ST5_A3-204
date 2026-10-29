@@ -10,6 +10,16 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+/**
+ * Dịch vụ xử lý nghiệp vụ Bán hàng tại quầy (POS) và Giao hàng giữ tại chi nhánh (Store Pickup).
+ * <p>
+ * Tính năng chính:
+ * - Bán hàng trực tiếp tại quầy cho khách lẻ hoặc thành viên hệ thống.
+ * - Hỗ trợ đổi điểm thưởng thành viên (1 điểm = 100 đ) để giảm trừ trực tiếp trên hóa đơn.
+ * - Khách lẻ không áp dụng đổi điểm.
+ * - Giao hàng cho các phiếu giữ hàng trực tuyến (Click & Collect) tại chi nhánh.
+ * - Tự động cập nhật tồn kho chi nhánh, ghi nhận lịch sử di biến động tồn kho và xuất biên nhận.
+ */
 @Service
 public class PointOfSaleService {
     private final UserRepository userRepository;
@@ -38,6 +48,9 @@ public class PointOfSaleService {
         this.pricingService = pricingService;
     }
 
+    /**
+     * Bán hàng tại quầy (POS) mặc định không đổi điểm thưởng.
+     */
     @Transactional
     public SalesInvoice sell(String username, Long customerUserId, String customerName, String customerPhone,
                              String paymentMethod, String paymentReference, boolean bankTransferConfirmed,
@@ -46,6 +59,10 @@ public class PointOfSaleService {
                 bankTransferConfirmed, requestedLines, 0);
     }
 
+    /**
+     * Bán hàng tại quầy (POS) có tùy chọn đổi điểm thưởng thành viên (1 điểm = 100 đ).
+     * Khách lẻ (không đăng nhập / không tra cứu được thành viên) không được phép đổi điểm.
+     */
     @Transactional
     public SalesInvoice sell(String username, Long customerUserId, String customerName, String customerPhone,
                              String paymentMethod, String paymentReference, boolean bankTransferConfirmed,
@@ -77,7 +94,10 @@ public class PointOfSaleService {
                 paymentReference, items, "POS_SALE", "POS", "STORE_SHIP", pointsToRedeem);
     }
 
-    /** Completes a held reservation without checking available stock or releasing the hold first. */
+    /**
+     * Hoàn tất giao hàng cho phiếu giữ hàng tại quầy chi nhánh (Store Pickup).
+     * Tiêu thụ số lượng đã giữ trước đó (reservedQuantity) và trừ tồn kho thực tế mà không cần kiểm tra lại tồn khả dụng.
+     */
     @Transactional
     public SalesInvoice sellReserved(String username, StoreReservation reservation,
                                      String paymentMethod, String paymentReference,
@@ -117,6 +137,9 @@ public class PointOfSaleService {
                 paymentMethod, paymentReference, items, "PICKUP_SALE", "PICKUP", "PICKUP", 0);
     }
 
+    /**
+     * Xử lý tạo đơn hàng, trừ tồn kho, tính toán giảm trừ điểm tích lũy và phát hành hóa đơn bán lẻ.
+     */
     private SalesInvoice completeSale(User cashier, Store store, User customer, String customerName,
                                       String customerPhone, String paymentMethod, String paymentReference,
                                       List<SaleItem> saleItems, String movementType, String invoicePrefix,

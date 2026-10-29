@@ -15,6 +15,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/staff")
+/**
+ * Controller quản lý màn hình và thao tác của nhân viên chi nhánh:
+ * Quản lý tồn kho, xác nhận chuyển kho, bán hàng tại quầy (POS), giữ hàng (Reservations) và in hóa đơn.
+ */
 public class StoreStaffController {
     private final UserRepository userRepository;
     private final ProductInventoryRepository inventoryRepository;
@@ -47,6 +51,10 @@ public class StoreStaffController {
         this.systemSettingService = systemSettingService;
     }
 
+    /**
+     * Màn hình quản lý đơn hàng chi nhánh và tồn kho.
+     * Hiển thị danh sách đơn chi nhánh, tồn kho sản phẩm, lịch sử xuất nhập và phiếu chuyển kho đang tới.
+     */
     @GetMapping({"/orders", "/inventory"})
     public String inventory(Model model, Authentication authentication) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
@@ -65,6 +73,10 @@ public class StoreStaffController {
         return "staff/inventory";
     }
 
+    /**
+     * Cập nhật trạng thái đơn hàng chi nhánh (VD: Đang xử lý, Đang giao, Đã giao).
+     * Tự động phát hành hóa đơn khi đơn hoàn tất và đã thanh toán.
+     */
     @PostMapping("/orders/{orderId}/status")
     public String updateOrder(@PathVariable Long orderId, @RequestParam String status, Authentication authentication) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
@@ -77,6 +89,9 @@ public class StoreStaffController {
         return "redirect:/staff/orders";
     }
 
+    /**
+     * Xác nhận nhập hàng từ phiếu chuyển kho (StockTransfer) vào kho chi nhánh.
+     */
     @PostMapping("/transfers/{transferId}/receive")
     public String receiveTransfer(@PathVariable Long transferId, Authentication authentication,
                                   RedirectAttributes redirectAttributes) {
@@ -93,12 +108,17 @@ public class StoreStaffController {
         return "redirect:/staff/inventory";
     }
 
+    /**
+     * Màn hình bán hàng tại quầy (POS).
+     * Cung cấp danh mục tồn kho chi nhánh và cấu hình tài khoản ngân hàng (VietQR).
+     */
     @GetMapping("/pos")
     public String pos(Model model, Authentication authentication) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         if (user.getStore() == null) throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
         model.addAttribute("store", user.getStore());
         model.addAttribute("inventory", inventoryRepository.findByStoreId(user.getStore().getId()));
+        // Lấy thông tin tài khoản ngân hàng từ cài đặt hệ thống để phục vụ tạo mã VietQR
         String qrBankCode = java.util.Objects.toString(systemSettingService.getSetting("payment.qrBankCode", ""), "").trim();
         String qrAccountNumber = java.util.Objects.toString(systemSettingService.getSetting("payment.qrAccountNumber", ""), "").trim();
         String qrAccountName = java.util.Objects.toString(systemSettingService.getSetting("payment.qrAccountName", ""), "").trim();
@@ -112,12 +132,17 @@ public class StoreStaffController {
         return "staff/pos";
     }
 
+    /**
+     * Màn hình quản lý phiếu giữ hàng tại chi nhánh.
+     * Cung cấp danh sách các phiếu giữ HELD còn hiệu lực và thông tin mã QR chuyển khoản.
+     */
     @GetMapping("/reservations")
     public String reservations(Model model, Authentication authentication) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         if (user.getStore() == null) throw new IllegalStateException("Tài khoản nhân viên cửa hàng chưa được gán chi nhánh.");
         model.addAttribute("store", user.getStore());
         model.addAttribute("reservations", reservationService.staffReservations(user.getStore().getId()));
+        // Lấy thông tin tài khoản nhận tiền để tạo mã QR VietQR tự động khi khách chọn thanh toán Chuyển khoản
         String qrBankCode = java.util.Objects.toString(systemSettingService.getSetting("payment.qrBankCode", ""), "").trim();
         String qrAccountNumber = java.util.Objects.toString(systemSettingService.getSetting("payment.qrAccountNumber", ""), "").trim();
         String qrAccountName = java.util.Objects.toString(systemSettingService.getSetting("payment.qrAccountName", ""), "").trim();
@@ -131,6 +156,10 @@ public class StoreStaffController {
         return "staff/reservations";
     }
 
+    /**
+     * Xác nhận giao hàng cho khách từ phiếu giữ hàng.
+     * Tiêu thụ lượng giữ, trừ tồn kho, tạo giao dịch bán tại quầy và chuyển tiếp đến biên nhận hóa đơn.
+     */
     @PostMapping("/reservations/{reservationId}/pickup")
     public String pickupReservation(@PathVariable Long reservationId,
                                     @RequestParam(defaultValue = "CASH") String paymentMethod,
@@ -150,6 +179,9 @@ public class StoreStaffController {
         return "redirect:/staff/reservations";
     }
 
+    /**
+     * Hủy phiếu giữ hàng theo yêu cầu nhân viên và hoàn trả tồn kho chi nhánh.
+     */
     @PostMapping("/reservations/{reservationId}/cancel")
     public String cancelReservation(@PathVariable Long reservationId, Authentication authentication) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
@@ -158,6 +190,9 @@ public class StoreStaffController {
         return "redirect:/staff/reservations";
     }
 
+    /**
+     * Xem chi tiết biên nhận hóa đơn bán lẻ đã xuất tại chi nhánh.
+     */
     @GetMapping("/invoices/{invoiceId}")
     public String invoice(@PathVariable Long invoiceId, Model model, Authentication authentication) {
         var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
@@ -168,6 +203,10 @@ public class StoreStaffController {
         return "staff/invoice";
     }
 
+    /**
+     * API thực hiện bán hàng tại quầy (POS).
+     * Hỗ trợ bán cho khách lẻ (không đổi điểm) hoặc thành viên (được đổi điểm tích lũy với tỷ lệ 1 điểm = 100 đ).
+     */
     @PostMapping("/sales")
     @ResponseBody
     public org.springframework.http.ResponseEntity<?> sell(@RequestBody(required = false) SaleRequest request,

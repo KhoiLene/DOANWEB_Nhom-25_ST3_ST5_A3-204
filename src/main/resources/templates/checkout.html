@@ -251,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pickupRadios = document.querySelectorAll('input[name="fulfillmentType"]');
   const redeemPointsField = document.getElementById('redeemPoints');
   const formatMoney = amount => new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+  // Tính toán lại giá trị thanh toán khi khách bật/tắt hoặc nhập số điểm đổi (1 điểm = 100 đ)
   function updateQuote() {
     const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
     const shipping = pickup ? 0 : Number(document.getElementById('asideShipping').dataset.deliveryShipping || 0);
@@ -322,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const usePointsCheckbox = document.getElementById('usePointsCheckbox');
   const redeemPointsInputGroup = document.getElementById('redeemPointsInputGroup');
   const useMaxPointsBtn = document.getElementById('useMaxPointsBtn');
+  // Bật/tắt ô nhập điểm và áp dụng số điểm tối đa khả dụng khi người dùng tích chọn
   if (usePointsCheckbox) {
     usePointsCheckbox.addEventListener('change', () => {
       if (usePointsCheckbox.checked) {
