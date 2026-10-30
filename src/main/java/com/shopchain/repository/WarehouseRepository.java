@@ -11,6 +11,7 @@ import java.util.Optional;
 
 public interface WarehouseRepository extends JpaRepository<Warehouse, Long> {
     java.util.List<Warehouse> findByActiveTrue();
+    java.util.List<Warehouse> findByNameIn(java.util.Collection<String> names);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select warehouse from Warehouse warehouse where warehouse.id = :id")

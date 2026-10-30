@@ -3,9 +3,11 @@ package com.shopchain.config;
 import com.shopchain.entity.Product;
 import com.shopchain.entity.ProductInventory;
 import com.shopchain.entity.Store;
+import com.shopchain.entity.Warehouse;
 import com.shopchain.repository.ProductInventoryRepository;
 import com.shopchain.repository.ProductRepository;
 import com.shopchain.repository.StoreRepository;
+import com.shopchain.repository.WarehouseRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -22,7 +24,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** Adds clearly labelled, idempotent branch data for the local demo catalog. */
+/** Adds clearly labelled, idempotent branch and warehouse data for the demo catalog. */
 @Component
 @Order(20)
 public class DemoStoreInitializer implements CommandLineRunner {
@@ -30,13 +32,16 @@ public class DemoStoreInitializer implements CommandLineRunner {
     private static final int INITIAL_DEMO_STOCK = 5;
 
     private final StoreRepository storeRepository;
+    private final WarehouseRepository warehouseRepository;
     private final ProductRepository productRepository;
     private final ProductInventoryRepository inventoryRepository;
 
     public DemoStoreInitializer(StoreRepository storeRepository,
+                                WarehouseRepository warehouseRepository,
                                 ProductRepository productRepository,
                                 ProductInventoryRepository inventoryRepository) {
         this.storeRepository = storeRepository;
+        this.warehouseRepository = warehouseRepository;
         this.productRepository = productRepository;
         this.inventoryRepository = inventoryRepository;
     }
@@ -78,6 +83,42 @@ public class DemoStoreInitializer implements CommandLineRunner {
             demoStores.add(store);
         }
         seedInventory(demoStores, demoProducts);
+        seedWarehouses(demoProducts);
+    }
+
+    private void seedWarehouses(List<Product> products) {
+        List<WarehouseSeed> seeds = List.of(
+                new WarehouseSeed("Kho demo Techtra - Thủ Đức", "Khu vực Thủ Đức, Thành phố Hồ Chí Minh",
+                        10.8505, 106.7717),
+                new WarehouseSeed("Kho demo Techtra - Hà Nội", "Khu vực Hoàn Kiếm, Thành phố Hà Nội",
+                        21.0285, 105.8542)
+        );
+        List<String> names = seeds.stream().map(WarehouseSeed::name).toList();
+        Map<String, Warehouse> existing = warehouseRepository.findByNameIn(names).stream()
+                .collect(Collectors.toMap(warehouse -> key(warehouse.getName()), Function.identity(),
+                        (first, ignored) -> first));
+        List<Warehouse> demoWarehouses = new ArrayList<>(seeds.size());
+        for (WarehouseSeed seed : seeds) {
+            Warehouse warehouse = existing.get(key(seed.name()));
+            if (warehouse == null) {
+                warehouse = warehouseRepository.save(Warehouse.builder()
+                        .name(seed.name()).address(seed.address()).latitude(seed.latitude())
+                        .longitude(seed.longitude()).active(true).build());
+                existing.put(key(seed.name()), warehouse);
+            }
+            demoWarehouses.add(warehouse);
+        }
+
+        for (Warehouse warehouse : demoWarehouses) {
+            Set<Long> existingProductIds = inventoryRepository.findByWarehouseId(warehouse.getId()).stream()
+                    .map(inventory -> inventory.getProduct().getId()).collect(Collectors.toSet());
+            List<ProductInventory> missing = products.stream()
+                    .filter(product -> !existingProductIds.contains(product.getId()))
+                    .map(product -> ProductInventory.builder().product(product).warehouse(warehouse)
+                            .price(product.getPrice()).stockQuantity(INITIAL_DEMO_STOCK * 4).build())
+                    .toList();
+            if (!missing.isEmpty()) inventoryRepository.saveAll(missing);
+        }
     }
 
     private void seedInventory(List<Store> stores, List<Product> products) {
@@ -160,4 +201,6 @@ public class DemoStoreInitializer implements CommandLineRunner {
 
     private record StoreSeed(String name, String address, String city, String district,
                              double latitude, double longitude) { }
+
+    private record WarehouseSeed(String name, String address, double latitude, double longitude) { }
 }

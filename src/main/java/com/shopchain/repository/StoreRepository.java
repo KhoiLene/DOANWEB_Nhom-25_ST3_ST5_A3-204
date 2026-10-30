@@ -16,6 +16,7 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
     Optional<Store> findForUpdateById(@Param("id") Long id);
 
     java.util.List<Store> findByActiveTrueAndPickupEnabledTrue();
+    java.util.List<Store> findByActiveTrue();
     java.util.List<Store> findByActiveTrueAndPickupEnabledTrueAndLatitudeIsNotNullAndLongitudeIsNotNull();
     java.util.List<Store> findByNameIn(Collection<String> names);
 }

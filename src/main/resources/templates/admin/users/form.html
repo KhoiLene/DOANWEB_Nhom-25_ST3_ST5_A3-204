@@ -4,6 +4,7 @@
             <h3 style="margin: 0;">Chỉnh sửa thông tin người dùng</h3>
         </div>
         <div class="card__body">
+            <div th:if="${error}" style="padding:12px 16px;margin-bottom:16px;border-radius:10px;background:#fef2f2;color:#b91c1c" role="alert" th:text="${error}"></div>
             <form th:action="@{/admin/users/save}" method="post">
                 <input type="hidden" name="id" th:value="${user.id}">
 

@@ -79,9 +79,9 @@ Started WebApplication in XX.XXX seconds
 
 ## 🔐 Tài khoản và dữ liệu database
 
-Ứng dụng tạo schema, vai trò, sản phẩm demo, chi nhánh và dữ liệu hướng dẫn khi khởi động. Các tài khoản đã đăng ký, mật khẩu đã mã hóa, đơn hàng và thay đổi quản trị được lưu trong volume PostgreSQL trên từng máy; chúng không tự đi theo Git khi clone hoặc pull.
+Ứng dụng tạo schema, vai trò, sản phẩm demo, chi nhánh, hai kho demo cùng tồn kho mẫu và dữ liệu hướng dẫn khi khởi động. Dữ liệu mẫu chỉ bổ sung kho/tồn còn thiếu và không ghi đè tồn hiện có. Các tài khoản đã đăng ký, mật khẩu đã mã hóa, đơn hàng và thay đổi quản trị được lưu trong volume PostgreSQL trên từng máy; chúng không tự đi theo Git khi clone hoặc pull.
 
-Để tạo admin mới trên máy local, cấu hình `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_EMAIL` và `BOOTSTRAP_ADMIN_PASSWORD` trong biến môi trường của cấu hình Run trong IntelliJ rồi khởi động ứng dụng. Mật khẩu phải dài ít nhất 12 ký tự. Không lưu mật khẩu admin vào GitHub. Khách hàng có thể đăng ký tại `/register`; các role nhân viên cần được tạo/gán quyền từ tài khoản admin.
+Để tạo admin mới trên máy local, cấu hình `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_EMAIL` và `BOOTSTRAP_ADMIN_PASSWORD` trong biến môi trường của cấu hình Run trong IntelliJ rồi khởi động ứng dụng. Mật khẩu phải dài ít nhất 12 ký tự. Không lưu mật khẩu admin vào GitHub. Khách hàng có thể đăng ký tại `/register`. Admin vào **Người dùng → Thêm nhân viên** để tạo tài khoản nhân viên cửa hàng hoặc nhân viên kho, chọn địa điểm đang hoạt động và đặt mật khẩu khởi tạo tối thiểu 12 ký tự. Mật khẩu được mã hóa BCrypt; không gửi thông tin đăng nhập qua kênh công khai.
 
 ### Sao chép nguyên dữ liệu sang máy khác
 

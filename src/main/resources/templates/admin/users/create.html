@@ -1,0 +1,94 @@
+<div th:fragment="create">
+    <div class="card">
+        <div class="card__header" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <div>
+                <h3 style="margin:0">Tạo tài khoản nhân sự</h3>
+                <p style="margin:6px 0 0;color:#64748b">Tạo tài khoản đăng nhập cho nhân viên cửa hàng hoặc nhân viên kho.</p>
+            </div>
+            <a th:href="@{/admin/users}" class="btn btn-outline"><i class="fa-solid fa-arrow-left"></i> Danh sách tài khoản</a>
+        </div>
+        <div class="card__body">
+            <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+            <form th:action="@{/admin/users/create}" method="post" autocomplete="off">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+                    <div class="form-group">
+                        <label class="form-label" for="fullName">Họ và tên *</label>
+                        <input id="fullName" name="fullName" class="form-control" maxlength="120" required th:value="${form.fullName}" autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Số điện thoại</label>
+                        <input id="phone" name="phone" class="form-control" maxlength="30" th:value="${form.phone}" autocomplete="tel">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="username">Tên đăng nhập *</label>
+                        <input id="username" name="username" class="form-control" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]+" required th:value="${form.username}" autocomplete="username">
+                        <small style="color:#64748b">3–40 ký tự: chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang.</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email *</label>
+                        <input id="email" type="email" name="email" class="form-control" maxlength="160" required th:value="${form.email}" autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password">Mật khẩu khởi tạo *</label>
+                        <input id="password" type="password" name="password" class="form-control" minlength="12" maxlength="72" required autocomplete="new-password">
+                        <small style="color:#64748b">Ít nhất 12 ký tự. Mật khẩu được mã hóa trước khi lưu.</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="roleId">Vai trò *</label>
+                        <select id="roleId" name="roleId" class="form-control" required>
+                            <option value="">-- Chọn loại nhân viên --</option>
+                            <option th:each="role : ${roles}" th:value="${role.id}" th:text="${role.name == 'ROLE_STORE_STAFF' ? 'Nhân viên cửa hàng' : 'Nhân viên kho'}"
+                                    th:attr="data-role=${role.name}" th:selected="${selectedRoleId != null and selectedRoleId == #strings.toString(role.id)}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="storeField" hidden>
+                        <label class="form-label" for="storeId">Chi nhánh phụ trách *</label>
+                        <select id="storeId" name="storeId" class="form-control">
+                            <option value="">-- Chọn chi nhánh đang hoạt động --</option>
+                            <option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name}"
+                                    th:selected="${form.storeId == #strings.toString(store.id)}"></option>
+                        </select>
+                        <small style="color:#64748b" th:if="${#lists.isEmpty(stores)}">Chưa có chi nhánh hoạt động. Hãy tạo hoặc bật chi nhánh trước.</small>
+                    </div>
+                    <div class="form-group" id="warehouseField" hidden>
+                        <label class="form-label" for="warehouseId">Kho phụ trách *</label>
+                        <select id="warehouseId" name="warehouseId" class="form-control">
+                            <option value="">-- Chọn kho đang hoạt động --</option>
+                            <option th:each="warehouse : ${warehouses}" th:value="${warehouse.id}" th:text="${warehouse.name}"
+                                    th:selected="${form.warehouseId == #strings.toString(warehouse.id)}"></option>
+                        </select>
+                        <small style="color:#64748b" th:if="${#lists.isEmpty(warehouses)}">Chưa có kho hoạt động. Hãy tạo hoặc bật kho trước.</small>
+                    </div>
+                </div>
+                <div style="margin:16px 0;padding:14px 16px;border-radius:12px;background:#eff6ff;color:#1e3a8a">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Tài khoản được kích hoạt ngay sau khi tạo. Chỉ chia sẻ mật khẩu khởi tạo với nhân viên qua kênh an toàn.
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+                    <a th:href="@{/admin/users}" class="btn btn-outline">Hủy</a>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Tạo tài khoản</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        (() => {
+            const roleSelect = document.getElementById('roleId');
+            const storeField = document.getElementById('storeField');
+            const warehouseField = document.getElementById('warehouseField');
+            const storeSelect = document.getElementById('storeId');
+            const warehouseSelect = document.getElementById('warehouseId');
+            const syncFields = () => {
+                const role = roleSelect.options[roleSelect.selectedIndex]?.dataset.role;
+                const isStoreStaff = role === 'ROLE_STORE_STAFF';
+                const isWarehouseStaff = role === 'ROLE_WAREHOUSE';
+                storeField.hidden = !isStoreStaff;
+                warehouseField.hidden = !isWarehouseStaff;
+                storeSelect.required = isStoreStaff;
+                warehouseSelect.required = isWarehouseStaff;
+            };
+            roleSelect.addEventListener('change', syncFields);
+            syncFields();
+        })();
+    </script>
+</div>
