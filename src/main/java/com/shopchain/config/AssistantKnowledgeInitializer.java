@@ -4,9 +4,7 @@ import com.shopchain.entity.AssistantKnowledgeSource;
 import com.shopchain.entity.SystemSetting;
 import com.shopchain.repository.AssistantKnowledgeSourceRepository;
 import com.shopchain.repository.SystemSettingRepository;
-import com.shopchain.service.AssistantKnowledgeChangedEvent;
 import com.shopchain.service.AssistantKnowledgeVectorIndexService;
-import org.springframework.context.ApplicationEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -48,14 +46,11 @@ public class AssistantKnowledgeInitializer implements CommandLineRunner {
 
     private final AssistantKnowledgeSourceRepository repository;
     private final SystemSettingRepository settingRepository;
-    private final ApplicationEventPublisher eventPublisher;
 
     public AssistantKnowledgeInitializer(AssistantKnowledgeSourceRepository repository,
-                                         SystemSettingRepository settingRepository,
-                                         ApplicationEventPublisher eventPublisher) {
+                                         SystemSettingRepository settingRepository) {
         this.repository = repository;
         this.settingRepository = settingRepository;
-        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -171,7 +166,6 @@ public class AssistantKnowledgeInitializer implements CommandLineRunner {
             source.setEmbeddingDimensions(null);
             source = repository.save(source);
         }
-        eventPublisher.publishEvent(new AssistantKnowledgeChangedEvent(source.getId(), false));
     }
 
     private String sourceKey(String roleKey, String title) {

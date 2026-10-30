@@ -33,6 +33,7 @@ class NeonDataSourceConfiguration {
         dataSource.setMaximumPoolSize(environment.getProperty("spring.datasource.hikari.maximum-pool-size", Integer.class, 5));
         dataSource.setMinimumIdle(environment.getProperty("spring.datasource.hikari.minimum-idle", Integer.class, 1));
         dataSource.setMaxLifetime(environment.getProperty("spring.datasource.hikari.max-lifetime", Long.class, 120_000L));
+        dataSource.setKeepaliveTime(0L);
         dataSource.setIdleTimeout(environment.getProperty("spring.datasource.hikari.idle-timeout", Long.class, 60_000L));
         dataSource.setConnectionTimeout(environment.getProperty("spring.datasource.hikari.connection-timeout", Long.class, 20_000L));
         dataSource.setValidationTimeout(environment.getProperty("spring.datasource.hikari.validation-timeout", Long.class, 3_000L));
