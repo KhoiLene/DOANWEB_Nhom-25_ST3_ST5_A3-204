@@ -4,6 +4,8 @@ import com.shopchain.entity.AssistantKnowledgeSource;
 import com.shopchain.entity.Product;
 import com.shopchain.repository.AssistantKnowledgeSourceRepository;
 import com.shopchain.repository.ProductRepository;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -12,6 +14,8 @@ import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -25,6 +29,7 @@ import java.time.format.DateTimeFormatter;
 
 @Service
 public class RoleAssistantService {
+    private static final Logger log = LoggerFactory.getLogger(RoleAssistantService.class);
     private static final Map<String, String> ROLE_NAMES = Map.of(
             "customer", "khách hàng",
             "store-staff", "nhân viên cửa hàng",
@@ -341,8 +346,27 @@ public class RoleAssistantService {
         } catch (GeminiApiClient.GeminiApiException exception) {
             throw exception;
         } catch (RuntimeException exception) {
+            Status.Code qdrantStatus = qdrantStatus(exception);
+            if (qdrantStatus != null) {
+                log.warn("Gemini RAG vector search failed with Qdrant gRPC status {}.", qdrantStatus);
+                if (qdrantStatus == Status.Code.NOT_FOUND) return List.of();
+            } else {
+                log.warn("Gemini RAG vector search failed ({}).", exception.getClass().getSimpleName());
+            }
             throw new GeminiApiClient.GeminiApiException("Không truy xuất được Gemini RAG từ Qdrant.");
         }
+    }
+
+    private Status.Code qdrantStatus(Throwable exception) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof StatusRuntimeException statusException) {
+                return statusException.getStatus().getCode();
+            }
+            if (current.getCause() == current) break;
+            current = current.getCause();
+        }
+        return null;
     }
 
     private boolean indexedForCurrentGemini(AssistantKnowledgeSource source) {

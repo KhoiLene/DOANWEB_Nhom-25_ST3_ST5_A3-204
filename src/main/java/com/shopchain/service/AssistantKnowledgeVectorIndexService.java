@@ -95,9 +95,19 @@ public class AssistantKnowledgeVectorIndexService {
     }
 
     public ReindexSummary reindexPending() {
-        return reindexSources(repository.findAllByOrderByRoleKeyAscUpdatedAtDesc().stream()
-                .filter(source -> source.isActive() && isStale(source))
-                .toList());
+        List<AssistantKnowledgeSource> activeSources = repository.findAllByOrderByRoleKeyAscUpdatedAtDesc().stream()
+                .filter(AssistantKnowledgeSource::isActive)
+                .toList();
+
+        // The SQL records can still say INDEXED after a Qdrant cluster has been recreated or cleared.
+        // In that case the vector collection is the source of truth: rebuild it from the active SQL corpus.
+        if (!activeSources.isEmpty() && Boolean.FALSE.equals(collectionExists())) {
+            log.warn("Qdrant collection '{}' is missing; rebuilding {} active Gemini knowledge sources.",
+                    collectionName, activeSources.size());
+            return reindexSources(activeSources);
+        }
+
+        return reindexSources(activeSources.stream().filter(this::isStale).toList());
     }
 
     private boolean isStale(AssistantKnowledgeSource source) {
@@ -278,15 +288,9 @@ public class AssistantKnowledgeVectorIndexService {
         return host == null || host.isBlank() || "localhost".equalsIgnoreCase(host.trim()) || "127.0.0.1".equals(host.trim());
     }
 
-    private void ensureCollectionExists(VectorStore vectorStore) {
+    private synchronized void ensureCollectionExists(VectorStore vectorStore) {
         if (collectionInitialized) return;
-        QdrantClient client = qdrantClientProvider != null ? qdrantClientProvider.getIfAvailable() : null;
-        if (client == null) {
-            Optional<QdrantClient> nativeClient = vectorStore.getNativeClient();
-            if (nativeClient.isPresent()) {
-                client = nativeClient.get();
-            }
-        }
+        QdrantClient client = qdrantClient(vectorStore);
         if (client == null) return;
         try {
             Boolean exists = client.collectionExistsAsync(collectionName).get(5, TimeUnit.SECONDS);
@@ -307,6 +311,40 @@ public class AssistantKnowledgeVectorIndexService {
         } catch (TimeoutException e) {
             throw new IllegalStateException("Timed out communicating with Qdrant.", e);
         }
+    }
+
+    /** Returns null when Qdrant cannot be checked, so a transient outage won't trigger a costly full re-embed. */
+    private Boolean collectionExists() {
+        if (!enabled || !gemini.isConfigured() || (isProduction() && isLocalhost(qdrantHost))) return null;
+        VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
+        if (vectorStore == null) return null;
+        QdrantClient client = qdrantClient(vectorStore);
+        if (client == null) return null;
+        try {
+            return client.collectionExistsAsync(collectionName).get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while checking Qdrant collection availability.");
+            return null;
+        } catch (ExecutionException | TimeoutException | RuntimeException exception) {
+            log.warn("Could not check Qdrant collection availability ({}).", rootCause(exception).getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    private QdrantClient qdrantClient(VectorStore vectorStore) {
+        QdrantClient client = qdrantClientProvider != null ? qdrantClientProvider.getIfAvailable() : null;
+        if (client == null && vectorStore != null) {
+            Optional<QdrantClient> nativeClient = vectorStore.getNativeClient();
+            if (nativeClient.isPresent()) client = nativeClient.get();
+        }
+        return client;
+    }
+
+    private Throwable rootCause(Throwable exception) {
+        Throwable current = exception;
+        while (current.getCause() != null && current.getCause() != current) current = current.getCause();
+        return current;
     }
 
     public record ReindexSummary(int total, int indexed, int pending, int failed, int disabled) { }
