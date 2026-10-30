@@ -70,6 +70,7 @@ public class RoleAssistantService {
     private final ProductRepository productRepository;
     private final ObjectProvider<VectorStore> vectorStoreProvider;
     private final GeminiApiClient gemini;
+    private final AssistantKnowledgeVectorIndexService vectorIndexService;
     private final boolean vectorEnabled;
     private final int topK;
     private final double similarityThreshold;
@@ -85,7 +86,8 @@ public class RoleAssistantService {
                                 @Value("${assistant.rag.top-k:6}") int topK,
                                 @Value("${assistant.rag.similarity-threshold:0.35}") double similarityThreshold,
                                 @Value("${spring.ai.vectorstore.qdrant.host:${QDRANT_HOST:localhost}}") String qdrantHost,
-                                @Value("${spring.profiles.active:}") String activeProfiles) {
+                                @Value("${spring.profiles.active:}") String activeProfiles,
+                                AssistantKnowledgeVectorIndexService vectorIndexService) {
         this.repository = repository;
         this.productRepository = productRepository;
         this.vectorStoreProvider = vectorStoreProvider;
@@ -95,6 +97,7 @@ public class RoleAssistantService {
         this.similarityThreshold = Math.max(0, Math.min(similarityThreshold, 1));
         this.qdrantHost = qdrantHost;
         this.activeProfiles = activeProfiles;
+        this.vectorIndexService = vectorIndexService;
     }
 
     public RoleAssistantService(AssistantKnowledgeSourceRepository repository,
@@ -104,7 +107,8 @@ public class RoleAssistantService {
                                 boolean vectorEnabled,
                                 int topK,
                                 double similarityThreshold) {
-        this(repository, productRepository, vectorStoreProvider, gemini, vectorEnabled, topK, similarityThreshold, "localhost", "");
+        this(repository, productRepository, vectorStoreProvider, gemini, vectorEnabled, topK, similarityThreshold,
+                "localhost", "", null);
     }
 
     private boolean isProduction() {
@@ -349,7 +353,10 @@ public class RoleAssistantService {
             Status.Code qdrantStatus = qdrantStatus(exception);
             if (qdrantStatus != null) {
                 log.warn("Gemini RAG vector search failed with Qdrant gRPC status {}.", qdrantStatus);
-                if (qdrantStatus == Status.Code.NOT_FOUND) return List.of();
+                if (qdrantStatus == Status.Code.NOT_FOUND) {
+                    if (vectorIndexService != null) vectorIndexService.recoverMissingCollection();
+                    return List.of();
+                }
             } else {
                 log.warn("Gemini RAG vector search failed ({}).", exception.getClass().getSimpleName());
             }

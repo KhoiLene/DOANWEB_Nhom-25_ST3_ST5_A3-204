@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,9 +21,23 @@ public class AssistantKnowledgeVectorBootstrap {
     @Async("knowledgeIndexExecutor")
     @EventListener(ApplicationReadyEvent.class)
     public void indexPendingSources() {
-        var summary = indexService.reindexPending();
+        report(indexService.reindexPending(), "Gemini knowledge index bootstrap");
+    }
+
+    /**
+     * Qdrant Cloud can be reachable only after the application has finished starting.
+     * Retry the lightweight collection/status check so a cold start timeout does not
+     * leave the SQL index flags permanently out of sync with an empty Qdrant cluster.
+     */
+    @Scheduled(initialDelayString = "${assistant.rag.bootstrap.retry-initial-delay-ms:-1}",
+            fixedDelayString = "${assistant.rag.bootstrap.retry-delay-ms:300000}")
+    public void retryPendingSources() {
+        report(indexService.reindexPending(), "Gemini knowledge index retry");
+    }
+
+    private void report(AssistantKnowledgeVectorIndexService.ReindexSummary summary, String label) {
         if (summary.total() > 0) {
-            log.info("Gemini knowledge index bootstrap: total={}, indexed={}, pending={}, failed={}",
+            log.info("{}: total={}, indexed={}, pending={}, failed={}", label,
                     summary.total(), summary.indexed(), summary.pending(), summary.failed());
         }
     }

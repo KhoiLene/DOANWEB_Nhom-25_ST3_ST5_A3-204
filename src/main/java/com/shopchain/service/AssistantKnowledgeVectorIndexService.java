@@ -32,6 +32,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class AssistantKnowledgeVectorIndexService {
@@ -49,6 +50,7 @@ public class AssistantKnowledgeVectorIndexService {
     private final String qdrantHost;
     private final String activeProfiles;
     private volatile boolean collectionInitialized = false;
+    private final AtomicBoolean recoveryInProgress = new AtomicBoolean(false);
 
     @Autowired
     public AssistantKnowledgeVectorIndexService(AssistantKnowledgeSourceRepository repository,
@@ -95,19 +97,56 @@ public class AssistantKnowledgeVectorIndexService {
     }
 
     public ReindexSummary reindexPending() {
-        List<AssistantKnowledgeSource> activeSources = repository.findAllByOrderByRoleKeyAscUpdatedAtDesc().stream()
+        if (!recoveryInProgress.compareAndSet(false, true)) {
+            return new ReindexSummary(0, 0, 0, 0, 0);
+        }
+        try {
+            List<AssistantKnowledgeSource> activeSources = activeSources();
+
+            // SQL can still say INDEXED after a Qdrant cluster was recreated or cleared.
+            // The vector collection is authoritative in that case.
+            Boolean exists = collectionExists();
+            if (!activeSources.isEmpty() && Boolean.FALSE.equals(exists)) {
+                resetCollectionInitialization();
+                log.warn("Qdrant collection '{}' is missing; rebuilding {} active Gemini knowledge sources.",
+                        collectionName, activeSources.size());
+                return reindexSources(activeSources);
+            }
+
+            return reindexSources(activeSources.stream().filter(this::isStale).toList());
+        } finally {
+            recoveryInProgress.set(false);
+        }
+    }
+
+    /** Rebuilds the active corpus after a search confirms the collection is missing. */
+    @Async("knowledgeIndexExecutor")
+    public void recoverMissingCollection() {
+        if (!enabled || !recoveryInProgress.compareAndSet(false, true)) return;
+        try {
+            List<AssistantKnowledgeSource> sources = activeSources();
+            if (sources.isEmpty()) return;
+            resetCollectionInitialization();
+            log.warn("Qdrant collection '{}' was missing during search; rebuilding {} active Gemini knowledge sources.",
+                    collectionName, sources.size());
+            ReindexSummary summary = reindexSources(sources);
+            log.info("Gemini knowledge collection recovery: total={}, indexed={}, pending={}, failed={}",
+                    summary.total(), summary.indexed(), summary.pending(), summary.failed());
+        } catch (RuntimeException exception) {
+            log.warn("Gemini knowledge collection recovery failed ({}).", rootCause(exception).getClass().getSimpleName());
+        } finally {
+            recoveryInProgress.set(false);
+        }
+    }
+
+    private List<AssistantKnowledgeSource> activeSources() {
+        return repository.findAllByOrderByRoleKeyAscUpdatedAtDesc().stream()
                 .filter(AssistantKnowledgeSource::isActive)
                 .toList();
+    }
 
-        // The SQL records can still say INDEXED after a Qdrant cluster has been recreated or cleared.
-        // In that case the vector collection is the source of truth: rebuild it from the active SQL corpus.
-        if (!activeSources.isEmpty() && Boolean.FALSE.equals(collectionExists())) {
-            log.warn("Qdrant collection '{}' is missing; rebuilding {} active Gemini knowledge sources.",
-                    collectionName, activeSources.size());
-            return reindexSources(activeSources);
-        }
-
-        return reindexSources(activeSources.stream().filter(this::isStale).toList());
+    private synchronized void resetCollectionInitialization() {
+        collectionInitialized = false;
     }
 
     private boolean isStale(AssistantKnowledgeSource source) {
