@@ -49,7 +49,8 @@ public class NominatimGeocodingService {
         List<AddressSuggestion> results = lookup(normalized, 1, country);
         if (results.isEmpty()) throw new IllegalArgumentException("Không tìm thấy địa chỉ. Hãy nhập chi tiết hơn.");
         AddressSuggestion result = results.get(0);
-        return new GeocodedLocation(result.latitude(), result.longitude(), result.label());
+        return new GeocodedLocation(result.latitude(), result.longitude(), result.label(),
+                result.district(), result.city());
     }
 
     private String validateQuery(String query, int minLength, int maxLength) {
@@ -108,11 +109,14 @@ public class NominatimGeocodingService {
         for (PhotonFeature feature : response.features()) {
             if (feature == null || feature.geometry() == null || feature.geometry().coordinates() == null
                     || feature.geometry().coordinates().size() < 2 || feature.properties() == null) continue;
+            PhotonProperties properties = feature.properties();
             double longitude = feature.geometry().coordinates().get(0);
             double latitude = feature.geometry().coordinates().get(1);
             if (!Double.isFinite(latitude) || !Double.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) continue;
             String label = formatLabel(feature.properties());
-            if (!label.isBlank()) results.add(new AddressSuggestion(label, latitude, longitude));
+            if (!label.isBlank()) results.add(new AddressSuggestion(label, latitude, longitude,
+                    firstNonBlank(properties.district(), properties.county()),
+                    firstNonBlank(properties.city(), properties.state())));
         }
         return List.copyOf(results);
     }
@@ -137,6 +141,11 @@ public class NominatimGeocodingService {
         if (parts.stream().noneMatch(existing -> existing.equalsIgnoreCase(trimmed))) parts.add(trimmed);
     }
 
+    private String firstNonBlank(String preferred, String fallback) {
+        if (preferred != null && !preferred.isBlank()) return preferred.trim();
+        return fallback == null || fallback.isBlank() ? "" : fallback.trim();
+    }
+
     private void waitForRateLimit() {
         long remainingMillis = MIN_REQUEST_GAP.toMillis() - Duration.between(lastRequestAt, Instant.now()).toMillis();
         if (remainingMillis <= 0) return;
@@ -155,8 +164,8 @@ public class NominatimGeocodingService {
     private record PhotonProperties(String name, @JsonProperty("housenumber") String houseNumber,
                                     String street, String district, String city, String county,
                                     String state, String country) { }
-    public record AddressSuggestion(String label, double latitude, double longitude) { }
-    public record GeocodedLocation(double latitude, double longitude, String displayName) { }
+    public record AddressSuggestion(String label, double latitude, double longitude, String district, String city) { }
+    public record GeocodedLocation(double latitude, double longitude, String displayName, String district, String city) { }
 
     public static class GeocodingUnavailableException extends RuntimeException {
         public GeocodingUnavailableException(String message) { super(message); }

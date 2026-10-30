@@ -40,6 +40,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     java.math.BigDecimal sumCompletedPaidSpendForUser(@Param("userId") Long userId);
 
     List<Order> findByStoreId(Long storeId);
+    boolean existsByCustomerPhone(String customerPhone);
     List<Order> findByStoreIdAndFulfillmentWarehouseIsNullOrderByOrderDateDesc(Long storeId);
     List<Order> findByStatus(String status);
     List<Order> findByFulfillmentWarehouseIdAndStatusInOrderByOrderDateAsc(Long warehouseId, List<String> statuses);

@@ -1,27 +1,69 @@
-<div th:fragment="warehouses">
-    <div class="card">
-        <div class="card__header"><h3 th:text="${warehouse.id == null ? 'Thêm kho' : 'Chỉnh sửa kho'}">Kho</h3></div>
-        <div class="card__body">
-            <form th:action="@{/admin/locations/warehouses/save}" th:object="${warehouse}" method="post">
-                <input type="hidden" th:field="*{id}">
-                <div class="form-group"><label class="form-label">Tên kho</label><input class="form-control" th:field="*{name}" required></div>
-                <div class="form-group"><label class="form-label">Địa chỉ</label><input class="form-control" th:field="*{address}" required></div>
-                <div class="form-group"><label class="form-label">Điện thoại</label><input class="form-control" th:field="*{phone}"></div>
-                <div class="form-group"><label class="form-label">Vĩ độ</label><input class="form-control" type="number" step="any" th:field="*{latitude}"></div>
-                <div class="form-group"><label class="form-label">Kinh độ</label><input class="form-control" type="number" step="any" th:field="*{longitude}"></div>
-                <div class="form-group"><label><input type="checkbox" th:field="*{active}"> Đang hoạt động</label></div>
-                <button class="btn btn-primary" type="submit">Lưu kho</button>
-            </form>
+<div th:fragment="warehouses" class="branch-manager">
+    <section class="branch-manager__intro">
+        <div>
+            <span class="branch-manager__eyebrow">MẠNG LƯỚI KHO</span>
+            <h1>Quản lý kho</h1>
+            <p>Nhập địa chỉ, chọn gợi ý và ghim vị trí trên bản đồ. Không cần nhập tọa độ.</p>
         </div>
-    </div>
-    <div class="card"><div class="card__body"><table class="admin-table">
-        <thead><tr><th>Kho</th><th>Địa chỉ</th><th>Tọa độ</th><th>Trạng thái</th><th></th></tr></thead>
-        <tbody><tr th:each="item : ${warehouses}">
-            <td th:text="${item.name}">Kho trung tâm</td><td th:text="${item.address}">Địa chỉ</td>
-            <td th:text="${item.latitude != null ? item.latitude + ', ' + item.longitude : 'Chưa có tọa độ'}"></td>
-            <td th:text="${item.active ? 'Đang hoạt động' : 'Tạm ngưng'}"></td>
-            <td><a class="btn btn-outline" th:href="@{/admin/locations/warehouses(editId=${item.id})}">Sửa</a>
-                <form th:action="@{/admin/locations/warehouses/{id}/toggle(id=${item.id})}" method="post" style="display:inline"><button class="btn btn-outline" type="submit">Bật/tắt</button></form></td>
-        </tr><tr th:if="${#lists.isEmpty(warehouses)}"><td colspan="5">Chưa có kho. Hãy tạo ít nhất một kho rồi phân công nhân viên.</td></tr></tbody>
-    </table></div></div>
+        <a class="branch-manager__add" th:href="@{/admin/locations/warehouses}"><span aria-hidden="true">＋</span> Thêm kho</a>
+    </section>
+
+    <section class="branch-editor card" aria-label="Biểu mẫu kho">
+        <div class="branch-editor__heading">
+            <div><span class="branch-editor__step">THÔNG TIN KHO</span>
+                <h2 th:text="${warehouse.id == null ? 'Tạo kho mới' : 'Cập nhật kho'}">Tạo kho mới</h2>
+                <p>Chọn vị trí chính xác để điều phối hàng đến các chi nhánh.</p>
+            </div>
+            <a class="branch-editor__cancel" th:if="${warehouse.id != null}" th:href="@{/admin/locations/warehouses}">＋ Kho mới</a>
+        </div>
+        <div th:if="${locationError}" role="alert" style="margin:16px 24px 0;padding:12px 16px;border-radius:10px;background:#fef2f2;color:#b91c1c" th:text="${locationError}"></div>
+            <form th:action="@{/admin/locations/warehouses/save}" th:object="${warehouse}" method="post" class="branch-editor__form">
+                <input type="hidden" th:field="*{id}">
+                <input type="hidden" th:field="*{latitude}">
+                <input type="hidden" th:field="*{longitude}">
+                <div class="branch-editor__fields">
+                    <label class="branch-field"><span>Tên kho <b>*</b></span><input class="form-control" th:field="*{name}" placeholder="Ví dụ: Kho trung tâm miền Nam" required maxlength="150"></label>
+                    <label class="branch-field"><span>Số điện thoại</span><input class="form-control" th:field="*{phone}" placeholder="Số liên hệ kho" maxlength="30"></label>
+                    <div class="branch-field branch-field--wide branch-address-field">
+                        <label for="address">Địa chỉ kho <b>*</b></label>
+                        <input id="address" class="form-control" th:field="*{address}" placeholder="Gõ số nhà, tên đường, quận hoặc tỉnh/thành" autocomplete="street-address" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="locationAddressSuggestions" required maxlength="255">
+                        <div class="branch-address-suggestions" id="locationAddressSuggestions" role="listbox" hidden></div>
+                        <small>Gõ ít nhất 3 ký tự rồi chọn địa chỉ gợi ý để ghim lên bản đồ.</small>
+                    </div>
+                    <div class="branch-field branch-field--wide branch-map-tools" id="locationMapTools">
+                        <div class="branch-map-tools__heading"><div><span class="branch-editor__step">VỊ TRÍ KHO</span><h3>Kiểm tra ghim trên bản đồ</h3>
+                            <p id="locationMapMessage" role="status" aria-live="polite">Chọn gợi ý địa chỉ để bản đồ tự định vị.</p></div>
+                            <button class="branch-map-tools__locate" type="button" id="findLocationAddress">Định vị địa chỉ</button>
+                        </div>
+                        <div class="branch-map" id="locationMap" role="region" aria-label="Bản đồ chọn vị trí kho"></div>
+                        <small class="branch-map-note">Kéo ghim để căn chỉnh vị trí thực tế; tọa độ được lưu tự động.</small>
+                    </div>
+                    <div class="branch-field branch-field--wide branch-flags">
+                        <label><input type="checkbox" th:field="*{active}"><span><strong>Kho đang hoạt động</strong><small>Kho có thể được chọn làm nguồn xử lý hàng</small></span></label>
+                    </div>
+                </div>
+                <div class="branch-editor__actions">
+                    <button class="btn btn-primary" type="submit"><span aria-hidden="true">✓</span> Lưu kho</button>
+                    <a class="branch-editor__cancel" th:if="${warehouse.id != null}" th:href="@{/admin/locations/warehouses}">Hủy chỉnh sửa</a>
+                    <span class="branch-editor__required">* Thông tin bắt buộc</span>
+                </div>
+            </form>
+    </section>
+
+    <section class="branch-directory" aria-label="Danh sách kho">
+        <div class="branch-directory__heading"><div><span class="branch-editor__step">DANH SÁCH ĐỊA ĐIỂM</span><h2>Kho trên bản đồ</h2></div>
+            <span class="branch-directory__count" th:text="${#lists.size(warehouses)} + ' kho'">0 kho</span></div>
+        <div class="branch-directory__grid" th:if="${!#lists.isEmpty(warehouses)}">
+            <article class="branch-directory__item" th:each="item : ${warehouses}"
+                     th:attr="data-map-location=${item.latitude != null and item.longitude != null},data-id=${item.id},data-lat=${item.latitude},data-lng=${item.longitude},data-name=${item.name},data-address=${item.address},data-active=${item.active}">
+                <div class="branch-directory__item-head"><span class="branch-directory__pin" aria-hidden="true">⌖</span>
+                    <span class="branch-directory__status" th:classappend="${item.active ? ' is-active' : ''}" th:text="${item.active ? 'Đang hoạt động' : 'Tạm ngưng'}">Đang hoạt động</span></div>
+                <h3 th:text="${item.name}">Kho</h3><p th:text="${item.address}">Địa chỉ</p>
+                <div class="branch-directory__meta"><span th:text="${item.latitude != null and item.longitude != null ? 'Đã ghim trên bản đồ' : 'Chưa có vị trí'}">Vị trí</span></div>
+                <div class="branch-directory__actions"><a class="branch-directory__edit" th:href="@{/admin/locations/warehouses(editId=${item.id})}">Chỉnh sửa</a>
+                    <form th:action="@{/admin/locations/warehouses/{id}/toggle(id=${item.id})}" method="post" style="display:inline"><button type="submit" th:text="${item.active ? 'Tạm ngưng' : 'Mở lại'}">Tạm ngưng</button></form></div>
+            </article>
+        </div>
+        <div class="branch-directory__empty" th:if="${#lists.isEmpty(warehouses)}"><span aria-hidden="true">⌖</span><strong>Chưa có kho nào</strong><p>Thêm kho đầu tiên bằng biểu mẫu phía trên.</p></div>
+    </section>
 </div>

@@ -79,9 +79,13 @@ Started WebApplication in XX.XXX seconds
 
 ## 🔐 Tài khoản và dữ liệu database
 
-Ứng dụng tạo schema, vai trò, sản phẩm demo, chi nhánh, hai kho demo cùng tồn kho mẫu và dữ liệu hướng dẫn khi khởi động. Dữ liệu mẫu chỉ bổ sung kho/tồn còn thiếu và không ghi đè tồn hiện có. Các tài khoản đã đăng ký, mật khẩu đã mã hóa, đơn hàng và thay đổi quản trị được lưu trong volume PostgreSQL trên từng máy; chúng không tự đi theo Git khi clone hoặc pull.
+Ứng dụng mặc định chạy profile `local` khi chạy trên máy cá nhân. Profile này tạo schema, vai trò, sản phẩm demo, chi nhánh, hai kho demo và dữ liệu luyện tập Admin gồm đơn mẫu, nhân viên mẫu cùng một chi nhánh có cảnh báo tồn thấp. Bộ dữ liệu được bổ sung theo cách idempotent, không ghi đè tồn kho đã có. Dữ liệu luyện tập Admin chỉ chạy trong profile `local`; profile `prod` đã tắt chức năng này. Các tài khoản đã đăng ký, mật khẩu đã mã hóa, đơn hàng và thay đổi quản trị được lưu trong volume PostgreSQL trên từng máy; chúng không tự đi theo Git khi clone hoặc pull.
 
 Để tạo admin mới trên máy local, cấu hình `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_EMAIL` và `BOOTSTRAP_ADMIN_PASSWORD` trong biến môi trường của cấu hình Run trong IntelliJ rồi khởi động ứng dụng. Mật khẩu phải dài ít nhất 12 ký tự. Không lưu mật khẩu admin vào GitHub. Khách hàng có thể đăng ký tại `/register`. Admin vào **Người dùng → Thêm nhân viên** để tạo tài khoản nhân viên cửa hàng hoặc nhân viên kho, chọn địa điểm đang hoạt động và đặt mật khẩu khởi tạo tối thiểu 12 ký tự. Mật khẩu được mã hóa BCrypt; không gửi thông tin đăng nhập qua kênh công khai.
+
+Để đăng nhập thử hai tài khoản nhân viên mẫu (`demo.branch.staff`, `demo.warehouse.staff`), đặt biến môi trường `DEMO_ADMIN_DATA_ACCOUNT_PASSWORD` có độ dài 12–72 byte UTF-8 trước khi chạy ứng dụng local. Nếu không đặt biến này, các tài khoản mẫu được tạo ở trạng thái khóa với mật khẩu ngẫu nhiên; Admin vẫn có thể dùng chúng để luyện xem, sửa và mở/khóa tài khoản. Đơn mẫu dùng thông tin khách và địa chỉ giả lập, không đại diện cho giao dịch thật. Khi chạy demo, Admin có thể vào **Trung tâm vận hành** để duyệt điều chuyển từ kho sang chi nhánh luyện tập.
+
+Ở **Chi nhánh** và **Kho**, Admin chỉ cần gõ địa chỉ, chọn gợi ý để bản đồ tự ghim, rồi kéo ghim để căn đúng vị trí. Tọa độ được lưu tự động ở trường ẩn; không cần nhập vĩ độ/kinh độ.
 
 ### Sao chép nguyên dữ liệu sang máy khác
 

@@ -10,10 +10,11 @@
     <link rel="stylesheet" th:if="${activePage == 'dashboard'}" th:href="@{/css/control-tower.css}">
     <link rel="stylesheet" th:href="@{/css/assistant-widget.css}">
     <link rel="stylesheet" th:href="@{/css/theme.css}">
-    <link rel="preconnect" th:if="${activePage == 'stores'}" href="https://tiles.openfreemap.org" crossorigin>
-    <link rel="stylesheet" th:if="${activePage == 'stores'}" href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
-    <link rel="stylesheet" th:if="${activePage == 'stores'}" th:href="@{/css/admin/branch-management.css}">
-    <script defer th:if="${activePage == 'stores'}" th:src="@{/js/nominatim-client.js}"></script>
+    <link rel="preconnect" th:if="${activePage == 'stores' or activePage == 'warehouses'}" href="https://tiles.openfreemap.org" crossorigin>
+    <link rel="stylesheet" th:if="${activePage == 'stores' or activePage == 'warehouses'}" href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
+    <link rel="stylesheet" th:if="${activePage == 'stores' or activePage == 'warehouses'}" th:href="@{/css/admin/branch-management.css}">
+    <script defer th:if="${activePage == 'stores' or activePage == 'warehouses'}" th:src="@{/js/nominatim-client.js}"></script>
+    <script defer th:if="${activePage == 'stores' or activePage == 'warehouses'}" th:src="@{/js/admin-location-map.js}"></script>
     <script defer th:src="@{/js/assistant-widget.js}"></script>
     <script defer th:src="@{/js/theme-toggle.js}"></script>
 </head>
