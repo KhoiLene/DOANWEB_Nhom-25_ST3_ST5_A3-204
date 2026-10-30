@@ -42,8 +42,6 @@ services:
         value: "false"
       - key: SPRING_THYMELEAF_CACHE
         value: "true"
-      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: update
       - key: BOOTSTRAP_ADMIN_USERNAME
         sync: false
       - key: BOOTSTRAP_ADMIN_EMAIL

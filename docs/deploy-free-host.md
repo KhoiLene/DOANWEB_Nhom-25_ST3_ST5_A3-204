@@ -35,7 +35,7 @@ Spring imports `.env.local` when present. It accepts Neon's standard `DATABASE_U
 
 The app uses the direct Neon connection URL by default with a small Hikari pool, suitable for this long-running Spring Boot service. Do not commit `.env.local` or paste connection secrets into GitHub.
 
-The application creates its tables and inserts demo catalog, branch, and knowledge-guide data at startup. The bootstrap admin account is created only when all three `BOOTSTRAP_ADMIN_*` values are set and no matching username/email already exists.
+For an existing production database, Hibernate schema auto-update is disabled so every restart does not repeat the slow schema inspection. The idempotent `schema.sql` patch and compatibility migration still run. For a brand-new empty database only, set `SPRING_JPA_HIBERNATE_DDL_AUTO=update` for the initial deployment to create tables, then remove that variable (or set it to `none`) after the first successful startup. The application inserts demo catalog, branch, and knowledge-guide data at startup. The bootstrap admin account is created only when all three `BOOTSTRAP_ADMIN_*` values are set and no matching username/email already exists.
 
 ## 2. Create the vector database
 
