@@ -35,7 +35,9 @@ Spring imports `.env.local` when present. It accepts Neon's standard `DATABASE_U
 
 The app uses the direct Neon connection URL by default with a small Hikari pool, suitable for this long-running Spring Boot service. Do not commit `.env.local` or paste connection secrets into GitHub.
 
-For an existing production database, Hibernate schema auto-update is disabled so every restart does not repeat the slow schema inspection. The idempotent `schema.sql` patch and compatibility migration still run. For a brand-new empty database only, set `SPRING_JPA_HIBERNATE_DDL_AUTO=update` for the initial deployment to create tables, then remove that variable (or set it to `none`) after the first successful startup. The application inserts demo catalog, branch, and knowledge-guide data at startup. The bootstrap admin account is created only when all three `BOOTSTRAP_ADMIN_*` values are set and no matching username/email already exists.
+For an existing production database, Hibernate schema auto-update and the additive `schema.sql` patch are disabled by default so each restart does not repeat schema work. The compatibility migration still performs its targeted backfills and checks. For a brand-new empty database, set both `SPRING_JPA_HIBERNATE_DDL_AUTO=update` and `SPRING_SQL_INIT_MODE=always` for the initial deployment to create and patch tables, then remove both variables (or set them to `none`) after the first successful startup. For a later schema release that specifically needs `schema.sql`, set `SPRING_SQL_INIT_MODE=always` for that deployment and remove it afterward. The application inserts demo catalog, branch, and knowledge-guide data at startup. The bootstrap admin account is created only when all three `BOOTSTRAP_ADMIN_*` values are set and no matching username/email already exists.
+
+Qdrant's client version handshake is disabled because the application does not need it to use the configured collection; ordinary Qdrant operations still authenticate and fail visibly if the service is unavailable. This avoids waiting on an optional startup probe when the Qdrant Cloud endpoint is slow or unreachable.
 
 ## 2. Create the vector database
 
