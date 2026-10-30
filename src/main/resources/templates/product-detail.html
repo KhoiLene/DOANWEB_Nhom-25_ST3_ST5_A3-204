@@ -31,9 +31,12 @@
 
       <!-- ─── GALLERY ───────────────────────────────────────────────────── -->
       <div class="gallery">
-        <div class="main-image-box" id="mainImageBox" role="img" th:aria-label="${product.name}">
-          <img id="mainImage" th:src="${product.imageUrl}" th:alt="${product.name}" draggable="false">
+        <div class="main-image-box" id="mainImageBox" role="img" th:aria-label="${product.name}" style="position:relative; overflow:hidden; cursor:zoom-in;">
+          <img id="mainImage" th:src="${product.imageUrl}" th:alt="${product.name}" draggable="false" style="transform-origin: center center; will-change: transform;">
           <video id="mainVideo" controls style="display:none;"></video>
+          <div class="zoom-badge" id="zoomBadge" style="position:absolute; bottom:12px; right:12px; background:rgba(15,23,42,0.7); color:#ffffff; font-size:12px; padding:5px 12px; border-radius:20px; pointer-events:none; backdrop-filter:blur(4px); display:flex; align-items:center; gap:6px; transition:opacity 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+            <i class="fa-solid fa-magnifying-glass-plus"></i> Rê chuột để phóng to
+          </div>
           <button class="gallery-arrow gallery-arrow-left" id="galleryPrev" type="button" aria-label="Ảnh trước">&#8249;</button>
           <button class="gallery-arrow gallery-arrow-right" id="galleryNext" type="button" aria-label="Ảnh tiếp">&#8250;</button>
         </div>
@@ -50,8 +53,8 @@
 
         <!-- ─── TABS ──────────────────────────────────────────────────── -->
         <div class="tabs" role="tablist">
-          <button class="tab-btn active" data-tab="mota" role="tab" aria-selected="true" type="button">Mô tả</button>
-          <button class="tab-btn" data-tab="danhgia" role="tab" aria-selected="false" type="button">Đánh giá</button>
+          <button class="tab-btn active" data-tab="mota" id="tabMotaBtn" role="tab" aria-selected="true" type="button">Mô tả</button>
+          <button class="tab-btn" data-tab="danhgia" id="tabDanhgiaBtn" role="tab" aria-selected="false" type="button">Đánh giá</button>
         </div>
 
         <!-- Mô tả tab -->
@@ -68,64 +71,56 @@
         <div class="tab-content" id="tabDanhgia" role="tabpanel" style="display:none;">
           <div class="review-summary">
               <div class="summary-score">
-                  <span class="score-value" th:text="${#numbers.formatDecimal(avgRating, 1, 1)}">0.0</span>
-                  <div class="stars-display">
+                  <span class="score-value" id="avgRatingScore" th:text="${#numbers.formatDecimal(avgRating, 1, 1)}">0.0</span>
+                  <div class="stars-display" id="avgRatingStars">
                       <i class="fas fa-star" th:each="i : ${#numbers.sequence(1, 5)}" th:classappend="${i > avgRating} ? 'fa-regular' : 'fa-solid'"></i>
                   </div>
-                  <span class="total-reviews" th:text="${'(' + reviewCount + ' đánh giá)'}">(0 đánh giá)</span>
+                  <span class="total-reviews" id="totalReviewsCount" th:text="${'(' + reviewCount + ' đánh giá)'}">(0 đánh giá)</span>
               </div>
           </div>
 
           <div id="reviewFormWrapper">
             <button class="btn-outline" id="toggleReviewForm" type="button"
-              style="margin: 4px 0 14px; max-width: 280px;">
+              style="margin: 4px 0 14px; max-width: 280px; display:inline-flex; align-items:center; gap:8px;">
               <i class="fas fa-pen"></i> Viết đánh giá của bạn
             </button>
 
-            <div class="review-form" id="reviewForm" style="display:none;">
-              <h3>Đánh giá của bạn</h3>
-
-              <!-- Xác thực SĐT -->
-              <div class="form-row" id="phoneVerifyRow">
-                <label>Số điện thoại <span class="required">*</span></label>
-                <div class="otp-row">
-                  <input type="tel" id="reviewerPhone" placeholder="Nhập SĐT để xác thực" maxlength="15" />
-                  <button type="button" id="sendReviewOtpBtn" class="btn-mini">Gửi mã</button>
-                  <span id="phoneReviewVerifiedBadge" class="otp-badge" hidden>✓ Đã xác thực</span>
-                </div>
-                <div class="otp-input-wrap" id="reviewOtpWrap" hidden>
-                  <input type="text" id="reviewOtpCode" maxlength="6" placeholder="Mã 6 số" inputmode="numeric" />
-                  <button type="button" id="verifyReviewOtpBtn" class="btn-mini">Xác nhận</button>
-                  <small id="reviewOtpHint" class="otp-hint">Mã có hiệu lực 5 phút.</small>
-                </div>
-              </div>
+            <div class="review-form" id="reviewForm" style="display:none; transition: all 0.3s ease;">
+              <h3 style="margin-top:0; font-size:1.1rem; color:#1e293b;"><i class="fa-solid fa-pen-to-square" style="color:#2563eb;"></i> Đánh giá của bạn</h3>
 
               <!-- Tên người dùng -->
               <div class="form-row">
-                <label for="reviewerName">Tên hiển thị</label>
-                <input type="text" id="reviewerName" placeholder="Nhập tên hiển thị..." maxlength="80">
+                <label for="reviewerName">Tên hiển thị <span style="color:#ef4444">*</span></label>
+                <input type="text" id="reviewerName" placeholder="Nhập tên hiển thị của bạn..." maxlength="80"
+                       th:value="${#authentication != null and #authentication.name != null and #authentication.name != 'anonymousUser' ? #authentication.name : ''}">
               </div>
 
               <!-- Interactive star picker -->
               <div class="form-row">
-                <label>Điểm của bạn</label>
-                <div id="starPicker" aria-label="Chọn số sao" role="group"></div>
-                <!-- Hidden select giữ giá trị để submit -->
-                <select id="reviewRating" style="display:none;" aria-hidden="true">
-                  <option value="5">5</option>
-                  <option value="4">4</option>
-                  <option value="3">3</option>
-                  <option value="2">2</option>
-                  <option value="1">1</option>
-                </select>
+                <label>Đánh giá chất lượng sản phẩm <span style="color:#ef4444">*</span></label>
+                <div id="starPicker" aria-label="Chọn số sao" role="group" style="display:flex; align-items:center; gap:6px; font-size:26px; color:#cbd5e1; user-select:none;">
+                  <i class="fa-solid fa-star star-pick lit" data-val="1" style="cursor:pointer; color:#fbbf24;"></i>
+                  <i class="fa-solid fa-star star-pick lit" data-val="2" style="cursor:pointer; color:#fbbf24;"></i>
+                  <i class="fa-solid fa-star star-pick lit" data-val="3" style="cursor:pointer; color:#fbbf24;"></i>
+                  <i class="fa-solid fa-star star-pick lit" data-val="4" style="cursor:pointer; color:#fbbf24;"></i>
+                  <i class="fa-solid fa-star star-pick lit" data-val="5" style="cursor:pointer; color:#fbbf24;"></i>
+                  <span id="starPickerLabel" style="font-size:14px; color:#d97706; margin-left:10px; font-weight:600;">5 sao - Tuyệt vời</span>
+                </div>
+                <input type="hidden" id="reviewRating" value="5" />
               </div>
 
               <div class="form-row">
-                <label for="reviewText">Bình luận</label>
-                <textarea id="reviewText" rows="4" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."></textarea>
+                <label for="reviewText">Nội dung đánh giá <span style="color:#ef4444">*</span></label>
+                <textarea id="reviewText" rows="4" placeholder="Chia sẻ cảm nhận chi tiết của bạn về chất lượng sản phẩm, hiệu quả sử dụng..."></textarea>
               </div>
 
-              <button class="btn-primary" id="submitReview" type="button">Gửi đánh giá</button>
+              <div id="reviewFormError" style="display:none; color:#dc2626; background:#fef2f2; border:1px solid #fecaca; padding:8px 12px; border-radius:8px; font-size:13px; margin-bottom:12px;"></div>
+              <div id="reviewFormSuccess" style="display:none; color:#16a34a; background:#f0fdf4; border:1px solid #bbf7d0; padding:8px 12px; border-radius:8px; font-size:13px; margin-bottom:12px;"></div>
+
+              <div style="display:flex; gap:10px; align-items:center;">
+                <button class="btn-primary" id="submitReview" type="button" style="padding:10px 24px; border-radius:8px; font-weight:600;">Gửi đánh giá</button>
+                <button class="btn-outline" id="cancelReview" type="button" style="padding:10px 16px; border-radius:8px;">Đóng</button>
+              </div>
             </div>
           </div>
 
@@ -140,7 +135,7 @@
                 </div>
                 <p class="review-comment" th:text="${review.comment}">Nội dung đánh giá</p>
             </div>
-            <p th:if="${#lists.isEmpty(reviews)}" class="empty-note">Chưa có đánh giá nào cho sản phẩm này.</p>
+            <p th:if="${#lists.isEmpty(reviews)}" class="empty-note" id="noReviewsNote">Chưa có đánh giá nào cho sản phẩm này.</p>
           </div>
         </div>
       </div><!-- /.gallery -->
@@ -150,7 +145,7 @@
         <h1 id="productName" th:text="${product.name}"></h1>
 
         <div class="rating-row">
-          <span class="stars" id="ratingStars">
+          <span class="stars" id="ratingStars" style="cursor:pointer;" title="Nhấn để xem đánh giá">
               <i class="fas fa-star" th:each="i : ${#numbers.sequence(1, 5)}" th:classappend="${i > avgRating} ? 'fa-regular' : 'fa-solid'"></i>
           </span>
           <span class="sku" id="productSku" th:text="'SKU: ' + ${product.id}">SKU: 000</span>
@@ -246,6 +241,46 @@
 
   </main><!-- /#productWrapper -->
 
+  <!-- ─── MODAL CHIA SẺ SẢN PHẨM ───────────────────────────────────── -->
+  <div id="shareModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.5); backdrop-filter:blur(3px); align-items:center; justify-content:center;">
+    <div style="background:#ffffff; padding:24px; border-radius:16px; max-width:440px; width:92%; box-shadow:0 20px 40px rgba(0,0,0,0.18); position:relative;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
+        <h3 style="margin:0; font-size:1.15rem; color:#1e293b; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-share-nodes" style="color:#2563eb;"></i> Chia sẻ sản phẩm
+        </h3>
+        <button type="button" id="closeShareModal" style="background:none; border:none; font-size:1.5rem; line-height:1; cursor:pointer; color:#64748b; padding:0 4px;">&times;</button>
+      </div>
+      <p style="font-size:0.88rem; color:#64748b; margin-bottom:14px; line-height:1.4;" th:text="${product.name}">Tên sản phẩm</p>
+      
+      <!-- Social buttons row -->
+      <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:18px;">
+        <button type="button" class="social-share-btn" id="shareFacebook" style="display:flex; flex-direction:column; align-items:center; gap:6px; background:#f0f5ff; border:1px solid #dbeafe; padding:12px 6px; border-radius:12px; cursor:pointer; color:#1877f2; font-size:0.78rem; font-weight:600;">
+          <i class="fa-brands fa-facebook" style="font-size:24px;"></i> Facebook
+        </button>
+        <button type="button" class="social-share-btn" id="shareZalo" style="display:flex; flex-direction:column; align-items:center; gap:6px; background:#f0f9ff; border:1px solid #e0f2fe; padding:12px 6px; border-radius:12px; cursor:pointer; color:#0068ff; font-size:0.78rem; font-weight:600;">
+          <i class="fa-solid fa-comment-dots" style="font-size:24px;"></i> Zalo
+        </button>
+        <button type="button" class="social-share-btn" id="shareTelegram" style="display:flex; flex-direction:column; align-items:center; gap:6px; background:#f0fdf4; border:1px solid #dcfce7; padding:12px 6px; border-radius:12px; cursor:pointer; color:#0284c7; font-size:0.78rem; font-weight:600;">
+          <i class="fa-brands fa-telegram" style="font-size:24px;"></i> Telegram
+        </button>
+        <button type="button" class="social-share-btn" id="shareTwitter" style="display:flex; flex-direction:column; align-items:center; gap:6px; background:#fafafa; border:1px solid #f4f4f5; padding:12px 6px; border-radius:12px; cursor:pointer; color:#0f172a; font-size:0.78rem; font-weight:600;">
+          <i class="fa-brands fa-x-twitter" style="font-size:24px;"></i> Twitter
+        </button>
+      </div>
+
+      <!-- Copy Link box -->
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="shareUrlInput" readonly style="flex:1; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.85rem; background:#f8fafc; color:#334155;" />
+        <button type="button" id="copyShareUrlBtn" class="btn btn-primary" style="padding:9px 16px; border-radius:8px; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+          <i class="fa-regular fa-copy"></i> Sao chép
+        </button>
+      </div>
+      <div id="copySuccessMsg" style="display:none; color:#16a34a; font-size:0.82rem; margin-top:8px; text-align:center; font-weight:500;">
+        <i class="fa-solid fa-check"></i> Đã sao chép liên kết vào bộ nhớ tạm!
+      </div>
+    </div>
+  </div>
+
   <!-- ─── LIGHTBOX ─────────────────────────────────────────────────── -->
   <div id="lightboxOverlay" role="dialog" aria-modal="true" aria-label="Xem ảnh lớn">
     <button id="lightboxClose" class="lightbox-btn" type="button" aria-label="Đóng">✕</button>
@@ -277,7 +312,6 @@
   <!-- FOOTER -->
   <div th:replace="~{fragments/footer :: footer}"></div>
 
-  <!-- Minimal JS for Gallery and Cart -->
   <script>
     function updateMainImage(el) {
         const img = el.querySelector('img').src;
@@ -287,7 +321,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Tab switching logic
+        // --- Tab switching logic ---
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -297,7 +331,351 @@
             });
         });
 
-        // Quantity controls
+        // Click stars under title to jump to review tab
+        const ratingStarsHeader = document.getElementById('ratingStars');
+        if (ratingStarsHeader) {
+          ratingStarsHeader.addEventListener('click', () => {
+            const reviewTabBtn = document.getElementById('tabDanhgiaBtn');
+            if (reviewTabBtn) {
+              reviewTabBtn.click();
+              reviewTabBtn.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+        }
+
+        // --- 1. Phóng to ảnh sản phẩm khi rê chuột vào (Image Zoom on Hover) ---
+        const mainImageBox = document.getElementById('mainImageBox');
+        const mainImage = document.getElementById('mainImage');
+        const zoomBadge = document.getElementById('zoomBadge');
+
+        if (mainImageBox && mainImage) {
+          let isHovering = false;
+
+          mainImageBox.addEventListener('mouseenter', () => {
+            isHovering = true;
+            mainImage.style.transition = 'transform 0.12s ease-out';
+            if (zoomBadge) zoomBadge.style.opacity = '0';
+          });
+
+          mainImageBox.addEventListener('mousemove', (e) => {
+            if (!isHovering) return;
+            const rect = mainImageBox.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            mainImage.style.transformOrigin = `${x}% ${y}%`;
+            mainImage.style.transform = 'scale(2.2)';
+          });
+
+          mainImageBox.addEventListener('mouseleave', () => {
+            isHovering = false;
+            mainImage.style.transition = 'transform 0.35s ease';
+            mainImage.style.transformOrigin = 'center center';
+            mainImage.style.transform = 'scale(1)';
+            if (zoomBadge) zoomBadge.style.opacity = '1';
+          });
+
+          // Lightbox click support
+          mainImage.addEventListener('click', () => {
+            const lightbox = document.getElementById('lightboxOverlay');
+            const lightboxImg = document.getElementById('lightboxImg');
+            if (lightbox && lightboxImg) {
+              lightboxImg.src = mainImage.src;
+              lightbox.classList.add('open');
+            }
+          });
+        }
+
+        // Lightbox close support
+        const lightboxClose = document.getElementById('lightboxClose');
+        const lightboxOverlay = document.getElementById('lightboxOverlay');
+        if (lightboxClose && lightboxOverlay) {
+          lightboxClose.onclick = () => lightboxOverlay.classList.remove('open');
+          lightboxOverlay.onclick = (e) => {
+            if (e.target === lightboxOverlay) lightboxOverlay.classList.remove('open');
+          };
+        }
+
+        // Toast helper
+        function showToast(msg, type = 'success') {
+          const container = document.getElementById('toastContainer');
+          if (!container) return;
+          const toast = document.createElement('div');
+          toast.className = `toast toast-${type}`;
+          toast.innerHTML = `<span class="toast-icon"><i class="fa-solid fa-circle-check" style="color:#16a34a"></i></span><span class="toast-msg">${msg}</span>`;
+          container.appendChild(toast);
+          setTimeout(() => toast.classList.add('show'), 10);
+          setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+          }, 3200);
+        }
+
+        // --- 2. Chức năng chia sẻ sản phẩm (Share Product) ---
+        const shareBtn = document.getElementById('shareBtn');
+        const shareModal = document.getElementById('shareModal');
+        const closeShareModal = document.getElementById('closeShareModal');
+        const shareUrlInput = document.getElementById('shareUrlInput');
+        const copyShareUrlBtn = document.getElementById('copyShareUrlBtn');
+        const copySuccessMsg = document.getElementById('copySuccessMsg');
+
+        if (shareBtn) {
+          shareBtn.addEventListener('click', async () => {
+            const productTitle = document.getElementById('productName')?.textContent?.trim() || document.title;
+            const shareUrl = window.location.href;
+
+            if (navigator.share) {
+              try {
+                await navigator.share({
+                  title: productTitle,
+                  text: 'Xem sản phẩm ' + productTitle + ' tại Techtra Beauty',
+                  url: shareUrl
+                });
+                return;
+              } catch (err) {
+                if (err.name === 'AbortError') return;
+              }
+            }
+
+            if (shareModal) {
+              if (shareUrlInput) shareUrlInput.value = shareUrl;
+              if (copySuccessMsg) copySuccessMsg.style.display = 'none';
+              shareModal.style.display = 'flex';
+
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                  if (copySuccessMsg) copySuccessMsg.style.display = 'block';
+                  showToast('Đã sao chép liên kết sản phẩm vào bộ nhớ tạm!');
+                }).catch(() => {});
+              }
+            }
+          });
+        }
+
+        if (closeShareModal && shareModal) {
+          closeShareModal.addEventListener('click', () => {
+            shareModal.style.display = 'none';
+          });
+        }
+        if (shareModal) {
+          shareModal.addEventListener('click', (e) => {
+            if (e.target === shareModal) shareModal.style.display = 'none';
+          });
+        }
+
+        if (copyShareUrlBtn) {
+          copyShareUrlBtn.addEventListener('click', () => {
+            const url = shareUrlInput?.value || window.location.href;
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(url).then(() => {
+                if (copySuccessMsg) copySuccessMsg.style.display = 'block';
+                showToast('Đã sao chép liên kết vào bộ nhớ tạm!');
+              });
+            }
+          });
+        }
+
+        // Social sharing shortcuts
+        const shareFb = document.getElementById('shareFacebook');
+        const shareZl = document.getElementById('shareZalo');
+        const shareTg = document.getElementById('shareTelegram');
+        const shareTw = document.getElementById('shareTwitter');
+
+        if (shareFb) {
+          shareFb.addEventListener('click', () => {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=500');
+          });
+        }
+        if (shareZl) {
+          shareZl.addEventListener('click', () => {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://zalo.me/share?url=${url}`, '_blank', 'width=600,height=500');
+          });
+        }
+        if (shareTg) {
+          shareTg.addEventListener('click', () => {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(document.getElementById('productName')?.textContent?.trim() || '');
+            window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank', 'width=600,height=500');
+          });
+        }
+        if (shareTw) {
+          shareTw.addEventListener('click', () => {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(document.getElementById('productName')?.textContent?.trim() || '');
+            window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=500');
+          });
+        }
+
+        // --- 3. Chức năng viết đánh giá sản phẩm (Write Review) ---
+        const toggleReviewFormBtn = document.getElementById('toggleReviewForm');
+        const reviewForm = document.getElementById('reviewForm');
+        const cancelReviewBtn = document.getElementById('cancelReview');
+        const submitReviewBtn = document.getElementById('submitReview');
+        const starPicker = document.getElementById('starPicker');
+        const reviewRatingInput = document.getElementById('reviewRating');
+        const starPickerLabel = document.getElementById('starPickerLabel');
+        const reviewFormError = document.getElementById('reviewFormError');
+        const reviewFormSuccess = document.getElementById('reviewFormSuccess');
+
+        const starLabels = {
+          1: '1 sao - Rất tệ',
+          2: '2 sao - Chưa hài lòng',
+          3: '3 sao - Bình thường',
+          4: '4 sao - Hài lòng',
+          5: '5 sao - Tuyệt vời'
+        };
+
+        if (toggleReviewFormBtn && reviewForm) {
+          toggleReviewFormBtn.addEventListener('click', () => {
+            const isVisible = reviewForm.style.display !== 'none';
+            reviewForm.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) {
+              document.getElementById('reviewerName')?.focus();
+            }
+          });
+        }
+
+        if (cancelReviewBtn && reviewForm) {
+          cancelReviewBtn.addEventListener('click', () => {
+            reviewForm.style.display = 'none';
+            if (reviewFormError) reviewFormError.style.display = 'none';
+            if (reviewFormSuccess) reviewFormSuccess.style.display = 'none';
+          });
+        }
+
+        // Star Picker interaction
+        if (starPicker) {
+          const stars = starPicker.querySelectorAll('.star-pick');
+          let selectedRating = 5;
+
+          const updateStarsDisplay = (rating) => {
+            stars.forEach(star => {
+              const val = parseInt(star.dataset.val, 10);
+              if (val <= rating) {
+                star.classList.add('lit');
+                star.style.color = '#fbbf24';
+              } else {
+                star.classList.remove('lit');
+                star.style.color = '#cbd5e1';
+              }
+            });
+            if (starPickerLabel) {
+              starPickerLabel.textContent = starLabels[rating] || `${rating} sao`;
+            }
+          };
+
+          stars.forEach(star => {
+            star.addEventListener('mouseenter', () => {
+              const val = parseInt(star.dataset.val, 10);
+              updateStarsDisplay(val);
+            });
+
+            star.addEventListener('click', () => {
+              selectedRating = parseInt(star.dataset.val, 10);
+              if (reviewRatingInput) reviewRatingInput.value = selectedRating;
+              updateStarsDisplay(selectedRating);
+            });
+          });
+
+          starPicker.addEventListener('mouseleave', () => {
+            updateStarsDisplay(selectedRating);
+          });
+        }
+
+        // Submit review
+        if (submitReviewBtn) {
+          submitReviewBtn.addEventListener('click', async () => {
+            if (reviewFormError) reviewFormError.style.display = 'none';
+            if (reviewFormSuccess) reviewFormSuccess.style.display = 'none';
+
+            const reviewerName = document.getElementById('reviewerName')?.value?.trim();
+            const rating = parseInt(reviewRatingInput?.value || '5', 10);
+            const comment = document.getElementById('reviewText')?.value?.trim();
+            const productId = [[${product.id}]];
+
+            if (!reviewerName) {
+              if (reviewFormError) {
+                reviewFormError.textContent = 'Vui lòng nhập tên hiển thị của bạn.';
+                reviewFormError.style.display = 'block';
+              }
+              document.getElementById('reviewerName')?.focus();
+              return;
+            }
+
+            if (!comment) {
+              if (reviewFormError) {
+                reviewFormError.textContent = 'Vui lòng nhập nội dung đánh giá sản phẩm.';
+                reviewFormError.style.display = 'block';
+              }
+              document.getElementById('reviewText')?.focus();
+              return;
+            }
+
+            submitReviewBtn.disabled = true;
+            submitReviewBtn.textContent = 'Đang gửi…';
+
+            try {
+              const response = await fetch('/api/reviews/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ productId, rating, comment, reviewerName })
+              });
+
+              const result = await response.json();
+              if (!response.ok) {
+                throw new Error(result.error || 'Chưa thể gửi đánh giá.');
+              }
+
+              if (reviewFormSuccess) {
+                reviewFormSuccess.textContent = result.message || 'Gửi đánh giá thành công!';
+                reviewFormSuccess.style.display = 'block';
+              }
+              showToast('Cảm ơn bạn đã gửi đánh giá sản phẩm!');
+
+              // Append review to list
+              const reviewList = document.getElementById('reviewList');
+              const noReviewsNote = document.getElementById('noReviewsNote');
+              if (noReviewsNote) noReviewsNote.style.display = 'none';
+
+              if (reviewList) {
+                const newReviewEl = document.createElement('div');
+                newReviewEl.className = 'review-item';
+                let starsHtml = '';
+                for (let i = 1; i <= 5; i++) {
+                  starsHtml += `<i class="fas fa-star ${i <= rating ? 'fa-solid' : 'fa-regular'}" style="color:#fbbf24"></i> `;
+                }
+                const createdDate = result.review?.createdAt || new Date().toLocaleDateString('vi-VN');
+                newReviewEl.innerHTML = `
+                  <div class="review-header">
+                      <div class="review-stars">${starsHtml}</div>
+                      <span class="review-author" style="font-weight:600; color:#1e293b;">${reviewerName}</span>
+                      <span class="review-date" style="color:#94a3b8; font-size:12px;">${createdDate}</span>
+                  </div>
+                  <p class="review-comment" style="margin:8px 0 0; color:#334155; line-height:1.6;">${comment}</p>
+                `;
+                reviewList.prepend(newReviewEl);
+              }
+
+              document.getElementById('reviewText').value = '';
+              setTimeout(() => {
+                if (reviewForm) reviewForm.style.display = 'none';
+                if (reviewFormSuccess) reviewFormSuccess.style.display = 'none';
+              }, 2000);
+
+            } catch (err) {
+              if (reviewFormError) {
+                reviewFormError.textContent = err.message || 'Có lỗi xảy ra khi gửi đánh giá.';
+                reviewFormError.style.display = 'block';
+              }
+            } finally {
+              submitReviewBtn.disabled = false;
+              submitReviewBtn.textContent = 'Gửi đánh giá';
+            }
+          });
+        }
+
+        // --- Quantity controls ---
         let qty = 1;
         const qtyVal = document.getElementById('qtyValue');
         document.getElementById('qtyMinus').onclick = () => { if(qty > 1) { qty--; qtyVal.innerText = qty; } };
@@ -310,6 +688,7 @@
         document.getElementById('btnBuyNow').onclick = buyNow;
         document.getElementById('stickyBuyNow').onclick = buyNow;
 
+        // --- Branch reservation ---
         const reservationSelect = document.getElementById('reservationStore');
         const reservationMessage = document.getElementById('reservationMessage');
         const reserveButton = document.getElementById('reserveAtStore');
