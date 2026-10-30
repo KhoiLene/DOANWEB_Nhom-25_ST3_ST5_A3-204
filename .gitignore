@@ -35,3 +35,5 @@ build/
 
 ### VS Code ###
 .vscode/
+.neon
+node_modules/

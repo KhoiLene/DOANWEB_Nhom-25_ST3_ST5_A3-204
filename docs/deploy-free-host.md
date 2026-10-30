@@ -10,15 +10,30 @@ This project can run as a public demo on Render Free, with Neon Free for Postgre
 - Gemini API usage is governed by the Google AI Studio quota for the selected key and model. A free hosting plan does not make Gemini usage unlimited.
 - This arrangement is for a demo. Free services can sleep, restart, enforce quotas, or change their limits. Do not use it for real customer orders or sensitive data without backups and a production review.
 
+## Local development with Neon
+
+This repository is a Java 17 Spring Boot project built with Maven; it has no `npm run build` script. After installing the Neon CLI and linking the project branch, pull the database connection settings and start the app:
+
+```powershell
+neon env pull --service postgres
+.\mvnw.cmd spring-boot:run
+```
+
+Spring imports `.env.local` when present. It accepts Neon's standard `DATABASE_URL` format and converts it to JDBC. If `SPRING_DATASOURCE_URL` and the split username/password variables are also set, those take precedence for compatibility with existing hosting configurations. `.env.local` is ignored by Git.
+
 ## 1. Create the PostgreSQL database
 
 1. Create a free project in Neon and a database for the application.
 2. Copy the connection details from Neon's dashboard.
-3. In Render, set `SPRING_DATASOURCE_URL` to a JDBC URL in this shape:
+3. For local runs, the Neon CLI can pull `DATABASE_URL` into `.env.local`. The app imports this ignored file and converts Neon's standard PostgreSQL URL to the JDBC form Spring Boot needs. For Render, either set the same `DATABASE_URL` secret or continue using the existing split variables. If both are set, `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` take precedence.
+
+   If setting the split variables, use a JDBC URL in this shape:
 
    `jdbc:postgresql://HOST/DB_NAME?sslmode=require`
 
 4. Set `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD` to the separate Neon database username and password.
+
+The app uses the direct Neon connection URL by default with a small Hikari pool, suitable for this long-running Spring Boot service. Do not commit `.env.local` or paste connection secrets into GitHub.
 
 The application creates its tables and inserts demo catalog, branch, and knowledge-guide data at startup. The bootstrap admin account is created only when all three `BOOTSTRAP_ADMIN_*` values are set and no matching username/email already exists.
 
