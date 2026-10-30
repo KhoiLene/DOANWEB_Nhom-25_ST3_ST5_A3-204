@@ -482,6 +482,15 @@ public class WebController {
         }
     }
 
+    @GetMapping("/reset-password")
+    public String resetPassword(@RequestParam(required = false) String email, Model model) {
+        if (email != null && !email.isBlank()) {
+            model.addAttribute("email", email.trim());
+        }
+        model.addAttribute("message", "Nhập mã xác minh OTP 6 số đã được gửi đến email và đặt mật khẩu mới.");
+        return "forgot-password-success";
+    }
+
     @GetMapping("/about")
     public String about(Model model) {
         model.addAttribute("aboutContent", aboutService.getAboutContent().orElse("Chào mừng bạn đến với Techtra."));
@@ -636,23 +645,6 @@ public class WebController {
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
             return "register";
-        }
-    }
-
-    @GetMapping("/forgot-password")
-    public String forgotPassword() {
-        return "forgot-password";
-    }
-
-    @PostMapping("/forgot-password-process")
-    public String forgotPasswordProcess(@RequestParam String email, Model model) {
-        try {
-            String message = authService.forgotPassword(email);
-            model.addAttribute("message", message);
-            return "forgot-password-success";
-        } catch (Exception e) {
-            model.addAttribute("error", e.getMessage());
-            return "forgot-password";
         }
     }
 

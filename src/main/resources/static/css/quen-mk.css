@@ -1,6 +1,5 @@
 /* TECHTRA — Quên mật khẩu
- * Style riêng cho form quên mật khẩu (kế thừa auth.css)
+ * Style cho form quên mật khẩu (kế thừa auth.css và auth-polish.css)
  */
-@import url('/components/dang-nhap/auth.css');
-
-/* Custom class nếu cần */
+@import url('auth.css');
+@import url('auth-polish.css');
