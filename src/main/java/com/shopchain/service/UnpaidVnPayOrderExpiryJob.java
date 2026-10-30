@@ -27,7 +27,7 @@ public class UnpaidVnPayOrderExpiryJob {
             try {
                 orderService.expireUnpaidVnPayOrder(orderId, now);
             } catch (RuntimeException exception) {
-                log.warn("Could not expire unpaid VNPay order {} in this scan", orderId, exception);
+                log.warn("Could not expire unpaid online payment order {} in this scan", orderId, exception);
             }
         }
     }

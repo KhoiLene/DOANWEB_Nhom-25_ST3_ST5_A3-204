@@ -31,10 +31,11 @@ Nếu bấm xong mà có lỗi, không bấm liên tiếp nhiều lần. Kiểm 
 
 1. Mở **Đơn hàng & tồn kho**.
 2. Xem người nhận, địa chỉ, sản phẩm, trạng thái và chỉ xử lý đơn của chi nhánh được giao.
-3. Đơn `PENDING`: kiểm tra nội dung và khả năng xử lý, rồi bấm **Nhận xử lý**.
-4. Đơn `PROCESSING`: khi đã chuẩn bị để bàn giao, bấm **Bàn giao giao hàng**.
-5. Đơn `SHIPPING`: sau khi giao xong theo quy trình, bấm **Xác nhận giao**.
-6. Kiểm tra trạng thái mới sau từng bước. Không bỏ qua trạng thái, tự chuyển sang kho hoặc xác nhận giao khi hàng chưa được giao.
+3. Đơn `PENDING` thanh toán COD: kiểm tra nội dung và khả năng xử lý; dùng thao tác được hiển thị để nhận xử lý.
+4. Đơn chuyển khoản `PENDING` và `UNPAID`: mở hàng đợi chuyển khoản, đối chiếu giao dịch ngân hàng rồi mới bấm **Xác nhận đã nhận tiền**. Đơn sang `CONFIRMED`; sau đó nhận xử lý theo nút hiện trên đơn để sang `PROCESSING`.
+5. Đơn `PROCESSING`: khi đã chuẩn bị để bàn giao, bấm **Bàn giao giao hàng**.
+6. Đơn `SHIPPING`: chỉ bấm **Xác nhận giao** sau khi giao hàng hoàn tất hoặc khách đã nhận theo đúng hình thức.
+7. Kiểm tra trạng thái mới sau từng bước. Dùng đúng thao tác được giao diện cho phép; không bỏ qua bước hoặc xác nhận khi nghiệp vụ chưa hoàn tất.
 
 Đơn thuộc kho trung tâm được nhân viên kho xử lý, không xuất hiện trong danh sách đơn của cửa hàng. Nếu đơn sai chi nhánh hoặc thông tin thiếu, báo quản lý/admin; không sửa dữ liệu ngoài màn hình được cấp.
 
@@ -46,20 +47,30 @@ Nếu bấm xong mà có lỗi, không bấm liên tiếp nhiều lần. Kiểm 
 4. Sau đó kiểm tra bảng tồn kho chi nhánh để xác nhận số lượng được cập nhật.
 5. Nếu thiếu, hư hỏng hoặc sai sản phẩm, không xác nhận thay cho số lượng thực nhận; ghi nhận theo quy trình nội bộ và báo kho/quản lý.
 
-## 5. Xem tồn và lịch sử
+## 5. Giao phiếu giữ hàng
+
+1. Mở tab **Giữ hàng** và kiểm tra phiếu còn hiệu lực, đúng khách, đúng chi nhánh và đủ hàng đang giữ.
+2. Chọn phương thức thanh toán. Nếu khách chọn chuyển khoản, cho khách quét QR và dùng nội dung/mã phiếu đúng như màn hình.
+3. Với chuyển khoản, tự đối chiếu giao dịch thực tế. QR không xác nhận ngân hàng tự động; chỉ đánh dấu đã kiểm tra khi tiền đã vào tài khoản.
+4. Bấm **Giao hàng & xuất biên nhận** sau khi hoàn tất đối chiếu thanh toán.
+5. Kiểm tra biên nhận liên kết với đúng khách, thu ngân và chi nhánh.
+
+Không đưa hàng từ phiếu giữ vào giỏ POS lần nữa. Luồng giao phiếu đã ghi nhận giao dịch và tiêu thụ lượng hàng giữ; bán lại sẽ tạo giao dịch/trừ tồn lần hai. Phiếu hết hạn, đã hủy hoặc đã nhận không được xử lý nhận lại.
+
+## 6. Xem tồn và lịch sử
 
 Trang chi nhánh cho biết sản phẩm, SKU, tồn hiện tại, lịch sử biến động và phiếu điều chuyển. Tồn hiển thị là thông tin tại thời điểm tải trang, nên làm mới trước giao dịch lớn. Không cam kết tồn cho khách nếu chưa xác nhận trên hệ thống.
 
-## 6. Biên nhận và bảo vệ thông tin
+## 7. Biên nhận và bảo vệ thông tin
 
 - POS tạo biên nhận sau khi giao dịch được chấp nhận; hóa đơn trực tuyến được phát hành khi đơn đã ghi nhận thanh toán.
 - Chỉ xuất biên nhận cho đúng giao dịch. Kiểm tra đúng số tiền, phương thức và chi nhánh trước khi lưu/gửi.
 - Không gửi danh sách khách hàng, số điện thoại hoặc đơn hàng vào nhóm chat công khai.
 - Chatbot chỉ hướng dẫn thao tác; chatbot không tự bán hàng, không thay đổi trạng thái hay xác nhận thanh toán.
 
-## 7. Khuyến mãi và câu hỏi ngoài chức năng hiện có
+## 8. Khuyến mãi và câu hỏi ngoài chức năng hiện có
 
-Ở phiên bản hiện tại, chưa có màn hình admin cấu hình chương trình khuyến mãi. Nhân viên không thể tự tạo mã, sửa mức giảm, điều kiện, thời gian hoặc cộng điểm từ POS. Khi khách hỏi về ưu đãi, kiểm tra thông tin đang hiển thị trên website/tài khoản và hỏi quản lý nếu chưa rõ; không tự hứa mức giảm hoặc quyền lợi.
+Admin có thể cấu hình ưu đãi theo sản phẩm trong biểu mẫu **Sản phẩm**, gồm mức giảm, tên chương trình, đối tượng ALL/VIP và thời gian áp dụng. Không hướng dẫn tạo mã hoặc chương trình nhiều sản phẩm riêng nếu màn hình không có. Nhân viên cần kiểm tra giá cuối trên website/POS và không hứa mức giảm, thời hạn hay quyền lợi ngoài nội dung đang hiển thị.
 
 ## Câu hỏi mẫu
 
@@ -67,3 +78,5 @@ Trang chi nhánh cho biết sản phẩm, SKU, tồn hiện tại, lịch sử b
 - Tại sao tôi không thấy một đơn giao từ kho?
 - Khi nào xác nhận đã nhận phiếu điều chuyển?
 - Tôi làm gì nếu tồn trên màn hình thấp hơn số hàng khách muốn mua?
+- Khách báo chuyển khoản nhưng chưa thấy tiền vào thì xử lý thế nào?
+- Vì sao không được bán lại sản phẩm từ phiếu giữ trong POS?

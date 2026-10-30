@@ -18,6 +18,9 @@
     .order-success__payment button{padding:12px 18px;border:0;border-radius:10px;background:#2563eb;color:#fff;font:700 15px 'Plus Jakarta Sans',sans-serif;cursor:pointer}
     .order-success__payment button:disabled{opacity:.65;cursor:wait}
     .order-success__payment-message{min-height:1.5em;margin-top:10px!important;color:#a83228}
+    .order-success__qr{display:block;width:min(280px,100%);margin:14px auto;border:1px solid #dbe4f0;border-radius:12px;background:#fff}
+    .order-success__bank{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;text-align:left;margin:14px auto;max-width:420px;font-size:.95rem}
+    .order-success__bank strong{text-align:right;overflow-wrap:anywhere}
     .order-success__actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:24px}
     .order-success__actions a{padding:11px 16px;border-radius:9px;background:#2563eb;color:#fff;font-weight:700}
     .order-success__actions a.secondary{border:1px solid #dbe4f0;background:#fff;color:#2563eb}
@@ -30,36 +33,84 @@
     <h1>Đơn hàng đã được ghi nhận</h1>
     <p>Techtra Beauty đã nhận được đơn hàng của bạn. Bạn có thể theo dõi trạng thái trong tài khoản; điểm thưởng sẽ được cộng khi thanh toán thành công.</p>
     <div class="order-success__number" th:if="${orderId != null}" th:text="${'Mã đơn hàng: #' + orderId}">Mã đơn hàng</div>
-    <section class="order-success__payment" th:if="${canPayWithVnPay}">
-      <p th:if="${paymentFailed}" role="alert">Giao dịch chưa hoàn tất. Bạn có thể thử thanh toán lại.</p>
-      <p>Đơn hàng đang chờ thanh toán. Nhấn nút để mở trang VNPay và quét mã QR bằng ứng dụng ngân hàng hoặc Ví VNPAY.</p>
-      <button id="vnpayQrButton" type="button" th:data-order-id="${orderId}"><i class="fa-solid fa-qrcode"></i> Mở mã QR thanh toán VNPay</button>
-      <p id="vnpayPaymentMessage" class="order-success__payment-message" role="status" aria-live="polite"></p>
+    <section class="order-success__payment" th:if="${orderId != null}" id="orderLiveStatus" th:attr="data-order-id=${orderId}" aria-live="polite">
+      <strong>Trạng thái đơn hàng</strong><p id="orderLiveStatusText">Đang chờ cập nhật…</p>
+      <p id="orderPickupEta" hidden></p><a id="orderReceiptLink" hidden></a>
     </section>
-    <p th:if="${orderPaymentStatus == 'PAID'}" role="status">VNPay đã xác nhận thanh toán thành công.</p>
+    <section class="order-success__payment" th:if="${canPayWithVietQr}">
+      <h2>Thanh toán bằng VietQR</h2>
+      <p>Quét mã bằng ứng dụng ngân hàng và chuyển đúng số tiền bên dưới. Nhân viên sẽ kiểm tra giao dịch và xác nhận thủ công; hệ thống không tự xác minh với ngân hàng.</p>
+      <img class="order-success__qr" th:if="${vietQrConfigured}" th:src="${vietQrImageUrl}" alt="Mã VietQR thanh toán đơn hàng">
+      <div class="order-success__bank" th:if="${vietQrConfigured}">
+        <span>Ngân hàng</span><strong th:text="${vietQrBankCode}">VCB</strong>
+        <span>Số tài khoản</span><strong th:text="${vietQrAccountNumber}">123456789</strong>
+        <span>Chủ tài khoản</span><strong th:text="${vietQrAccountName ?: '—'}">TECHTRA BEAUTY</strong>
+        <span>Số tiền</span><strong th:text="${#numbers.formatDecimal(orderTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
+        <span>Nội dung chuyển khoản</span><strong th:text="${vietQrTransferContent}">TECHTRA-1</strong>
+      </div>
+      <p th:unless="${vietQrConfigured}" role="alert">Chưa cấu hình tài khoản nhận VietQR. Vui lòng liên hệ cửa hàng để được hướng dẫn thanh toán.</p>
+      <div style="margin:14px auto 0;max-width:420px;">
+        <button id="reportTransferButton" type="button" th:if="${canReportTransfer}" th:attr="data-order-id=${orderId}"
+                th:disabled="${transferReportedAt != null}"
+                th:text="${transferReportedAt != null ? 'Đã báo chuyển khoản' : 'Tôi đã chuyển khoản'}">Tôi đã chuyển khoản</button>
+        <p id="transferReportMessage" role="status" aria-live="polite"
+           th:text="${transferReportedAt != null ? 'Đã báo cửa hàng. Nhân viên sẽ đối chiếu giao dịch ngân hàng trước khi xác nhận đơn.' : 'Sau khi chuyển khoản, bấm nút để báo nhân viên kiểm tra. Nút này không tự xác nhận đã thanh toán.'}">Sau khi chuyển khoản, báo nhân viên kiểm tra.</p>
+      </div>
+      <p>Đơn được giữ trong 30 phút. Trạng thái sẽ cập nhật sau khi nhân viên xác nhận đã nhận tiền.</p>
+    </section>
+    <p th:if="${orderPaymentStatus == 'PAID'}" role="status">Thanh toán đã được xác nhận.</p>
     <div class="order-success__actions">
       <a th:href="@{/profile}">Theo dõi đơn hàng</a>
       <a class="secondary" th:href="@{/products}">Tiếp tục mua sắm</a>
     </div>
   </main>
   <script>
-    document.getElementById('vnpayQrButton')?.addEventListener('click', async (event) => {
-      const button = event.currentTarget;
-      const message = document.getElementById('vnpayPaymentMessage');
-      button.disabled = true;
-      message.textContent = 'Đang kết nối VNPay…';
-      try {
-        const response = await fetch(`/api/payment/vnpay?orderId=${encodeURIComponent(button.dataset.orderId)}`, {
-          headers: { Accept: 'application/json' }, credentials: 'same-origin'
-        });
-        const result = await response.json();
-        if (!response.ok || !result.paymentUrl) throw new Error(result.error || 'Chưa tạo được mã QR VNPay.');
-        window.location.assign(result.paymentUrl);
-      } catch (error) {
-        message.textContent = error.message || 'Không kết nối được VNPay. Vui lòng thử lại.';
-        button.disabled = false;
-      }
-    });
+    (() => {
+      const button = document.getElementById('reportTransferButton');
+      if (!button) return;
+      const message = document.getElementById('transferReportMessage');
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        message.textContent = 'Đang báo cho nhân viên…';
+        try {
+          const response = await fetch(`/api/customer/orders/${button.dataset.orderId}/report-transfer`, {
+            method: 'POST', credentials: 'same-origin', headers: {Accept: 'application/json'}
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || 'Chưa gửi được thông báo. Vui lòng thử lại.');
+          button.textContent = 'Đã báo chuyển khoản';
+          message.textContent = 'Đã báo cửa hàng. Nhân viên sẽ đối chiếu giao dịch ngân hàng trước khi xác nhận đơn.';
+        } catch (error) {
+          button.disabled = false;
+          message.textContent = error.message || 'Chưa gửi được thông báo. Vui lòng thử lại.';
+        }
+      });
+    })();
+    (() => {
+      const root = document.getElementById('orderLiveStatus');
+      if (!root) return;
+      const statusText = document.getElementById('orderLiveStatusText');
+      const eta = document.getElementById('orderPickupEta');
+      const receipt = document.getElementById('orderReceiptLink');
+      const labels = {PENDING:'Đang chờ xác nhận',CONFIRMED:'Đã xác nhận và chờ xử lý',PROCESSING:'Đang chuẩn bị đơn hàng',SHIPPING:'Đã đóng gói và bàn giao cho đơn vị giao hàng',READY_FOR_PICKUP:'Đơn đã sẵn sàng tại chi nhánh',DELIVERED:'Đã giao / đã nhận hàng',CANCELLED:'Đơn đã hủy',RETURNED:'Đơn đã hoàn trả'};
+      const refresh = async () => {
+        try {
+          const response = await fetch('/api/customer/orders/tracking',{credentials:'same-origin',headers:{Accept:'application/json'}});
+          if (!response.ok) return;
+          const rows = await response.json();
+          const order = rows.find(item => String(item.id) === root.dataset.orderId);
+          if (!order) return;
+          const paymentLabel=String(order.paymentStatus||'UNPAID').toUpperCase()==='PAID'?'Đã thanh toán':(order.paymentMethod==='BANK_TRANSFER'?'Chờ nhân viên đối chiếu chuyển khoản':'Thanh toán khi nhận hàng');
+          statusText.textContent = `${labels[String(order.status||'').toUpperCase()]||order.status} · ${paymentLabel}`;
+          if (order.estimatedPickupAt && order.status !== 'READY_FOR_PICKUP' && order.status !== 'DELIVERED') {
+            eta.hidden=false; eta.textContent=`Dự kiến nhận tại ${order.storeName} từ ${new Date(order.estimatedPickupAt).toLocaleString('vi-VN')}`;
+          }
+          if (order.status==='READY_FOR_PICKUP') { eta.hidden=false; eta.textContent=`Đơn đã sẵn sàng tại ${order.storeName}. Bạn có thể đến nhận hàng.`; }
+          if (order.invoiceId) { receipt.hidden=false; receipt.href=`/my/invoices/${order.invoiceId}`; receipt.textContent=`Mở biên nhận đã thanh toán${order.invoiceNumber?' · '+order.invoiceNumber:''}`; }
+        } catch (_) { /* giữ trạng thái hiện có khi mạng tạm gián đoạn */ }
+      };
+      refresh(); window.setInterval(refresh,15000);
+    })();
   </script>
   <div th:replace="~{fragments/footer :: footer}"></div>
 </body>

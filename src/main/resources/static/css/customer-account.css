@@ -42,6 +42,18 @@
 .customer-order__details { margin: 10px 0 7px; color: #738195; font-size: .72rem; }
 .customer-order__details strong { color: #1c2b40; font-size: .83rem; }
 .customer-order__items { overflow: hidden; color: #64748b; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+.customer-order--tracking { display: grid; gap: 8px; }
+.customer-order--tracking .customer-order__details { align-items: flex-start; flex-wrap: wrap; }
+.customer-order--tracking .customer-order__details > span:nth-child(2) { flex: 1 1 220px; }
+.customer-order--tracking .customer-order__items { margin: 0; white-space: normal; }
+.customer-order__payment,.customer-order__eta { margin: 0; color: #526277; font-size: .76rem; }
+.customer-order__payment { font-weight: 700; }
+.customer-order__eta { padding: 9px 11px; border-radius: 9px; background: #fff8e8; color: #8b5e16; }
+.customer-order__receipt { justify-self: start; color: #2563eb; font-size: .78rem; font-weight: 800; }
+.customer-order__report { justify-self: start; padding: 9px 12px; border: 0; border-radius: 9px; background: #2563eb; color: #fff; font: 700 .76rem 'Plus Jakarta Sans',sans-serif; cursor: pointer; }
+.customer-order__report:disabled { opacity: .65; cursor: wait; }
+.customer-order__report-note,.customer-order__report-hint { margin: 0; color: #526277; font-size: .74rem; line-height: 1.5; }
+.customer-order__report-note { color: #23734c; font-weight: 700; }
 .account-footer-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 16px 20px; border: 1px solid #dbe4f0; border-radius: 13px; background: #fff; }
 .account-footer-actions div { display: flex; flex-direction: column; gap: 3px; }
 .account-footer-actions strong { color: #26364b; font-size: .82rem; }

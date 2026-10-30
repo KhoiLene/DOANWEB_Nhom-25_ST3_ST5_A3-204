@@ -38,14 +38,23 @@ Nếu nhập nhầm chi nhánh/số lượng hoặc hệ thống báo lỗi, ghi
 
 1. Mở tab **Đơn giao từ kho**.
 2. Đọc mã đơn, người nhận, địa chỉ, mặt hàng, số lượng và trạng thái.
-3. Với `PENDING`, đối chiếu khả năng lấy đủ hàng rồi bấm **Nhận xử lý**.
-4. Với `PROCESSING`, sau khi đã lấy/đóng gói và bàn giao theo quy trình, bấm **Bàn giao giao hàng**.
-5. Với `SHIPPING`, chỉ bấm **Xác nhận giao** khi việc giao đã hoàn tất.
-6. Kiểm tra lại trạng thái sau mỗi bước. Trình tự đúng là `PENDING` → `PROCESSING` → `SHIPPING` → `DELIVERED`.
+3. Với đơn COD đang `PENDING`, kiểm tra khả năng lấy đủ hàng rồi dùng thao tác nhận xử lý nếu nút được hiển thị.
+4. Với đơn chuyển khoản `PENDING` và `UNPAID`, đối chiếu tiền vào tài khoản theo mã đơn và số tiền. Khách báo đã chuyển không thay thế bước xác minh của kho.
+5. Chỉ sau khi thấy giao dịch thực nhận mới bấm **Xác nhận đã nhận tiền**. Đây là xác nhận thủ công; mã VietQR không tự kết nối đối soát ngân hàng.
+6. Sau khi trạng thái là `CONFIRMED`, dùng thao tác nhận xử lý để vào `PROCESSING`. Khi đã đóng gói và bàn giao thật, cập nhật `SHIPPING`; chỉ xác nhận giao khi khách/đơn vị giao đã hoàn tất.
+7. Kiểm tra lại trạng thái sau mỗi bước và làm theo các nút đang được hệ thống cho phép. Không xác nhận giao trước khi hàng rời kho hoặc tới khách.
 
 Chỉ những đơn có kho hoàn tất là kho được gán cho tài khoản mới thuộc phạm vi thao tác. Nếu hàng thiếu hoặc sai địa chỉ, dừng bước cập nhật và liên hệ quản lý; không tự chuyển đơn sang kho/chi nhánh khác.
 
-## 5. Kiểm soát chất lượng, lô và sai lệch
+## 5. Đơn chuyển khoản chờ đối chiếu
+
+1. Mở khu vực **Đơn giao từ kho** và tìm hàng đợi **Chuyển khoản VietQR cần xác nhận**.
+2. Kiểm tra mã đơn, khách, số tiền, nội dung chuyển khoản và thời điểm khách báo đã chuyển.
+3. Mở kênh ngân hàng nội bộ để xác minh khoản tiền thực vào đúng tài khoản. Không dựa riêng vào ảnh chụp hoặc lời báo của khách.
+4. Nếu giao dịch khớp, bấm **Xác nhận đã nhận tiền** một lần. Nếu chưa thấy tiền hoặc số tiền/nội dung không khớp, không xác nhận; liên hệ quản lý để đối chiếu.
+5. Sau đó chuyển đơn sang xử lý theo nút tiếp theo đang có. Không coi đây là xác minh ngân hàng tự động.
+
+## 6. Kiểm soát chất lượng, lô và sai lệch
 
 - Khi nhận hàng, đối chiếu sản phẩm, SKU, số lượng, bao bì, mã lô và hạn dùng với chứng từ/nhãn.
 - Đặt hàng hư hỏng hoặc không rõ nguồn gốc sang khu vực chờ xử lý theo quy trình của đơn vị; không ghi nhận là hàng bán được nếu chưa có quyết định.
@@ -53,9 +62,10 @@ Chỉ những đơn có kho hoàn tất là kho được gán cho tài khoản m
 - Nếu số tồn thực tế khác màn hình, đếm lại, ghi rõ mã sản phẩm và chênh lệch, rồi báo người có quyền điều chỉnh. Không nhập một số bù trừ khi chưa biết nguyên nhân.
 - Bàn giao ca bằng danh sách đơn đang xử lý, phiếu đang đi, hàng sai lệch và việc cần làm tiếp theo.
 
-## 6. Khi nào cần nhờ admin
+## 7. Khi nào cần nhờ admin
 
 - Tài khoản chưa được gán kho hoặc sai kho.
+- Chuyển khoản không khớp hoặc tiền chưa vào nhưng khách yêu cầu xác nhận.
 - Sản phẩm chưa có trong danh mục hoặc không thể chọn.
 - Cần điều chỉnh quyền người dùng, điểm kho, cấu hình chi nhánh hoặc dữ liệu hệ thống.
 - Cần hủy/sửa phiếu đã tạo nhưng giao diện không có chức năng đó.
@@ -68,3 +78,4 @@ Chatbot có thể giải thích các bước nhưng không xem tồn thực tế
 - Làm sao điều chuyển hàng tới chi nhánh?
 - Khi nào tồn kho chi nhánh nhận được cộng?
 - Tôi nên làm gì khi tồn thực tế khác số trên màn hình?
+- Tôi xác nhận đơn chuyển khoản ở đâu?

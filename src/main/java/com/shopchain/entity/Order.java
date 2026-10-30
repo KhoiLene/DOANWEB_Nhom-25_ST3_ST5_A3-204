@@ -43,8 +43,17 @@ public class Order {
     @Column(name = "payment_expires_at")
     private LocalDateTime paymentExpiresAt;
 
+    @Column(name = "transfer_reported_at")
+    private LocalDateTime transferReportedAt;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
+    @Column(name = "estimated_pickup_at")
+    private LocalDateTime estimatedPickupAt;
+
     @Column(nullable = false)
-    private String status; // PENDING, CONFIRMED, SHIPPING, DELIVERED, CANCELLED, RETURNED
+    private String status; // PENDING, CONFIRMED, PROCESSING, SHIPPING, READY_FOR_PICKUP, DELIVERED, CANCELLED, RETURNED
 
     private String paymentMethod; // COD, VNPAY, MOMO
     private String paymentStatus; // UNPAID, PAID

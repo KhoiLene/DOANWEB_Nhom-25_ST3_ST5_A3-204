@@ -39,6 +39,7 @@ public class WebController {
     private final InvoiceService invoiceService;
     private final CustomerProgramService customerProgramService;
     private final OrderPricingService pricingService;
+    private final SystemSettingService systemSettingService;
 
     public WebController(ProductService productService, NewsService newsService, AboutService aboutService,
                          CartService cartService, AuthService authService, HomepageValueRepository homepageValueRepository,
@@ -47,7 +48,7 @@ public class WebController {
                          UserRepository userRepository, StoreRepository storeRepository, OrderService orderService,
                          OrderRepository orderRepository, SalesInvoiceRepository salesInvoiceRepository,
                          InvoiceService invoiceService, CustomerProgramService customerProgramService,
-                         OrderPricingService pricingService) {
+                         OrderPricingService pricingService, SystemSettingService systemSettingService) {
         this.productService = productService;
         this.newsService = newsService;
         this.aboutService = aboutService;
@@ -66,6 +67,7 @@ public class WebController {
         this.invoiceService = invoiceService;
         this.customerProgramService = customerProgramService;
         this.pricingService = pricingService;
+        this.systemSettingService = systemSettingService;
     }
 
     @GetMapping("/")
@@ -170,6 +172,8 @@ public class WebController {
         model.addAttribute("reviews", reviewService.getReviewsByProduct(id));
         model.addAttribute("avgRating", reviewService.getAverageRating(id));
         model.addAttribute("reviewCount", reviewService.countReviews(id));
+        model.addAttribute("canWriteReview", authentication != null && authentication.isAuthenticated()
+                && authentication.getAuthorities().stream().anyMatch(authority -> "ROLE_USER".equals(authority.getAuthority())));
         model.addAttribute("relatedProducts", productService.getRelatedProducts(id));
         model.addAttribute("categories", categoryRepository.findAll());
         return "product-detail";
@@ -205,8 +209,6 @@ public class WebController {
         model.addAttribute("cartItems", cart.getItems());
         model.addAttribute("customerLoyaltyPoints", points);
         model.addAttribute("redeemPoints", 0);
-        model.addAttribute("stores", storeRepository.findByActiveTrueAndPickupEnabledTrue());
-
         addQuoteAttributes(model, cart, points, "DELIVERY");
 
         return "cart";
@@ -247,6 +249,7 @@ public class WebController {
         model.addAttribute("selectedDeliveryCountry", "");
         model.addAttribute("selectedDeliveryCity", "");
         model.addAttribute("selectedStoreId", null);
+        model.addAttribute("vietQrAvailable", hasVietQrSettings());
         model.addAttribute("customer", userRepository.findById(userId).orElseThrow());
         model.addAttribute("customerLoyaltyPoints", points);
 
@@ -265,6 +268,8 @@ public class WebController {
                              @RequestParam(defaultValue = "0") Integer redeemPoints,
                              Authentication authentication, Model model) {
         try {
+            if ("BANK_TRANSFER".equalsIgnoreCase(paymentMethod) && !hasVietQrSettings())
+                throw new IllegalArgumentException("Cửa hàng chưa cấu hình tài khoản VietQR. Vui lòng chọn COD hoặc liên hệ cửa hàng.");
             if ("DELIVERY".equals(fulfillmentType)) {
                 if (!"VN".equals(deliveryCountry))
                     throw new IllegalArgumentException("Vui lòng chọn quốc gia Việt Nam để giao hàng.");
@@ -283,6 +288,7 @@ public class WebController {
             model.addAttribute("selectedDeliveryCountry", deliveryCountry == null ? "" : deliveryCountry);
             model.addAttribute("selectedDeliveryCity", deliveryCity == null ? "" : deliveryCity);
             model.addAttribute("selectedStoreId", storeId);
+            model.addAttribute("vietQrAvailable", hasVietQrSettings());
             model.addAttribute("customer", userRepository.findById(currentUserId(authentication)).orElseThrow());
             int points = customerLoyaltyPoints(authentication);
             model.addAttribute("customerLoyaltyPoints", points);
@@ -331,7 +337,8 @@ public class WebController {
                                @RequestParam(required = false) String payment,
                                Authentication authentication, Model model) {
         model.addAttribute("orderId", orderId);
-        model.addAttribute("canPayWithVnPay", false);
+        model.addAttribute("canPayWithVietQr", false);
+        model.addAttribute("canReportTransfer", false);
         if (orderId != null && authentication != null && authentication.isAuthenticated()) {
             userRepository.findByUsername(authentication.getName()).ifPresent(user ->
                     orderRepository.findById(orderId)
@@ -339,15 +346,48 @@ public class WebController {
                             .ifPresent(order -> {
                                 model.addAttribute("orderPaymentMethod", order.getPaymentMethod());
                                 model.addAttribute("orderPaymentStatus", order.getPaymentStatus());
-                                model.addAttribute("canPayWithVnPay", "VNPAY".equalsIgnoreCase(order.getPaymentMethod())
-                                        && !"PAID".equalsIgnoreCase(order.getPaymentStatus())
-                                        && !"CANCELLED".equalsIgnoreCase(order.getStatus())
-                                        && !"RETURNED".equalsIgnoreCase(order.getStatus()));
-                                model.addAttribute("paymentFailed", "failed".equalsIgnoreCase(payment)
-                                        && !"PAID".equalsIgnoreCase(order.getPaymentStatus()));
+                                model.addAttribute("orderTotal", order.getTotalAmount());
+                                model.addAttribute("transferReportedAt", order.getTransferReportedAt());
+                                boolean canPayVietQr = "BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod())
+                                        && "UNPAID".equalsIgnoreCase(order.getPaymentStatus())
+                                        && "PENDING".equalsIgnoreCase(order.getStatus())
+                                        && (order.getPaymentExpiresAt() == null || order.getPaymentExpiresAt().isAfter(java.time.LocalDateTime.now()));
+                                model.addAttribute("canPayWithVietQr", canPayVietQr);
+                                model.addAttribute("canReportTransfer", canPayVietQr);
+                                if (canPayVietQr) {
+                                    String bankCode = setting("payment.qrBankCode");
+                                    String accountNumber = setting("payment.qrAccountNumber");
+                                    String accountName = setting("payment.qrAccountName");
+                                    model.addAttribute("vietQrConfigured", !bankCode.isBlank() && !accountNumber.isBlank());
+                                    model.addAttribute("vietQrBankCode", bankCode);
+                                    model.addAttribute("vietQrAccountNumber", accountNumber);
+                                    model.addAttribute("vietQrAccountName", accountName);
+                                    model.addAttribute("vietQrTransferContent", "TECHTRA-" + order.getId());
+                                    if (!bankCode.isBlank() && !accountNumber.isBlank()) {
+                                        String amount = order.getTotalAmount() == null ? "0" : order.getTotalAmount()
+                                                .setScale(0, java.math.RoundingMode.HALF_UP).toPlainString();
+                                        String qrUrl = "https://img.vietqr.io/image/" + urlPart(bankCode) + "-"
+                                                + urlPart(accountNumber) + "-qr_only.svg?amount=" + urlPart(amount)
+                                                + "&addInfo=" + urlPart("TECHTRA-" + order.getId())
+                                                + "&accountName=" + urlPart(accountName);
+                                        model.addAttribute("vietQrImageUrl", qrUrl);
+                                    }
+                                }
                             }));
         }
         return "order-success";
+    }
+
+    private String setting(String key) {
+        return java.util.Objects.toString(systemSettingService.getSetting(key, ""), "").trim();
+    }
+
+    private boolean hasVietQrSettings() {
+        return !setting("payment.qrBankCode").isBlank() && !setting("payment.qrAccountNumber").isBlank();
+    }
+
+    private String urlPart(String value) {
+        return java.net.URLEncoder.encode(value == null ? "" : value, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     @GetMapping("/my/invoices")
@@ -392,7 +432,7 @@ public class WebController {
             }
             return switch (authResponse.getRole()) {
                 case "ROLE_ADMIN" -> "redirect:/admin/dashboard";
-                case "ROLE_WAREHOUSE" -> "redirect:/warehouse/inventory";
+                case "ROLE_WAREHOUSE" -> "redirect:/warehouse/orders";
                 case "ROLE_STORE_STAFF" -> "redirect:/staff/orders";
                 default -> "redirect:/";
             };
@@ -463,32 +503,28 @@ public class WebController {
         }
     }
 
+    @GetMapping("/reset-password")
+    public String resetPassword(@RequestParam(required = false) String email, Model model) {
+        model.addAttribute("email", email == null ? "" : email.trim());
+        return "reset-password";
+    }
+
     @PostMapping("/reset-password-process")
     public String resetPasswordProcess(@RequestParam String email, @RequestParam String otp,
                                        @RequestParam String newPassword, @RequestParam String confirmPassword,
                                        Model model) {
+        model.addAttribute("email", email.trim());
         try {
-            if (!newPassword.equals(confirmPassword)) {
+            if (!newPassword.equals(confirmPassword))
                 throw new IllegalArgumentException("Mật khẩu nhập lại chưa khớp.");
-            }
             String message = authService.resetPassword(email, otp, newPassword);
             model.addAttribute("message", message);
             return "password-reset-success";
-        } catch (Exception e) {
-            model.addAttribute("message", "Nhập mã xác minh và mật khẩu mới để tiếp tục.");
-            model.addAttribute("error", e.getMessage() == null ? "Không thể đặt lại mật khẩu. Vui lòng thử lại." : e.getMessage());
-            model.addAttribute("email", email);
-            return "forgot-password-success";
+        } catch (Exception exception) {
+            model.addAttribute("error", exception.getMessage() == null
+                    ? "Không thể đặt lại mật khẩu. Vui lòng thử lại." : exception.getMessage());
+            return "reset-password";
         }
-    }
-
-    @GetMapping("/reset-password")
-    public String resetPassword(@RequestParam(required = false) String email, Model model) {
-        if (email != null && !email.isBlank()) {
-            model.addAttribute("email", email.trim());
-        }
-        model.addAttribute("message", "Nhập mã xác minh OTP 6 số đã được gửi đến email và đặt mật khẩu mới.");
-        return "forgot-password-success";
     }
 
     @GetMapping("/about")

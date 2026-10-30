@@ -16,6 +16,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     Optional<User> findByEmailIgnoreCase(String email);
     List<User> findByPhone(String phone);
+    List<User> findByWarehouse_Id(Long warehouseId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id")

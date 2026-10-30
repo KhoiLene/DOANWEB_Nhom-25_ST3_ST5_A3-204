@@ -1,4 +1,6 @@
 <div th:fragment="detail">
+    <div class="alert alert-success" th:if="${successMessage}" th:text="${successMessage}" role="status"></div>
+    <div class="alert alert-danger" th:if="${errorMessage}" th:text="${errorMessage}" role="alert"></div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <a th:href="@{/admin/orders}" class="btn btn-outline">
             <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
@@ -8,7 +10,7 @@
                 <input type="hidden" name="orderId" th:value="${order.id}">
                 <select name="status" class="form-control" style="display: inline-block; width: auto; margin-right: 10px;">
                     <option th:each="target : ${allowedStatusTargets}" th:value="${target}"
-                            th:text="${target == 'PROCESSING' ? 'Đang chuẩn bị' : (target == 'SHIPPING' ? 'Đang giao hàng' : (target == 'DELIVERED' ? 'Đã giao hàng' : 'Hủy đơn'))}">Trạng thái</option>
+                            th:text="${target == 'PROCESSING' ? 'Đang chuẩn bị' : (target == 'SHIPPING' ? 'Đang giao hàng' : (target == 'READY_FOR_PICKUP' ? 'Sẵn sàng nhận tại chi nhánh' : (target == 'DELIVERED' ? 'Đã giao hàng' : 'Hủy đơn')))}">Trạng thái</option>
                 </select>
                 <button type="submit" class="btn btn-primary">Cập nhật</button>
             </form>
@@ -58,6 +60,11 @@
                     <span th:text="${order.deliveryAddress ?: '—'}">Địa chỉ</span><br>
                     <span th:text="${order.deliveryCity ?: ''}"></span>
                 </div>
+                <div style="margin-bottom: 15px;" th:if="${order.transferReportedAt != null}">
+                    <strong style="display: block; color: #6c757d; font-size: 0.8rem;">Khách báo đã chuyển khoản:</strong>
+                    <span th:text="${#temporals.format(order.transferReportedAt, 'dd/MM/yyyy HH:mm')}">Thời gian</span>
+                    <small style="display:block;">Cần đối chiếu giao dịch ngân hàng trước khi xác nhận.</small>
+                </div>
                 <hr style="border: 0; border-top: 1px solid var(--admin-border); margin: 20px 0;">
                 <div style="display:flex;justify-content:space-between;margin:8px 0"><span>Tiền hàng</span><span th:text="${#numbers.formatDecimal(order.subtotalAmount != null ? order.subtotalAmount : order.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span></div>
                 <div style="display:flex;justify-content:space-between;margin:8px 0"><span>Giảm giá</span><span th:text="${'-' + #numbers.formatDecimal(order.discountAmount != null ? order.discountAmount : 0, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span></div>
@@ -68,6 +75,13 @@
                 </div>
 
                 <div style="margin-top: 30px;">
+                    <form th:if="${order.paymentMethod == 'BANK_TRANSFER' and order.paymentStatus == 'UNPAID' and order.status == 'PENDING'}"
+                          th:action="@{/admin/orders/{id}/confirm-transfer(id=${order.id})}" method="post">
+                        <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center;margin-bottom:10px">
+                            <i class="fa-solid fa-check"></i> Xác nhận đã nhận tiền VietQR
+                        </button>
+                        <small>Chỉ xác nhận sau khi đối chiếu giao dịch thực tế trong tài khoản ngân hàng.</small>
+                    </form>
                     <button id="adminVnpayQrButton" class="btn btn-primary" type="button" style="width: 100%; justify-content: center;"
                             th:if="${order.paymentMethod != null and #strings.toUpperCase(order.paymentMethod) == 'VNPAY' and order.paymentStatus != 'PAID' and order.status != 'CANCELLED' and order.status != 'RETURNED'}"
                             th:data-order-id="${order.id}">

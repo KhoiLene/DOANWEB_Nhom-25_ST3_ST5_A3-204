@@ -51,6 +51,14 @@ public class WarehouseController {
         var orders = orderRepository.findByFulfillmentWarehouseIdAndStatusInOrderByOrderDateAsc(
                 user.getWarehouse().getId(), java.util.List.of("PENDING", "CONFIRMED", "PROCESSING", "SHIPPING"));
         model.addAttribute("orders", orders);
+        model.addAttribute("orderStatusLabels", java.util.Map.of(
+                "PENDING", "Chờ xác nhận", "CONFIRMED", "Đã xác nhận thanh toán", "PROCESSING", "Đang chuẩn bị",
+                "SHIPPING", "Đang giao", "READY_FOR_PICKUP", "Sẵn sàng nhận tại chi nhánh",
+                "DELIVERED", "Đã giao / đã nhận", "CANCELLED", "Đã hủy", "RETURNED", "Đã hoàn trả"));
+        model.addAttribute("pendingTransferOrders", orders.stream()
+                .filter(order -> "BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod())
+                        && "UNPAID".equalsIgnoreCase(order.getPaymentStatus())
+                        && "PENDING".equalsIgnoreCase(order.getStatus())).toList());
         model.addAttribute("allowedTransitions", orders.stream().collect(java.util.stream.Collectors.toMap(
                 com.shopchain.entity.Order::getId, orderService::allowedStatusTargets)));
         return "warehouse/orders";
@@ -66,6 +74,23 @@ public class WarehouseController {
         orderService.updateOrderStatus(orderId, status);
         order = orderRepository.findById(orderId).orElseThrow();
         if ("DELIVERED".equals(status) && "PAID".equals(order.getPaymentStatus())) invoiceService.issueForPaidOrder(order.getId());
+        return "redirect:/warehouse/orders";
+    }
+
+    @PostMapping("/orders/{orderId}/confirm-transfer")
+    public String confirmOnlineTransfer(@PathVariable Long orderId, Authentication authentication,
+                                        RedirectAttributes redirectAttributes) {
+        var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        var order = orderRepository.findById(orderId).orElseThrow();
+        if (user.getWarehouse() == null || order.getFulfillmentWarehouse() == null
+                || !order.getFulfillmentWarehouse().getId().equals(user.getWarehouse().getId()))
+            throw new IllegalArgumentException("Đơn hàng không thuộc kho được phân công.");
+        try {
+            orderService.confirmBankTransferPayment(orderId);
+            redirectAttributes.addFlashAttribute("successMessage", "Đã xác nhận chuyển khoản. Đơn hàng chuyển sang chờ xử lý.");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
         return "redirect:/warehouse/orders";
     }
 

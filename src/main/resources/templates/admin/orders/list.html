@@ -1,9 +1,20 @@
 <div th:fragment="list">
     <div class="card">
         <div class="card__header">
-            <h3 style="margin: 0;">Danh sách đơn hàng</h3>
+            <div><h3 style="margin: 0;">Danh sách đơn hàng</h3><small th:text="|${#lists.size(orders)} đơn phù hợp|">0 đơn</small></div>
         </div>
         <div class="card__body">
+            <form th:action="@{/admin/orders}" method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin-bottom:20px;padding:16px;background:#f7f9fc;border:1px solid #e2e8f0;border-radius:12px;">
+                <label>Tìm mã đơn / khách<input type="search" name="keyword" th:value="${keywordFilter}" placeholder="Mã đơn, tên, SĐT" class="form-control"></label>
+                <label>Trạng thái<select name="status" class="form-control"><option value="">Tất cả</option><option th:each="item : ${statusOptions}" th:value="${item.value}" th:text="${item.label}" th:selected="${statusFilter == item.value}">Trạng thái</option></select></label>
+                <label>Thanh toán<select name="paymentStatus" class="form-control"><option value="">Tất cả</option><option value="UNPAID" th:selected="${paymentStatusFilter == 'UNPAID'}">Chưa thanh toán</option><option value="PAID" th:selected="${paymentStatusFilter == 'PAID'}">Đã thanh toán</option><option value="EXPIRED" th:selected="${paymentStatusFilter == 'EXPIRED'}">Hết hạn</option><option value="CANCELLED" th:selected="${paymentStatusFilter == 'CANCELLED'}">Đã hủy thanh toán</option></select></label>
+                <label>Cách nhận<select name="fulfillmentType" class="form-control"><option value="">Tất cả</option><option value="PICKUP" th:selected="${fulfillmentTypeFilter == 'PICKUP'}">Nhận tại chi nhánh</option><option value="STORE_SHIP" th:selected="${fulfillmentTypeFilter == 'STORE_SHIP'}">Giao từ chi nhánh / tại quầy</option><option value="WAREHOUSE_SHIP" th:selected="${fulfillmentTypeFilter == 'WAREHOUSE_SHIP'}">Giao từ kho</option></select></label>
+                <label>Từ ngày<input type="date" name="fromDate" th:value="${fromDateFilter}" class="form-control"></label>
+                <label>Đến ngày<input type="date" name="toDate" th:value="${toDateFilter}" class="form-control"></label>
+                <label>Thứ tự thời gian<select name="sort" class="form-control"><option value="newest" th:selected="${sortOrder == 'newest'}">Mới nhất trước</option><option value="oldest" th:selected="${sortOrder == 'oldest'}">Cũ nhất trước</option></select></label>
+                <div style="display:flex;gap:8px;"><button type="submit" class="btn btn-primary">Lọc đơn</button><a th:href="@{/admin/orders}" class="btn btn-outline">Xóa lọc</a></div>
+            </form>
+            <div class="alert alert-danger" th:if="${invalidDateRange}" role="alert">Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.</div>
             <table class="admin-table">
                 <thead>
                     <tr style="text-align: left;">
@@ -17,8 +28,11 @@
                 </thead>
                 <tbody>
                     <tr th:each="o : ${orders}">
-                        <td th:text="'#' + ${o.id}">#1</td>
-                        <td th:text="${o.user?.username}">Khách hàng</td>
+                        <td th:text="|#${o.id}|">#1</td>
+                        <td>
+                            <span th:text="${o.customerName ?: (o.user != null ? (o.user.fullName ?: o.user.username) : 'Khách lẻ')}">Khách hàng</span>
+                            <small th:if="${o.customerPhone != null and !o.customerPhone.isBlank()}" th:text="${o.customerPhone}" style="display:block;color:#64748b"></small>
+                        </td>
                         <td th:text="${#temporals.format(o.orderDate, 'dd/MM/yyyy HH:mm')}">01/01/2024</td>
                         <td th:text="${#numbers.formatDecimal(o.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
                         <td>

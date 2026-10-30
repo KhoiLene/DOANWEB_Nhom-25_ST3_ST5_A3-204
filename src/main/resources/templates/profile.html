@@ -28,7 +28,7 @@
     </a>
 
     <section class="account-panel reservation-account-panel">
-      <div class="account-panel__heading"><div><span class="account-eyebrow">NHẬN TẠI CỬA HÀNG</span><h2>Phiếu giữ & đơn nhận tại cửa hàng</h2></div><span class="account-panel__hint">Phiếu giữ hàng có hiệu lực tối đa 30 phút</span></div>
+      <div class="account-panel__heading"><div><span class="account-eyebrow">NHẬN TẠI CỬA HÀNG</span><h2>Phiếu giữ hàng</h2></div><span class="account-panel__hint">Đơn mua hàng được theo dõi bên dưới</span></div>
       <div id="customerReservations" class="customer-reservations"><p class="account-empty">Đang tải phiếu giữ hàng…</p></div>
     </section>
 
@@ -68,7 +68,7 @@
           <div><span class="account-eyebrow">MUA SẮM CỦA BẠN</span><h2>Đơn hàng gần đây</h2></div>
           <a th:href="@{/my/invoices}">Biên nhận <i class="fa-solid fa-arrow-right"></i></a>
         </div>
-        <div class="order-list" th:if="${not #lists.isEmpty(customerOrders)}">
+        <div class="order-list" id="customerOrderList" th:if="${not #lists.isEmpty(customerOrders)}">
           <article class="customer-order" th:each="order : ${customerOrders}">
             <div class="customer-order__top">
               <strong th:text="${'Đơn hàng #' + order.id}">Đơn hàng #1</strong>
@@ -82,7 +82,7 @@
             <div class="customer-order__items" th:text="${#strings.listJoin(order.orderItems.![product.name + ' × ' + quantity], ', ')}">Sản phẩm trong đơn</div>
           </article>
         </div>
-        <div class="account-empty" th:if="${#lists.isEmpty(customerOrders)}">Bạn chưa có đơn hàng nào. <a th:href="@{/products}">Khám phá sản phẩm</a>.</div>
+        <div class="order-list" id="customerOrderList" th:if="${#lists.isEmpty(customerOrders)}"><div class="account-empty">Đang tải đơn hàng…</div></div>
       </section>
     </div>
 
@@ -93,15 +93,11 @@
     const root = document.getElementById('customerReservations');
     const render = async () => {
       try {
-        const [response, pickupResponse] = await Promise.all([
-          fetch('/api/customer/reservations', {credentials: 'same-origin'}),
-          fetch('/api/customer/reservations/pickup-orders', {credentials: 'same-origin'})
-        ]);
-        if (!response.ok || !pickupResponse.ok) throw new Error('Chưa tải được thông tin nhận hàng. Vui lòng làm mới trang.');
+        const response = await fetch('/api/customer/reservations', {credentials: 'same-origin'});
+        if (!response.ok) throw new Error('Chưa tải được thông tin phiếu giữ hàng. Vui lòng làm mới trang.');
         const reservations = await response.json();
-        const pickupOrders = await pickupResponse.json();
         root.replaceChildren();
-        if (!reservations.length && !pickupOrders.length) { const empty = document.createElement('p'); empty.className = 'account-empty'; empty.textContent = 'Bạn chưa có phiếu giữ hàng hoặc đơn nhận tại cửa hàng.'; root.append(empty); return; }
+        if (!reservations.length) { const empty = document.createElement('p'); empty.className = 'account-empty'; empty.textContent = 'Bạn chưa có phiếu giữ hàng nào.'; root.append(empty); return; }
         reservations.forEach(item => {
           const card = document.createElement('article'); card.className = 'customer-reservation';
           const heading = document.createElement('div'); heading.className = 'customer-reservation__heading';
@@ -121,31 +117,67 @@
           }
           root.append(card);
         });
-        if (pickupOrders.length) {
-          const subheading = document.createElement('h3');
-          subheading.className = 'pickup-orders-heading';
-          subheading.textContent = 'Đơn hàng đã chọn nhận tại chi nhánh';
-          root.append(subheading);
-        }
-        pickupOrders.forEach(item => {
-          const card = document.createElement('article'); card.className = 'customer-reservation customer-pickup-order';
-          const heading = document.createElement('div'); heading.className = 'customer-reservation__heading';
-          const code = document.createElement('strong'); code.textContent = `Đơn hàng #${item.id} · ${item.storeName}`;
-          const status = document.createElement('span');
-          status.textContent = ({PENDING:'Chờ xác nhận',CONFIRMED:'Đã xác nhận',PROCESSING:'Đang chuẩn bị',SHIPPING:'Đang giao đến chi nhánh',DELIVERED:'Đã nhận',CANCELLED:'Đã hủy',RETURNED:'Đã hoàn trả'})[String(item.status || '').toUpperCase()] || item.status || 'Đang xử lý';
-          heading.append(code, status); card.append(heading);
-          const address = document.createElement('p'); address.textContent = item.storeAddress || 'Chi nhánh nhận hàng'; card.append(address);
-          const lines = document.createElement('p');
-          lines.textContent = (item.items || []).map(line => `${line.productName} × ${line.quantity}`).join(' · ') || 'Không có thông tin sản phẩm';
-          card.append(lines);
-          const details = document.createElement('small');
-          details.textContent = `Đặt lúc ${new Date(item.createdAt).toLocaleString('vi-VN')} · ${Number(item.totalAmount || 0).toLocaleString('vi-VN')} đ · ${String(item.paymentStatus || 'UNPAID').toUpperCase() === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}`;
-          card.append(details);
-          root.append(card);
-        });
       } catch (error) { root.textContent = error.message; }
     };
     render();
+  })();
+  (() => {
+    const root = document.getElementById('customerOrderList');
+    if (!root) return;
+    const statusLabels = {PENDING:'Đang chờ xác nhận',CONFIRMED:'Đã xác nhận và chờ xử lý',PROCESSING:'Đang chuẩn bị đơn',SHIPPING:'Đã bàn giao cho đơn vị giao hàng',READY_FOR_PICKUP:'Sẵn sàng nhận tại chi nhánh',DELIVERED:'Đã hoàn tất / đã nhận',CANCELLED:'Đã hủy',RETURNED:'Đã hoàn trả'};
+    const render = async () => {
+      try {
+        const response = await fetch('/api/customer/orders/tracking', {credentials:'same-origin',headers:{Accept:'application/json'}});
+        if (!response.ok) return;
+        const orders = await response.json();
+        root.replaceChildren();
+        if (!orders.length) { const empty=document.createElement('p'); empty.className='account-empty'; empty.textContent='Bạn chưa có đơn hàng nào.'; root.append(empty); return; }
+        orders.forEach(order => {
+          const card=document.createElement('article'); card.className='customer-order customer-order--tracking';
+          const top=document.createElement('div'); top.className='customer-order__top';
+          const title=document.createElement('strong'); title.textContent=`Đơn hàng #${order.id} · ${order.fulfillmentType==='PICKUP'?'Nhận tại chi nhánh':'Giao đến địa chỉ'}`;
+          const badge=document.createElement('span'); badge.className='order-status'; badge.textContent=statusLabels[String(order.status||'').toUpperCase()]||order.status||'Đang cập nhật';
+          top.append(title,badge); card.append(top);
+          const info=document.createElement('div'); info.className='customer-order__details';
+          const placed=document.createElement('span'); placed.textContent=`Đặt lúc ${new Date(order.createdAt).toLocaleString('vi-VN')}`;
+          const destination=document.createElement('span'); destination.textContent=order.fulfillmentType==='PICKUP'?`${order.storeName} · ${order.storeAddress||''}`:`${order.deliveryAddress||''}${order.deliveryCity?', '+order.deliveryCity:''}${order.warehouseName?' · Kho xử lý: '+order.warehouseName:''}`;
+          const total=document.createElement('strong'); total.textContent=`${Number(order.totalAmount||0).toLocaleString('vi-VN')} đ`;
+          info.append(placed,destination,total); card.append(info);
+          const items=document.createElement('p'); items.className='customer-order__items'; items.textContent=(order.items||[]).map(item=>`${item.productName} × ${item.quantity}`).join(' · '); card.append(items);
+          const payment=document.createElement('p'); payment.className='customer-order__payment';
+          payment.textContent=String(order.paymentStatus||'UNPAID').toUpperCase()==='PAID'?'✓ Đã thanh toán':(order.paymentMethod==='BANK_TRANSFER'?'Chờ nhân viên đối chiếu chuyển khoản':'Thanh toán khi nhận hàng');
+          card.append(payment);
+          if (order.paymentMethod==='BANK_TRANSFER' && String(order.paymentStatus||'').toUpperCase()==='UNPAID' && order.status==='PENDING') {
+            if (order.transferReportedAt) {
+              const reported=document.createElement('p'); reported.className='customer-order__report-note';
+              reported.textContent=`Bạn đã báo chuyển khoản lúc ${new Date(order.transferReportedAt).toLocaleString('vi-VN')}. Đang chờ nhân viên đối chiếu.`; card.append(reported);
+            } else if (!order.paymentExpiresAt || new Date(order.paymentExpiresAt).getTime()>Date.now()) {
+              const report=document.createElement('button'); report.type='button'; report.className='customer-order__report'; report.textContent='Tôi đã chuyển khoản';
+              report.addEventListener('click', async () => {
+                report.disabled=true; report.textContent='Đang gửi thông báo…';
+                try {
+                  const result=await fetch(`/api/customer/orders/${order.id}/report-transfer`,{method:'POST',credentials:'same-origin',headers:{Accept:'application/json'}});
+                  const payload=await result.json().catch(()=>({}));
+                  if (!result.ok) throw new Error(payload.error||'Chưa gửi được thông báo. Hãy thử lại.');
+                  report.textContent='Đã báo chuyển khoản';
+                  const note=document.createElement('p'); note.className='customer-order__report-note'; note.textContent='Đang chờ nhân viên đối chiếu giao dịch ngân hàng.'; report.after(note);
+                } catch (error) { report.disabled=false; report.textContent='Tôi đã chuyển khoản'; window.alert(error.message||'Chưa gửi được thông báo.'); }
+              });
+              card.append(report);
+              const hint=document.createElement('small'); hint.className='customer-order__report-hint'; hint.textContent='Nhân viên vẫn cần kiểm tra giao dịch thực tế trước khi xác nhận thanh toán.'; card.append(hint);
+            }
+          }
+          if (order.fulfillmentType==='PICKUP' && order.estimatedPickupAt && order.status!=='READY_FOR_PICKUP' && order.status!=='DELIVERED') {
+            const eta=document.createElement('p'); eta.className='customer-order__eta'; eta.textContent=`Dự kiến có thể nhận từ ${new Date(order.estimatedPickupAt).toLocaleString('vi-VN')}`; card.append(eta);
+          }
+          if (order.status==='READY_FOR_PICKUP') { const ready=document.createElement('p'); ready.className='customer-order__eta'; ready.textContent='Đơn đã sẵn sàng. Bạn có thể đến chi nhánh nhận hàng.'; card.append(ready); }
+          if (order.invoiceId) { const receipt=document.createElement('a'); receipt.className='customer-order__receipt'; receipt.href=`/my/invoices/${order.invoiceId}`; receipt.textContent=`Xem biên nhận đã thanh toán${order.invoiceNumber?' · '+order.invoiceNumber:''}`; card.append(receipt); }
+          root.append(card);
+        });
+      } catch (_) { /* Giữ nguyên dữ liệu đã tải nếu kết nối chập chờn. */ }
+    };
+    render();
+    window.setInterval(render,15000);
   })();
   </script>
 </body>

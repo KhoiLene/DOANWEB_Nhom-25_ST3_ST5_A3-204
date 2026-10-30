@@ -71,12 +71,13 @@ Da nhạy cảm có thể phản ứng với hương liệu hoặc một số th
 ## 7. Chọn sản phẩm trên website Techtra
 
 1. Mở **Sản phẩm** hoặc nhập tên/nhu cầu vào ô tìm kiếm.
-2. Dùng danh mục để lọc: chăm sóc da, chống nắng, trang điểm, chăm sóc tóc và cơ thể.
+2. Dùng danh mục và bộ lọc nâng cao theo khoảng giá, chi nhánh còn hàng, ưu đãi; có thể sắp xếp theo bán chạy.
 3. Mở trang chi tiết, đọc mô tả và giá. Chatbot chỉ có thể nêu thành phần/cách dùng nếu thông tin đó đã được cửa hàng đưa vào tài liệu hoặc trang sản phẩm.
-4. Chọn **Thêm vào giỏ**, kiểm tra số lượng và giá trong giỏ.
-5. Khi sẵn sàng, mở **Giỏ hàng** rồi tiếp tục đến thanh toán.
+4. Đăng nhập hoặc đăng ký trước khi thêm giỏ/mở giỏ. Nếu chưa đăng nhập, website sẽ đưa bạn qua đăng nhập/đăng ký rồi quay lại mua sắm.
+5. Chọn **Thêm vào giỏ**, kiểm tra số lượng và báo giá; mở **Giỏ hàng** để tiếp tục thanh toán.
 6. Chọn giao hàng hoặc nhận tại chi nhánh. Có thể cho phép trình duyệt dùng GPS hoặc nhập địa chỉ để xem tối đa 5 gợi ý; tự kiểm tra chi nhánh, cách nhận hàng và tồn kho trước khi đặt.
-7. Sau khi thanh toán, xem đơn tại hồ sơ. Biên nhận trực tuyến chỉ xuất hiện sau khi hệ thống ghi nhận đã thanh toán.
+7. Thành viên có thể chọn đổi điểm tại thanh toán; mỗi điểm giảm 100 đồng. Nhận tại chi nhánh không tính phí giao hàng.
+8. Sau khi đặt, xem trạng thái đơn tại hồ sơ. Với VietQR, nút “Tôi đã chuyển khoản” chỉ báo nhân viên; chờ họ đối chiếu tiền thực nhận. Biên nhận trực tuyến chỉ xuất hiện sau khi hệ thống ghi nhận đã thanh toán.
 
 ## 8. Hỏi chatbot thế nào để được tư vấn rõ
 

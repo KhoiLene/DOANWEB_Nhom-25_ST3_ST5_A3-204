@@ -20,7 +20,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByIdForUpdate(@Param("id") Long id);
 
     @Query("select orderEntity.id from Order orderEntity where upper(coalesce(orderEntity.status, '')) = 'PENDING' "
-            + "and upper(coalesce(orderEntity.paymentMethod, '')) = 'VNPAY' "
+            + "and upper(coalesce(orderEntity.paymentMethod, '')) in ('VNPAY', 'BANK_TRANSFER') "
             + "and upper(coalesce(orderEntity.paymentStatus, '')) = 'UNPAID' "
             + "and orderEntity.paymentExpiresAt is not null and orderEntity.paymentExpiresAt <= :now "
             + "order by orderEntity.paymentExpiresAt asc")
@@ -29,6 +29,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserOrderByOrderDateDesc(User user);
     @EntityGraph(attributePaths = {"store", "orderItems", "orderItems.product"})
     List<Order> findByUserIdAndFulfillmentTypeOrderByOrderDateDesc(Long userId, String fulfillmentType, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"store", "fulfillmentWarehouse", "orderItems", "orderItems.product"})
+    List<Order> findByUserIdOrderByOrderDateDesc(Long userId, Pageable pageable);
 
     @Query("select coalesce(sum(o.totalAmount), 0.0) from Order o "
             + "where o.user.id = :userId and ("

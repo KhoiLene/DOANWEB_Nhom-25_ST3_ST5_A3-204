@@ -122,10 +122,11 @@
                       <span>Thanh toán khi nhận (COD)</span>
                     </label>
                     <label class="radio">
-                      <input type="radio" name="paymentMethod" value="vnpay" />
-                      <span>Thanh toán qua VNPay (QR code)</span>
+                      <input type="radio" name="paymentMethod" value="BANK_TRANSFER" th:disabled="${!vietQrAvailable}" />
+                      <span>Chuyển khoản bằng VietQR</span>
                     </label>
                   </div>
+                  <p th:unless="${vietQrAvailable}" class="muted">VietQR chưa được cấu hình. Vui lòng chọn COD hoặc liên hệ cửa hàng.</p>
                 </div>
 
                 <div class="pay-card checkout-points-note">
@@ -309,7 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const pickup = document.querySelector('input[name="fulfillmentType"]:checked').value === 'PICKUP';
     const storeName = form.elements.storeId.selectedOptions[0]?.textContent || '';
     document.getElementById('confirmAddress').textContent = pickup ? `Nhận tại ${storeName}` : `${address.value}, ${form.elements.deliveryCity.value}`;
-    document.getElementById('sumPayment').textContent = document.querySelector('input[name="paymentMethod"]:checked').value.toUpperCase();
+    const selectedPayment = document.querySelector('input[name="paymentMethod"]:checked').value;
+    document.getElementById('sumPayment').textContent = selectedPayment === 'BANK_TRANSFER' ? 'VietQR / chuyển khoản' : 'Tiền mặt khi nhận';
   }
 
   if (preferredStoreId && [...form.elements.storeId.options].some(option => option.value === preferredStoreId)) {

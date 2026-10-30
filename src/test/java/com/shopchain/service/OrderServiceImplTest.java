@@ -1,6 +1,7 @@
 package com.shopchain.service;
 
 import com.shopchain.entity.*;
+import com.shopchain.dto.NotificationRequest;
 import com.shopchain.repository.*;
 import com.shopchain.service.impl.OrderServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,6 +79,37 @@ class OrderServiceImplTest {
     }
 
     @Test
+    void remoteBankTransferOrderIsRoutedAndNotifiedToAssignedWarehouseStaff() {
+        User buyer = user();
+        User warehouseStaff = User.builder().id(19L).username("warehouse").build();
+        Store store = store();
+        Warehouse warehouse = Warehouse.builder().id(9L).name("Kho trung tâm").active(true).build();
+        Product product = product(true, 239_000d);
+        Cart cart = Cart.builder().user(buyer).items(new ArrayList<>(List.of(
+                CartItem.builder().product(product).quantity(1).build()))).build();
+        ProductInventory stock = ProductInventory.builder().product(product).warehouse(warehouse)
+                .stockQuantity(5).reservedQuantity(0).build();
+        when(userRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(buyer));
+        when(storeRepository.findForUpdateById(4L)).thenReturn(Optional.of(store));
+        when(cartRepository.findByUser(buyer)).thenReturn(Optional.of(cart));
+        when(productRepository.findForUpdateById(3L)).thenReturn(Optional.of(product));
+        when(warehouseRepository.findByActiveTrue()).thenReturn(List.of(warehouse));
+        when(warehouseRepository.findForUpdateById(9L)).thenReturn(Optional.of(warehouse));
+        when(userRepository.findByWarehouse_Id(9L)).thenReturn(List.of(warehouseStaff));
+        when(inventoryRepository.findForUpdateByProductIdAndWarehouseId(3L, 9L)).thenReturn(Optional.of(stock));
+        when(movementRepository.saveAll(anyList())).thenAnswer(call -> call.getArgument(0));
+
+        Order order = service.placeOnlineOrder(7L, 4L, "Demo", "0900000000", "12 Test", "Hà Nội",
+                "DELIVERY", "BANK_TRANSFER", null, null);
+
+        assertThat(order.getFulfillmentType()).isEqualTo("WAREHOUSE_SHIP");
+        assertThat(order.getFulfillmentWarehouse()).isEqualTo(warehouse);
+        assertThat(stock.getStockQuantity()).isEqualTo(4);
+        verify(notificationService).sendNotificationToUser(eq(19L), any(NotificationRequest.class));
+        verify(notificationService, never()).sendNotificationToStore(anyLong(), any(NotificationRequest.class));
+    }
+
+    @Test
     void onlineOrderRedeemsAndRecordsPointsThenCancellationRestoresThemOnce() {
         User user = user();
         user.setLoyaltyPoints(1200);
@@ -111,6 +143,27 @@ class OrderServiceImplTest {
     }
 
     @Test
+    void bankTransferConfirmationMarksPaidSetsPickupEtaAndCanBeRetriedSafely() {
+        Order order = Order.builder().id(88L).user(user()).status("PENDING").paymentMethod("BANK_TRANSFER")
+                .paymentStatus("UNPAID").fulfillmentType("PICKUP")
+                .paymentExpiresAt(LocalDateTime.now().plusMinutes(20)).build();
+        when(orderRepository.findByIdForUpdate(88L)).thenReturn(Optional.of(order));
+
+        Order confirmed = service.confirmBankTransferPayment(88L);
+        LocalDateTime beforeRetry = LocalDateTime.now();
+        Order retried = service.confirmBankTransferPayment(88L);
+
+        assertThat(confirmed.getStatus()).isEqualTo("CONFIRMED");
+        assertThat(confirmed.getPaymentStatus()).isEqualTo("PAID");
+        assertThat(confirmed.getPaidAt()).isNotNull();
+        assertThat(confirmed.getEstimatedPickupAt()).isAfter(beforeRetry.plusMinutes(29))
+                .isBefore(beforeRetry.plusMinutes(31));
+        assertThat(retried).isSameAs(confirmed);
+        verify(loyaltyService, times(1)).awardForPaidOrder(88L);
+        verify(notificationService, times(1)).sendNotificationToUser(anyLong(), any());
+    }
+
+    @Test
     void confirmedPaidOrderCanAdvanceToProcessing() {
         Order order = order("CONFIRMED", "VNPAY", "PAID");
         when(orderRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(order));
@@ -119,6 +172,22 @@ class OrderServiceImplTest {
 
         assertThat(updated.getStatus()).isEqualTo("PROCESSING");
         verify(orderRepository).save(order);
+    }
+
+    @Test
+    void paidPickupOrderMovesThroughPreparationReadyAndCustomerPickup() {
+        Order order = order("CONFIRMED", "BANK_TRANSFER", "PAID");
+        order.setFulfillmentType("PICKUP");
+        when(orderRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(order));
+
+        assertThat(service.allowedStatusTargets(order)).containsExactly("PROCESSING");
+        service.updateOrderStatus(10L, "PROCESSING");
+        assertThat(order.getEstimatedPickupAt()).isNotNull();
+        assertThat(service.allowedStatusTargets(order)).containsExactly("READY_FOR_PICKUP");
+        service.updateOrderStatus(10L, "READY_FOR_PICKUP");
+        assertThat(service.allowedStatusTargets(order)).containsExactly("DELIVERED");
+        service.updateOrderStatus(10L, "DELIVERED");
+        assertThat(order.getStatus()).isEqualTo("DELIVERED");
     }
 
     @Test

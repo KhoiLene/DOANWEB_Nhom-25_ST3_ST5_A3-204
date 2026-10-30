@@ -33,6 +33,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderPricingService pricingService;
     @Value("${shipping.store-fulfillment-radius-km:50}")
     private double storeFulfillmentRadiusKm;
+    @Value("${orders.pickup.ready-minutes:30}")
+    private int pickupReadyMinutes = 30;
 
     public OrderServiceImpl(OrderRepository orderRepository, CartRepository cartRepository,
                             UserRepository userRepository, StoreRepository storeRepository,
@@ -75,7 +77,8 @@ public class OrderServiceImpl implements OrderService {
         boolean pickup = "PICKUP".equals(fulfillmentType);
         if (!pickup && !"DELIVERY".equals(fulfillmentType)) throw new IllegalArgumentException("Vui lòng chọn cách nhận hàng.");
         if (pickup && !store.isPickupEnabled()) throw new IllegalArgumentException("Chi nhánh này không nhận đơn lấy tại cửa hàng.");
-        if (paymentMethod == null || !("COD".equalsIgnoreCase(paymentMethod) || "VNPAY".equalsIgnoreCase(paymentMethod)))
+        if (paymentMethod == null || !("COD".equalsIgnoreCase(paymentMethod)
+                || "BANK_TRANSFER".equalsIgnoreCase(paymentMethod)))
             throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ.");
         boolean otherCity = deliveryCity != null && store.getCity() != null
                 && !normalize(deliveryCity).equals(normalize(store.getCity()));
@@ -120,7 +123,7 @@ public class OrderServiceImpl implements OrderService {
                 .fulfillmentWarehouse(warehouse).totalAmount(quote.total())
                 .subtotalAmount(quote.subtotal()).discountAmount(quote.discount()).shippingAmount(quote.shipping())
                 .loyaltyPointsRedeemed(quote.redeemedPoints()).loyaltyPointsRestored(false)
-                .paymentExpiresAt("VNPAY".equalsIgnoreCase(paymentMethod) ? LocalDateTime.now().plusMinutes(15) : null).build();
+                .paymentExpiresAt("BANK_TRANSFER".equalsIgnoreCase(paymentMethod) ? LocalDateTime.now().plusMinutes(30) : null).build();
         // Initialize explicitly even when Lombok builder defaults differ between build outputs.
         order.setOrderItems(new java.util.ArrayList<>());
         List<InventoryMovement> movements = new java.util.ArrayList<>();
@@ -150,9 +153,18 @@ public class OrderServiceImpl implements OrderService {
         Order saved = orderRepository.save(order);
         movements.forEach(movement -> movement.setNote("Đơn trực tuyến #" + saved.getId()));
         movementRepository.saveAll(movements);
-        notificationService.sendNotificationToStore(storeId, NotificationRequest.builder()
-                .message("Đơn trực tuyến #" + saved.getId() + ("VNPAY".equalsIgnoreCase(paymentMethod) ? " đang chờ thanh toán" : " mới được tạo"))
-                .type("ORDER_NEW").orderId(saved.getId()).build());
+        NotificationRequest newOrderNotice = NotificationRequest.builder()
+                .message("Đơn trực tuyến #" + saved.getId() + ("BANK_TRANSFER".equalsIgnoreCase(paymentMethod)
+                        ? " đang chờ xác nhận chuyển khoản" : " mới được tạo"))
+                .type("ORDER_NEW").orderId(saved.getId()).build();
+        if (warehouse == null) {
+            notificationService.sendNotificationToStore(storeId, newOrderNotice);
+        } else {
+            // Đơn giao xa được xử lý tại kho; gửi đúng người phụ trách thay vì báo nhầm cho chi nhánh nhận đơn.
+            userRepository.findByWarehouse_Id(warehouse.getId()).stream()
+                    .filter(warehouseStaff -> warehouseStaff.getId() != null)
+                    .forEach(warehouseStaff -> notificationService.sendNotificationToUser(warehouseStaff.getId(), newOrderNotice));
+        }
         cart.getItems().clear();
         cartRepository.save(cart);
         return saved;
@@ -210,15 +222,21 @@ public class OrderServiceImpl implements OrderService {
         if ("CANCELLED".equals(target)) {
             releaseOrderStock(order, "ORDER_CANCEL_RETURN", "Hoàn tồn đơn hủy #" + order.getId());
             restoreRedeemedPoints(order);
-            if ("VNPAY".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("CANCELLED");
+            if ("VNPAY".equalsIgnoreCase(order.getPaymentMethod())
+                    || "BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("CANCELLED");
         }
         order.setStatus(target);
         if ("DELIVERED".equals(target) && "COD".equalsIgnoreCase(order.getPaymentMethod())) order.setPaymentStatus("PAID");
+        if ("DELIVERED".equals(target) && "PAID".equalsIgnoreCase(order.getPaymentStatus()) && order.getPaidAt() == null)
+            order.setPaidAt(LocalDateTime.now());
+        if ("PROCESSING".equals(target) && "PICKUP".equalsIgnoreCase(order.getFulfillmentType())
+                && order.getEstimatedPickupAt() == null)
+            order.setEstimatedPickupAt(LocalDateTime.now().plusMinutes(Math.max(10, pickupReadyMinutes)));
         Order savedOrder = orderRepository.save(order);
         if ("PAID".equalsIgnoreCase(savedOrder.getPaymentStatus())) loyaltyService.awardForPaidOrder(savedOrder.getId());
         if (savedOrder.getUser() != null) {
             notificationService.sendNotificationToUser(savedOrder.getUser().getId(), NotificationRequest.builder()
-                    .message("Đơn hàng #" + orderId + " đã chuyển sang " + target)
+                    .message("Đơn hàng #" + orderId + " đã cập nhật: " + orderStatusLabel(target))
                     .type("ORDER_STATUS_UPDATE").orderId(orderId).build());
         }
         return savedOrder;
@@ -265,7 +283,56 @@ public class OrderServiceImpl implements OrderService {
         }
         order.setPaymentStatus("PAID");
         order.setStatus("CONFIRMED");
+        markPaidAndEstimatePickup(order);
         return orderRepository.save(order);
+    }
+
+    @Override
+    @Transactional
+    public Order confirmBankTransferPayment(Long orderId) {
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng."));
+        if (!"BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod()))
+            throw new IllegalStateException("Đơn hàng này không dùng chuyển khoản VietQR.");
+        if ("PAID".equalsIgnoreCase(order.getPaymentStatus())) return order;
+        if (!"PENDING".equalsIgnoreCase(order.getStatus())
+                || !"UNPAID".equalsIgnoreCase(order.getPaymentStatus())) {
+            throw new IllegalStateException("Đơn hàng không còn chờ xác nhận chuyển khoản.");
+        }
+        if (order.getPaymentExpiresAt() != null && !order.getPaymentExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("Đơn hàng đã hết thời gian giữ. Vui lòng kiểm tra giao dịch và liên hệ hỗ trợ nếu khách đã chuyển tiền.");
+        }
+        order.setPaymentStatus("PAID");
+        order.setStatus("CONFIRMED");
+        markPaidAndEstimatePickup(order);
+        Order saved = orderRepository.save(order);
+        loyaltyService.awardForPaidOrder(saved.getId());
+        if (saved.getUser() != null) {
+            notificationService.sendNotificationToUser(saved.getUser().getId(), NotificationRequest.builder()
+                    .message("Đã xác nhận thanh toán cho đơn hàng #" + saved.getId() + ". Đơn đang chờ chi nhánh chuẩn bị.")
+                    .type("ORDER_STATUS_UPDATE").orderId(saved.getId()).build());
+        }
+        return saved;
+    }
+
+    private void markPaidAndEstimatePickup(Order order) {
+        LocalDateTime now = LocalDateTime.now();
+        order.setPaidAt(now);
+        if ("PICKUP".equalsIgnoreCase(order.getFulfillmentType()))
+            order.setEstimatedPickupAt(now.plusMinutes(Math.max(10, pickupReadyMinutes)));
+    }
+
+    private String orderStatusLabel(String status) {
+        return switch (status) {
+            case "CONFIRMED" -> "đã xác nhận thanh toán";
+            case "PROCESSING" -> "đang được chuẩn bị";
+            case "SHIPPING" -> "đã đóng gói và bàn giao cho đơn vị giao hàng";
+            case "READY_FOR_PICKUP" -> "đã sẵn sàng để nhận tại chi nhánh";
+            case "DELIVERED" -> "đã giao thành công";
+            case "CANCELLED" -> "đã hủy";
+            case "RETURNED" -> "đã hoàn trả";
+            default -> status.toLowerCase(java.util.Locale.ROOT);
+        };
     }
 
     @Override
@@ -285,14 +352,15 @@ public class OrderServiceImpl implements OrderService {
 
     private boolean isExpirableVnPay(Order order) {
         return "PENDING".equalsIgnoreCase(order.getStatus())
-                && "VNPAY".equalsIgnoreCase(order.getPaymentMethod())
+                && ("VNPAY".equalsIgnoreCase(order.getPaymentMethod())
+                    || "BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod()))
                 && "UNPAID".equalsIgnoreCase(order.getPaymentStatus())
                 && order.getPaymentExpiresAt() != null;
     }
 
     private void expireLockedOrder(Order order, LocalDateTime now) {
         if (!isExpirableVnPay(order) || order.getPaymentExpiresAt().isAfter(now)) return;
-        releaseOrderStock(order, "ORDER_PAYMENT_EXPIRED_RETURN", "Hoàn tồn đơn VNPay hết hạn #" + order.getId());
+        releaseOrderStock(order, "ORDER_PAYMENT_EXPIRED_RETURN", "Hoàn tồn đơn thanh toán hết hạn #" + order.getId());
         restoreRedeemedPoints(order);
         order.setStatus("CANCELLED");
         order.setPaymentStatus("EXPIRED");

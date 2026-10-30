@@ -5,7 +5,7 @@ Phạm vi: các chức năng quản trị đang có trên website. Chỉ dùng t
 ## 1. Vào quản trị và quay lại đúng khu vực
 
 1. Đăng nhập bằng tài khoản có role admin.
-2. Trang **Bảng điều khiển** là điểm bắt đầu cho quản trị.
+2. Trang **Trung tâm vận hành** là điểm bắt đầu cho quản trị.
 3. Trên website bán hàng, mở menu hồ sơ rồi chọn **Về quản trị** để trở lại workspace admin.
 4. Trong workspace admin, nút **Cửa hàng** mở trang bán hàng; hồ sơ/đăng xuất nằm trong menu tài khoản.
 5. Trước thao tác ảnh hưởng tồn, đơn, role hoặc chi nhánh, xác nhận đúng bản ghi và phạm vi.
@@ -50,13 +50,17 @@ Không dùng vị trí thử nghiệm như địa chỉ thật. Tọa độ sai 
 
 ## 5. Đơn hàng và biên nhận
 
-Mở **Đơn hàng**, xem chi tiết trước khi đổi trạng thái. Chỉ cập nhật theo quy trình đã thống nhất. Đơn giao hoàn tất và đã thanh toán sẽ phát hành biên nhận theo luồng hiện có. Mở **Biên nhận bán hàng** để tra cứu; chọn **Tải / in PDF** trên chi tiết để lưu bản PDF qua hộp thoại trình duyệt.
+Mở **Đơn hàng**. Có thể lọc theo mã đơn/từ khóa khách hàng, trạng thái đơn, trạng thái thanh toán, hình thức nhận hàng và khoảng ngày; chọn sắp xếp mới nhất trước hoặc cũ nhất trước. Bấm **Lọc đơn**, mở chi tiết đúng bản ghi rồi mới thực hiện thao tác.
+
+Với chuyển khoản VietQR, khách có thể báo đã chuyển nhưng việc này chưa xác nhận tiền. Mở hàng đợi ở đúng chi nhánh/kho hoặc chi tiết đơn, đối chiếu giao dịch thực nhận rồi mới bấm **Xác nhận đã nhận tiền**. Đây là thao tác thủ công; VietQR không tự đối soát tài khoản ngân hàng. Sau khi xác nhận, tiếp tục theo trạng thái/nút được hiển thị. Không hủy đơn đã thanh toán nếu chưa thực sự xử lý hoàn tiền.
+
+Mở **Biên nhận** để tra cứu; mở chi tiết rồi chọn **Tải / in PDF** để lưu qua hộp thoại trình duyệt.
 
 Đừng dùng thao tác trạng thái để thay cho xác nhận thanh toán chưa có chứng từ. Nếu đơn sai hoặc cần hoàn/hủy mà màn hình không có thao tác tương ứng, ghi lại mã đơn và xử lý theo chính sách được phê duyệt.
 
 ## 6. Quản lý kho tri thức của chatbot
 
-1. Mở **Kho tri thức AI**.
+1. Mở **Kho tri thức RAG**.
 2. Chọn đúng phạm vi: khách hàng, cửa hàng, kho hoặc admin.
 3. Thêm tài liệu đã được người phụ trách duyệt; đặt tiêu đề mô tả đúng nội dung, bỏ thông tin riêng tư và bí mật.
 4. Rà soát nội dung để chắc chắn hướng dẫn tương ứng với màn hình thật.
@@ -68,7 +72,7 @@ Một nguồn role admin không được gán sang customer. Không đưa passwo
 
 ## 7. Khuyến mãi và giới hạn hiện tại
 
-Giao diện quản trị hiện có chưa cung cấp màn hình tạo/sửa chương trình khuyến mãi. Admin không nên hướng dẫn nhân viên “cài chương trình” bằng một mục chưa tồn tại. Trước khi mở chức năng đó, cần thống nhất người duyệt, thời gian, đối tượng, sản phẩm áp dụng, mức giảm, điều kiện tối thiểu, cộng dồn ưu đãi, ngân sách, giới hạn lượt, điểm thành viên, hoàn/hủy và báo cáo. Tài liệu RAG chỉ được cập nhật sau khi quy tắc thật được phê duyệt.
+Biểu mẫu **Sản phẩm** hỗ trợ cấu hình ưu đãi gắn với sản phẩm, gồm phần trăm giảm, tên chương trình, đối tượng ALL/VIP và thời gian áp dụng. Kiểm tra giá cuối trên cửa hàng và POS sau khi lưu. Không hướng dẫn tạo mã giảm giá hoặc chiến dịch tổng hợp nhiều sản phẩm nếu không có màn hình tương ứng. Tài liệu RAG chỉ mô tả điều kiện đã được xác nhận và đang hiển thị.
 
 ## 8. Quy trình duyệt nội dung và xử lý sự cố
 

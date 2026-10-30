@@ -27,6 +27,7 @@ public class StoreStaffController {
     private final InventoryOperationsService inventoryOperationsService;
     private final PointOfSaleService pointOfSaleService;
     private final OrderRepository orderRepository;
+    private final SalesInvoiceRepository invoiceRepository;
     private final InvoiceService invoiceService;
     private final OrderService orderService;
     private final StoreReservationService reservationService;
@@ -36,7 +37,7 @@ public class StoreStaffController {
                                 InventoryMovementRepository movementRepository, StockTransferRepository transferRepository,
                                 InventoryOperationsService inventoryOperationsService,
                                 PointOfSaleService pointOfSaleService, OrderRepository orderRepository,
-                                InvoiceService invoiceService, OrderService orderService,
+                                SalesInvoiceRepository invoiceRepository, InvoiceService invoiceService, OrderService orderService,
                                 StoreReservationService reservationService, SystemSettingService systemSettingService) {
         this.userRepository = userRepository;
         this.inventoryRepository = inventoryRepository;
@@ -45,6 +46,7 @@ public class StoreStaffController {
         this.inventoryOperationsService = inventoryOperationsService;
         this.pointOfSaleService = pointOfSaleService;
         this.orderRepository = orderRepository;
+        this.invoiceRepository = invoiceRepository;
         this.invoiceService = invoiceService;
         this.orderService = orderService;
         this.reservationService = reservationService;
@@ -63,10 +65,30 @@ public class StoreStaffController {
         }
         Long storeId = user.getStore().getId();
         model.addAttribute("store", user.getStore());
-        var orders = orderRepository.findByStoreIdAndFulfillmentWarehouseIsNullOrderByOrderDateDesc(storeId);
+        var allOrders = orderRepository.findByStoreIdAndFulfillmentWarehouseIsNullOrderByOrderDateDesc(storeId);
+        var allowedTransitions = allOrders.stream().collect(java.util.stream.Collectors.toMap(
+                com.shopchain.entity.Order::getId, orderService::allowedStatusTargets));
+        var orders = allOrders.stream().filter(order -> {
+            var targets = allowedTransitions.get(order.getId());
+            boolean awaitingTransferCheck = "BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod())
+                    && "UNPAID".equalsIgnoreCase(order.getPaymentStatus())
+                    && "PENDING".equalsIgnoreCase(order.getStatus());
+            return awaitingTransferCheck || targets.contains("PROCESSING") || targets.contains("SHIPPING")
+                    || targets.contains("READY_FOR_PICKUP") || targets.contains("DELIVERED");
+        }).toList();
+        var orderHistory = allOrders.stream().filter(order -> allowedTransitions.get(order.getId()).isEmpty()).toList();
         model.addAttribute("orders", orders);
-        model.addAttribute("allowedTransitions", orders.stream().collect(java.util.stream.Collectors.toMap(
-                com.shopchain.entity.Order::getId, orderService::allowedStatusTargets)));
+        model.addAttribute("orderHistory", orderHistory);
+        model.addAttribute("orderStatusLabels", java.util.Map.of(
+                "PENDING", "Chờ xác nhận", "CONFIRMED", "Đã xác nhận thanh toán", "PROCESSING", "Đang chuẩn bị",
+                "SHIPPING", "Đang giao", "READY_FOR_PICKUP", "Sẵn sàng nhận tại chi nhánh",
+                "DELIVERED", "Đã giao / đã nhận", "COMPLETED", "Đã thanh toán tại quầy",
+                "CANCELLED", "Đã hủy", "RETURNED", "Đã hoàn trả"));
+        model.addAttribute("pendingTransferOrders", orders.stream()
+                .filter(order -> "BANK_TRANSFER".equalsIgnoreCase(order.getPaymentMethod())
+                        && "UNPAID".equalsIgnoreCase(order.getPaymentStatus())
+                        && "PENDING".equalsIgnoreCase(order.getStatus())).toList());
+        model.addAttribute("allowedTransitions", allowedTransitions);
         model.addAttribute("inventory", inventoryRepository.findByStoreId(storeId));
         model.addAttribute("movements", movementRepository.findTop100ByStoreIdOrderByCreatedAtDesc(storeId));
         model.addAttribute("transfers", transferRepository.findByDestinationStoreIdAndStatusOrderByCreatedAtAsc(storeId, "IN_TRANSIT"));
@@ -86,6 +108,26 @@ public class StoreStaffController {
         orderService.updateOrderStatus(orderId, status);
         order = orderRepository.findById(orderId).orElseThrow();
         if ("DELIVERED".equals(status) && "PAID".equals(order.getPaymentStatus())) invoiceService.issueForPaidOrder(order.getId());
+        return "redirect:/staff/orders";
+    }
+
+    @PostMapping("/orders/{orderId}/confirm-transfer")
+    public String confirmOnlineTransfer(@PathVariable Long orderId, Authentication authentication,
+                                        RedirectAttributes redirectAttributes) {
+        var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        var order = orderRepository.findById(orderId).orElseThrow();
+        if (user.getStore() == null || order.getStore() == null
+                || !order.getStore().getId().equals(user.getStore().getId())
+                || order.getFulfillmentWarehouse() != null)
+            throw new IllegalArgumentException("Đơn hàng không thuộc chi nhánh được phân công.");
+        try {
+            var paidOrder = orderService.confirmBankTransferPayment(orderId);
+            if ("PICKUP".equalsIgnoreCase(paidOrder.getFulfillmentType()))
+                invoiceService.issueForPaidOrder(orderId);
+            redirectAttributes.addFlashAttribute("successMessage", "Đã xác nhận chuyển khoản. Đơn hàng chuyển sang chờ xử lý.");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
         return "redirect:/staff/orders";
     }
 
@@ -201,6 +243,20 @@ public class StoreStaffController {
             throw new IllegalArgumentException("Biên nhận không thuộc chi nhánh được phân công.");
         model.addAttribute("invoice", invoice);
         return "staff/invoice";
+    }
+
+    @GetMapping("/orders/{orderId}/receipt")
+    public String orderReceipt(@PathVariable Long orderId, Authentication authentication) {
+        var user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        var order = orderRepository.findById(orderId).orElseThrow(
+                () -> new IllegalArgumentException("Không tìm thấy đơn hàng."));
+        if (user.getStore() == null || order.getStore() == null
+                || !order.getStore().getId().equals(user.getStore().getId())
+                || order.getFulfillmentWarehouse() != null)
+            throw new IllegalArgumentException("Đơn hàng không thuộc chi nhánh được phân công.");
+        var invoice = invoiceRepository.findByOrderId(orderId).orElseThrow(
+                () -> new IllegalArgumentException("Đơn này chưa có biên nhận."));
+        return "redirect:/staff/invoices/" + invoice.getId();
     }
 
     /**

@@ -140,8 +140,8 @@
           </label>
           <select id="cartStoreSelect" style="width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; color: #1e293b; background: #f8fafc;">
             <option value="">-- Chọn chi nhánh nhận hàng --</option>
-            <option th:each="store : ${stores}" th:value="${store.id}" th:text="${store.name + ' · ' + store.address + ', ' + store.city}">Chi nhánh</option>
           </select>
+          <small id="cartReserveAvailability" role="status" style="display:block; margin-top:7px; color:#64748b; line-height:1.5;">Chỉ hiển thị chi nhánh còn đủ hàng cho các sản phẩm trong giỏ.</small>
         </div>
 
         <div id="cartReserveError" style="background: #fef2f2; color: #b91c1c; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 14px; border: 1px solid #fecaca; display: none;"></div>
@@ -164,8 +164,68 @@
       const btnCancel = document.getElementById('cancelReserveBtn');
       const btnConfirm = document.getElementById('confirmReserveBtn');
       const storeSelect = document.getElementById('cartStoreSelect');
+      const availabilityHint = document.getElementById('cartReserveAvailability');
       const errorBox = document.getElementById('cartReserveError');
       const successBox = document.getElementById('cartReserveSuccess');
+
+      const getCartLines = () => {
+        const quantities = new Map();
+        document.querySelectorAll('.cart-rows .cart-row').forEach(row => {
+          const productId = Number(row.querySelector('input[name="productId"]')?.value);
+          const quantity = Number(row.querySelector('input[name="quantity"]')?.value);
+          if (Number.isInteger(productId) && productId > 0 && Number.isInteger(quantity) && quantity > 0)
+            quantities.set(productId, (quantities.get(productId) || 0) + quantity);
+        });
+        return [...quantities].map(([productId, quantity]) => ({ productId, quantity }));
+      };
+
+      const loadAvailableStores = async () => {
+        const lines = getCartLines();
+        storeSelect.replaceChildren(new Option('Đang kiểm tra tồn kho…', ''));
+        storeSelect.disabled = true;
+        btnConfirm.disabled = true;
+        availabilityHint.textContent = 'Đang kiểm tra số lượng từng sản phẩm tại các chi nhánh…';
+        if (!lines.length) {
+          availabilityHint.textContent = 'Giỏ hàng đang trống, không thể giữ hàng.';
+          storeSelect.replaceChildren(new Option('-- Giỏ hàng đang trống --', ''));
+          return;
+        }
+        if (lines.length > 10 || lines.some(line => line.quantity > 20)) {
+          availabilityHint.textContent = 'Phiếu giữ hỗ trợ tối đa 10 sản phẩm, mỗi loại tối đa 20 món.';
+          storeSelect.replaceChildren(new Option('-- Giảm số lượng để tiếp tục --', ''));
+          return;
+        }
+
+        try {
+          const stockLists = await Promise.all(lines.map(async line => {
+            const response = await fetch(`/api/products/${line.productId}/availability`, {
+              headers: { 'Accept': 'application/json' }
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || 'Không kiểm tra được tồn kho sản phẩm.');
+            return data;
+          }));
+          const stockByProduct = stockLists.map(rows => new Map(rows.map(branch => [Number(branch.storeId), Number(branch.available || 0)])));
+          const branches = stockLists[0]
+            .filter(branch => lines.every((line, index) => (stockByProduct[index].get(Number(branch.storeId)) || 0) >= line.quantity))
+            .sort((a, b) => String(a.city || '').localeCompare(String(b.city || ''), 'vi')
+              || String(a.name || '').localeCompare(String(b.name || ''), 'vi'));
+
+          storeSelect.replaceChildren(new Option('-- Chọn chi nhánh còn đủ hàng --', ''));
+          branches.forEach(branch => {
+            const option = new Option(`${branch.name} · ${branch.address || ''}${branch.city ? ', ' + branch.city : ''}`, String(branch.storeId));
+            storeSelect.add(option);
+          });
+          storeSelect.disabled = branches.length === 0;
+          btnConfirm.disabled = true;
+          availabilityHint.textContent = branches.length
+            ? `Có ${branches.length} chi nhánh còn đủ toàn bộ sản phẩm và số lượng trong giỏ.`
+            : 'Chưa có chi nhánh nào đủ toàn bộ sản phẩm trong giỏ. Hãy giảm số lượng hoặc bỏ sản phẩm đang hết hàng rồi thử lại.';
+        } catch (error) {
+          storeSelect.replaceChildren(new Option('-- Chưa tải được danh sách chi nhánh --', ''));
+          availabilityHint.textContent = error.message || 'Không kiểm tra được tồn kho. Hãy đóng hộp và mở lại để thử lần nữa.';
+        }
+      };
 
       if (btnOpen && modal) {
         btnOpen.addEventListener('click', () => {
@@ -173,10 +233,13 @@
           errorBox.textContent = '';
           successBox.style.display = 'none';
           successBox.textContent = '';
-          btnConfirm.disabled = false;
+          btnConfirm.disabled = true;
           btnConfirm.textContent = 'Xác nhận giữ hàng';
           modal.style.display = 'flex';
+          loadAvailableStores();
         });
+
+        storeSelect.addEventListener('change', () => { btnConfirm.disabled = !storeSelect.value; });
 
         const closeModal = () => { modal.style.display = 'none'; };
         if (btnClose) btnClose.addEventListener('click', closeModal);
@@ -193,19 +256,7 @@
             return;
           }
 
-          const rows = document.querySelectorAll('.cart-rows .cart-row');
-          const lines = [];
-          rows.forEach(row => {
-            const pInput = row.querySelector('input[name="productId"]');
-            const qInput = row.querySelector('input[name="quantity"]');
-            if (pInput && qInput) {
-              const productId = Number(pInput.value);
-              const quantity = Number(qInput.value);
-              if (productId && quantity > 0) {
-                lines.push({ productId, quantity });
-              }
-            }
-          });
+          const lines = getCartLines();
 
           if (!lines.length) {
             errorBox.textContent = 'Giỏ hàng đang trống, không thể giữ hàng.';
@@ -251,7 +302,9 @@
           } catch (err) {
             errorBox.textContent = err.message || 'Chưa thể giữ hàng lúc này. Vui lòng thử lại sau.';
             errorBox.style.display = 'block';
-            btnConfirm.disabled = false;
+            if (/chưa có tại|không đủ|không còn được phép bán/i.test(errorBox.textContent))
+              await loadAvailableStores();
+            btnConfirm.disabled = !storeSelect.value;
             btnConfirm.textContent = 'Xác nhận giữ hàng';
           }
         });

@@ -15,6 +15,7 @@ public interface OrderService {
                            Double deliveryLatitude, Double deliveryLongitude, Integer redeemPoints);
     Order updateOrderStatus(Long orderId, String status);
     Order confirmVnPayPayment(Long orderId);
+    Order confirmBankTransferPayment(Long orderId);
     Order prepareVnPayPayment(Long orderId);
     boolean expireUnpaidVnPayOrder(Long orderId, java.time.LocalDateTime now);
     List<String> allowedStatusTargets(Order order);

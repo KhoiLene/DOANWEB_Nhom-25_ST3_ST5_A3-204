@@ -47,17 +47,19 @@ public class RoleAssistantService {
             "tu van", "gia", "don hang", "gio hang", "mua hang", "dat hang", "dat san pham", "thanh toan", "giao hang", "doi tra",
             "cua hang", "chi nhanh", "tim cua hang", "gan nhat", "dia chi", "vi tri", "gps", "ban do",
             "nhan tai cua hang", "lay hang tai cua hang", "khuyen mai", "uu dai", "tich diem", "diem thuong",
+            "chuyen khoan", "da chuyen tien", "vietqr", "bao chuyen tien", "phi van chuyen", "phieu giu", "giu hang",
+            "loc san pham", "sap xep san pham", "ban chay", "best seller", "doi diem", "dung diem",
             "voucher", "ship", "lam dep", "dep da", "da dep", "lo trinh da dep", "cham soc sac dep",
             "lo trinh cham soc da", "routine da", "duong da hang ngay", "diem tich luy", "diem thanh vien",
-            "tai khoan", "hoa don", "huy don", "van chuyen", "ma van don", "phi giao hang", "dang ky",
+            "tai khoan", "hoa don", "huy don", "van chuyen", "ma van don", "dang ky",
             "thong tin don hang", "phuong thuc thanh toan", "nhan hang");
     private static final List<String> COMMON_HELP_TOPICS = List.of(
             "chuc nang", "cach su dung", "huong dan", "thao tac", "lam sao", "giup toi", "chi toi", "cach lam", "cach thuc hien");
     private static final Map<String, List<String>> ROLE_TOPICS = Map.of(
             "customer", CUSTOMER_TOPICS,
-            "store-staff", List.of("ban tai quay", "ban hang", "hoa don", "xuat hoa don", "in hoa don", "pdf", "thanh toan", "san pham", "khuyen mai", "uu dai", "ma giam gia", "don hang", "don online", "khach hang", "cua hang", "chi nhanh", "doi tra", "huy don", "giao hang", "ton kho", "lich su ton", "dieu chuyen", "nhan dieu chuyen", "nhan hang", "xuat kho", "so luong", "ca lam", "nhan vien", "pos", "gio hang", "trang thai", "pending", "processing", "shipping", "delivered", "chuc nang", "thao tac"),
-            "warehouse", List.of("kho", "ton kho", "nhap", "xuat", "nhap kho", "nhap hang", "xuat hang", "dieu chuyen", "phieu", "phieu dieu chuyen", "sku", "don hang", "don giao tu kho", "kiem ke", "chi nhanh", "san pham", "so luong", "nhan hang", "tra hang", "nha cung cap", "ma lo", "han dung", "ton thuc te", "hang hong", "chenh lech", "nhan xu ly", "ban giao", "pending", "processing", "shipping", "delivered", "giao hang", "giao xa", "nuoc ngoai", "quoc te", "dat hang", "van chuyen", "chuc nang", "thao tac"),
-            "admin", List.of("quan tri", "he thong", "nguoi dung", "vai tro", "nhan su", "san pham", "danh muc", "chi nhanh", "kho", "don hang", "khuyen mai", "bao cao", "doanh thu", "phan quyen", "rag", "chatbot", "tinh nang", "chuc nang", "cai dat", "cau hinh", "hoa don", "thao tac", "huong dan", "cach su dung", "quan ly", "cach lam", "lam sao", "chi toi", "giup toi", "van hanh", "cap nhat", "them moi", "chinh sua", "tim kiem", "tai khoan", "dieu chuyen", "ton kho", "nhap hang", "xuat hang", "vi tri", "ban do", "nhan vien", "chi nhanh gan", "kho tri thuc", "nguon tri thuc", "bao mat", "phan quyen", "dang nhap", "cua hang", "phieu", "kiem ke"));
+            "store-staff", List.of("ban tai quay", "ban hang", "hoa don", "xuat hoa don", "in hoa don", "pdf", "thanh toan", "chuyen khoan", "vietqr", "xac nhan tien", "da nhan tien", "san pham", "khuyen mai", "uu dai", "ma giam gia", "don hang", "don online", "khach hang", "cua hang", "chi nhanh", "doi tra", "huy don", "giao hang", "ton kho", "lich su ton", "dieu chuyen", "nhan dieu chuyen", "nhan hang", "xuat kho", "so luong", "ca lam", "nhan vien", "pos", "gio hang", "phieu giu", "giu hang", "khach den lay", "trang thai", "pending", "confirmed", "processing", "shipping", "delivered", "chuc nang", "thao tac"),
+            "warehouse", List.of("kho", "ton kho", "nhap", "xuat", "nhap kho", "nhap hang", "xuat hang", "dieu chuyen", "phieu", "phieu dieu chuyen", "sku", "don hang", "don giao tu kho", "kiem ke", "chi nhanh", "san pham", "so luong", "nhan hang", "tra hang", "nha cung cap", "ma lo", "han dung", "ton thuc te", "hang hong", "chenh lech", "nhan xu ly", "ban giao", "thanh toan", "chuyen khoan", "vietqr", "xac nhan tien", "da nhan tien", "pending", "confirmed", "processing", "shipping", "delivered", "giao hang", "giao xa", "nuoc ngoai", "quoc te", "dat hang", "van chuyen", "chuc nang", "thao tac"),
+            "admin", List.of("quan tri", "he thong", "nguoi dung", "vai tro", "nhan su", "san pham", "danh muc", "chi nhanh", "kho", "don hang", "khuyen mai", "bao cao", "doanh thu", "phan quyen", "rag", "chatbot", "tinh nang", "chuc nang", "cai dat", "cau hinh", "hoa don", "thao tac", "huong dan", "cach su dung", "quan ly", "cach lam", "lam sao", "chi toi", "giup toi", "van hanh", "cap nhat", "them moi", "chinh sua", "tim kiem", "tai khoan", "dieu chuyen", "ton kho", "nhap hang", "xuat hang", "vi tri", "ban do", "nhan vien", "chi nhanh gan", "kho tri thuc", "nguon tri thuc", "bao mat", "phan quyen", "dang nhap", "cua hang", "phieu", "kiem ke", "thanh toan", "chuyen khoan", "vietqr", "xac nhan tien", "da nhan tien", "bo loc", "loc don", "sap xep", "trang thai thanh toan", "hinh thuc nhan", "tu ngay", "den ngay"));
 
     private final AssistantKnowledgeSourceRepository repository;
     private final ProductRepository productRepository;
@@ -487,9 +489,9 @@ public class RoleAssistantService {
     private String greetingTopics(String role) {
         return switch (role) {
             case "customer" -> "chăm sóc da, tóc, môi, chọn sản phẩm, tìm chi nhánh và đặt hàng";
-            case "store-staff" -> "sử dụng chức năng bán hàng, hóa đơn và chương trình khuyến mãi";
-            case "warehouse" -> "quản lý tồn kho, nhập hàng và xử lý đơn";
-            case "admin" -> "bảng điều khiển, tài khoản và phân quyền, sản phẩm, chi nhánh, kho, đơn hàng, báo cáo và kho tri thức AI";
+            case "store-staff" -> "bán tại quầy, đơn của chi nhánh, phiếu giữ hàng, chuyển khoản, biên nhận và điều chuyển";
+            case "warehouse" -> "nhập hàng, tồn kho, điều chuyển, đơn giao từ kho và đối chiếu chuyển khoản";
+            case "admin" -> "trung tâm vận hành, tài khoản, sản phẩm, chi nhánh, kho, bộ lọc đơn, thanh toán, biên nhận và kho tri thức RAG";
             default -> "các nội dung phù hợp với vai trò của bạn";
         };
     }

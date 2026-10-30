@@ -53,12 +53,15 @@ Ghim sai có thể khiến khách được chỉ tới nhầm nơi. Không dùng
 ## Đơn hàng, bán tại cửa hàng và biên nhận
 
 - Mở Đơn hàng để tìm đơn và xem người nhận, sản phẩm, tổng tiền, cách nhận hàng và trạng thái.
+- Bộ lọc hỗ trợ từ khóa/mã đơn, trạng thái đơn, trạng thái thanh toán, hình thức nhận, ngày bắt đầu/kết thúc và sắp xếp mới nhất/cũ nhất. Chọn điều kiện rồi bấm Lọc đơn; dùng Xóa lọc để xem lại toàn bộ.
+- Với đơn chuyển khoản đang `PENDING`/`UNPAID`, khách báo đã chuyển chỉ tạo lời báo. Đối chiếu tiền thực nhận theo mã/nội dung/số tiền trước khi xác nhận. VietQR không tự kiểm tra ngân hàng.
+- Sau xác nhận thủ công, đơn sang `CONFIRMED`; tiếp tục quy trình theo đúng thao tác hiện trên màn hình. Không đánh dấu thanh toán nếu chưa có giao dịch và không hủy đơn đã thanh toán khi chưa hoàn tiền thật.
 - Chỉ cập nhật trạng thái sau khi đã kiểm tra hàng và xác nhận bước nghiệp vụ tương ứng.
 - Mở Biên nhận để tìm hóa đơn/biên nhận theo danh sách. Mở chi tiết để kiểm tra rồi dùng nút tải hoặc in PDF nếu có.
 - Bán tại quầy được thực hiện ở khu vực làm việc của nhân viên cửa hàng. Admin có thể hướng dẫn quy trình và kiểm tra đơn, nhưng cần làm theo đúng quyền và màn hình hiện hành.
 - Nếu đơn hoặc biên nhận sai, ghi mã đơn và chuyển bộ phận phụ trách; không đánh dấu thanh toán khi chưa được xác nhận.
 
-## Kho tri thức AI và hướng dẫn chatbot
+## Kho tri thức RAG và hướng dẫn chatbot
 
 1. Mở Kho tri thức RAG ở thanh bên.
 2. Chọn đúng vai trò nhận tài liệu: khách hàng, nhân viên cửa hàng, nhân viên kho hoặc admin.
@@ -71,7 +74,7 @@ Ví dụ câu hỏi admin: “Cách thêm chi nhánh mới?”, “Làm sao gán
 
 ## Khuyến mãi và thông tin chưa có trên màn hình
 
-Trước khi thông báo một chương trình, kiểm tra tên chương trình, thời gian, sản phẩm áp dụng, nhóm khách và giá cuối cùng trên màn hình hiện hành. Chỉ nói các điều kiện đã được hiển thị hoặc xác nhận. Nếu chưa thấy chức năng cấu hình chương trình trên trang quản trị, hãy chuyển yêu cầu cho người quản lý phụ trách; không tự hứa ngày áp dụng hoặc mức giảm.
+Biểu mẫu Sản phẩm hỗ trợ tạo ưu đãi gắn với sản phẩm: tên chương trình, phần trăm giảm, đối tượng ALL/VIP và thời gian hiệu lực. Kiểm tra giá sau lưu trên trang sản phẩm. Không hướng dẫn tạo mã giảm giá hoặc chiến dịch tổng hợp riêng nếu giao diện không có chức năng đó. Trước khi thông báo, kiểm tra giá, đối tượng và thời gian đang hiển thị; không tự hứa ngày áp dụng hoặc mức giảm.
 
 ## Khi thao tác không thành công
 
