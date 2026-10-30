@@ -21,6 +21,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HexFormat;
@@ -39,6 +40,11 @@ public class AssistantKnowledgeVectorIndexService {
     private static final Logger log = LoggerFactory.getLogger(AssistantKnowledgeVectorIndexService.class);
     private static final int CHUNK_CHARS = 1800;
     private static final int CHUNK_OVERLAP_CHARS = 240;
+    private static final Map<String, Collections.PayloadSchemaType> REQUIRED_PAYLOAD_INDEXES = Map.of(
+            "sourceId", Collections.PayloadSchemaType.Keyword,
+            "contentHash", Collections.PayloadSchemaType.Keyword,
+            "roleKey", Collections.PayloadSchemaType.Keyword,
+            "active", Collections.PayloadSchemaType.Bool);
 
     private final AssistantKnowledgeSourceRepository repository;
     private final ObjectProvider<VectorStore> vectorStoreProvider;
@@ -102,15 +108,24 @@ public class AssistantKnowledgeVectorIndexService {
         }
         try {
             List<AssistantKnowledgeSource> activeSources = activeSources();
+            if (activeSources.isEmpty()) return new ReindexSummary(0, 0, 0, 0, 0);
 
             // SQL can still say INDEXED after a Qdrant cluster was recreated or cleared.
             // The vector collection is authoritative in that case.
             Boolean exists = collectionExists();
-            if (!activeSources.isEmpty() && Boolean.FALSE.equals(exists)) {
+            if (Boolean.FALSE.equals(exists)) {
                 resetCollectionInitialization();
                 log.warn("Qdrant collection '{}' is missing; rebuilding {} active Gemini knowledge sources.",
                         collectionName, activeSources.size());
                 return reindexSources(activeSources);
+            }
+            if (Boolean.TRUE.equals(exists)) {
+                VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
+                if (vectorStore != null) ensureCollectionExists(vectorStore);
+            } else if (enabled && gemini.isConfigured() && !(isProduction() && isLocalhost(qdrantHost))) {
+                // Avoid making every source repeat the same network timeout or Gemini call during an outage.
+                log.warn("Skipping Gemini knowledge reindex because Qdrant availability could not be confirmed.");
+                return new ReindexSummary(activeSources.size(), 0, activeSources.size(), 0, 0);
             }
 
             return reindexSources(activeSources.stream().filter(this::isStale).toList());
@@ -330,7 +345,7 @@ public class AssistantKnowledgeVectorIndexService {
     private synchronized void ensureCollectionExists(VectorStore vectorStore) {
         if (collectionInitialized) return;
         QdrantClient client = qdrantClient(vectorStore);
-        if (client == null) return;
+        if (client == null) throw new IllegalStateException("Qdrant client is unavailable.");
         try {
             Boolean exists = client.collectionExistsAsync(collectionName).get(5, TimeUnit.SECONDS);
             if (!Boolean.TRUE.equals(exists)) {
@@ -341,6 +356,7 @@ public class AssistantKnowledgeVectorIndexService {
                 client.createCollectionAsync(collectionName, params).get(10, TimeUnit.SECONDS);
                 log.info("Initialized Qdrant collection '{}' with dimension {}", collectionName, gemini.dimensions());
             }
+            ensureRequiredPayloadIndexes(client);
             collectionInitialized = true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -350,6 +366,57 @@ public class AssistantKnowledgeVectorIndexService {
         } catch (TimeoutException e) {
             throw new IllegalStateException("Timed out communicating with Qdrant.", e);
         }
+    }
+
+    /**
+     * Strict-mode Qdrant collections reject filters on fields without payload indexes.
+     * Check the live schema so existing collections are upgraded safely without dropping data.
+     */
+    private void ensureRequiredPayloadIndexes(QdrantClient client)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        Collections.CollectionInfo info = client.getCollectionInfoAsync(collectionName, Duration.ofSeconds(10))
+                .get(12, TimeUnit.SECONDS);
+        for (Map.Entry<String, Collections.PayloadSchemaType> required : REQUIRED_PAYLOAD_INDEXES.entrySet()) {
+            String field = required.getKey();
+            Collections.PayloadSchemaType expectedType = required.getValue();
+            if (info.containsPayloadSchema(field)) {
+                Collections.PayloadSchemaType actualType = info.getPayloadSchemaOrThrow(field).getDataType();
+                if (actualType != expectedType) {
+                    throw new IllegalStateException("Qdrant payload field '" + field
+                            + "' has schema " + actualType + "; expected " + expectedType + ".");
+                }
+                continue;
+            }
+
+            try {
+                client.createPayloadIndexAsync(collectionName, field, expectedType, null, true,
+                                null, Duration.ofSeconds(15))
+                        .get(18, TimeUnit.SECONDS);
+                log.info("Created Qdrant payload index '{}' ({}) on collection '{}'",
+                        field, expectedType, collectionName);
+            } catch (ExecutionException createFailure) {
+                // Another app instance may have created the same index concurrently.
+                Collections.CollectionInfo refreshed = client.getCollectionInfoAsync(collectionName,
+                                Duration.ofSeconds(10))
+                        .get(12, TimeUnit.SECONDS);
+                if (!refreshed.containsPayloadSchema(field)
+                        || refreshed.getPayloadSchemaOrThrow(field).getDataType() != expectedType) {
+                    throw createFailure;
+                }
+            }
+        }
+    }
+
+    /** Ensure filter indexes exist before a chat request searches the collection. */
+    public void ensureCollectionReadyForSearch() {
+        if (!enabled) throw new IllegalStateException("Vector RAG is disabled.");
+        if (collectionInitialized) return;
+        VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
+        if (vectorStore == null) throw new IllegalStateException("Qdrant vector store is unavailable.");
+        Boolean exists = collectionExists();
+        if (Boolean.FALSE.equals(exists)) return; // Let similaritySearch report NOT_FOUND and trigger recovery.
+        if (!Boolean.TRUE.equals(exists)) throw new IllegalStateException("Qdrant collection could not be checked.");
+        ensureCollectionExists(vectorStore);
     }
 
     /** Returns null when Qdrant cannot be checked, so a transient outage won't trigger a costly full re-embed. */

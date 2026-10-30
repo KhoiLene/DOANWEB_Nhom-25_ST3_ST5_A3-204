@@ -309,6 +309,7 @@ public class RoleAssistantService {
 
     private List<RetrievedSnippet> retrieve(VectorStore vectorStore, String role, String question) {
         try {
+            if (vectorIndexService != null) vectorIndexService.ensureCollectionReadyForSearch();
             FilterExpressionBuilder filterBuilder = new FilterExpressionBuilder();
             Filter.Expression roleFilter = filterBuilder
                     .and(filterBuilder.eq("roleKey", role), filterBuilder.eq("active", true))
