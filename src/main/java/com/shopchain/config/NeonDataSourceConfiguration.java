@@ -30,7 +30,7 @@ class NeonDataSourceConfiguration {
         dataSource.setJdbcUrl(parsed.jdbcUrl());
         dataSource.setUsername(firstText(environment.getProperty("SPRING_DATASOURCE_USERNAME"), parsed.username()));
         dataSource.setPassword(firstText(environment.getProperty("SPRING_DATASOURCE_PASSWORD"), parsed.password()));
-        dataSource.setMaximumPoolSize(environment.getProperty("spring.datasource.hikari.maximum-pool-size", Integer.class, 5));
+        dataSource.setMaximumPoolSize(environment.getProperty("spring.datasource.hikari.maximum-pool-size", Integer.class, 8));
         dataSource.setMinimumIdle(environment.getProperty("spring.datasource.hikari.minimum-idle", Integer.class, 1));
         dataSource.setMaxLifetime(environment.getProperty("spring.datasource.hikari.max-lifetime", Long.class, 120_000L));
         dataSource.setKeepaliveTime(0L);
