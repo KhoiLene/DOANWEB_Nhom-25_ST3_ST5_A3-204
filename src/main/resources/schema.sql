@@ -41,14 +41,7 @@ ALTER TABLE IF EXISTS sales_invoice_lines ADD COLUMN IF NOT EXISTS list_unit_pri
 ALTER TABLE IF EXISTS store_reservations ADD COLUMN IF NOT EXISTS order_id BIGINT;
 ALTER TABLE IF EXISTS store_reservation_items ADD COLUMN IF NOT EXISTS list_unit_price NUMERIC(14,2);
 ALTER TABLE IF EXISTS orders ALTER COLUMN user_id DROP NOT NULL;
-ALTER TABLE IF EXISTS store_reservation_items ALTER COLUMN unit_price TYPE NUMERIC(14,2) USING round(unit_price::numeric, 2);
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS auth_token_version INTEGER NOT NULL DEFAULT 0;
 
--- Convert legacy floating point money columns to fixed precision before JPA uses BigDecimal.
-ALTER TABLE IF EXISTS orders ALTER COLUMN total_amount TYPE NUMERIC(14,2) USING round(total_amount::numeric, 2);
-ALTER TABLE IF EXISTS order_items ALTER COLUMN price TYPE NUMERIC(14,2) USING round(price::numeric, 2);
-ALTER TABLE IF EXISTS sales_invoices ALTER COLUMN subtotal TYPE NUMERIC(14,2) USING round(subtotal::numeric, 2);
-ALTER TABLE IF EXISTS sales_invoices ALTER COLUMN tax_amount TYPE NUMERIC(14,2) USING round(tax_amount::numeric, 2);
-ALTER TABLE IF EXISTS sales_invoices ALTER COLUMN total_amount TYPE NUMERIC(14,2) USING round(total_amount::numeric, 2);
-ALTER TABLE IF EXISTS sales_invoice_lines ALTER COLUMN unit_price TYPE NUMERIC(14,2) USING round(unit_price::numeric, 2);
-ALTER TABLE IF EXISTS sales_invoice_lines ALTER COLUMN line_total TYPE NUMERIC(14,2) USING round(line_total::numeric, 2);
+-- Legacy money type normalization runs from SchemaCompatibilityMigration after Hibernate
+-- has reconciled the schema, and only for columns that still need conversion.

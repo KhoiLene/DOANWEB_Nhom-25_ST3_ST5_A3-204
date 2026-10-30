@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.Collection;
 
 public interface StoreRepository extends JpaRepository<Store, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -16,4 +17,5 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     java.util.List<Store> findByActiveTrueAndPickupEnabledTrue();
     java.util.List<Store> findByActiveTrueAndPickupEnabledTrueAndLatitudeIsNotNullAndLongitudeIsNotNull();
+    java.util.List<Store> findByNameIn(Collection<String> names);
 }

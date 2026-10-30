@@ -14,8 +14,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -49,13 +52,14 @@ public class DemoStoreInitializer implements CommandLineRunner {
     }
 
     private void seedStores() {
-        Map<String, Store> existingStores = storeRepository.findAll().stream()
+        List<StoreSeed> seeds = branchSeeds();
+        List<String> seedNames = seeds.stream().map(StoreSeed::name).toList();
+        Map<String, Store> existingStores = storeRepository.findByNameIn(seedNames).stream()
                 .collect(Collectors.toMap(store -> key(store.getName()), Function.identity(), (first, ignored) -> first));
-        List<Product> demoProducts = productRepository.findAll().stream()
-                .filter(product -> product.getSku() != null && product.getSku().startsWith("TECH-"))
-                .toList();
+        List<Product> demoProducts = productRepository.findBySkuStartingWith("TECH-");
+        List<Store> demoStores = new ArrayList<>(seeds.size());
 
-        for (StoreSeed seed : branchSeeds()) {
+        for (StoreSeed seed : seeds) {
             String key = key(seed.name());
             Store store = existingStores.get(key);
             if (store == null) {
@@ -71,22 +75,37 @@ public class DemoStoreInitializer implements CommandLineRunner {
                         .build());
                 existingStores.put(key, store);
             }
-            seedInventory(store, demoProducts);
+            demoStores.add(store);
         }
+        seedInventory(demoStores, demoProducts);
     }
 
-    private void seedInventory(Store store, List<Product> products) {
-        for (Product product : products) {
-            if (inventoryRepository.findByProductIdAndStoreId(product.getId(), store.getId()).isEmpty()) {
-                inventoryRepository.save(ProductInventory.builder()
-                        .product(product)
-                        .store(store)
-                        .price(product.getPrice())
-                        .stockQuantity(INITIAL_DEMO_STOCK)
-                        .build());
+    private void seedInventory(List<Store> stores, List<Product> products) {
+        if (stores.isEmpty() || products.isEmpty()) return;
+
+        Set<Long> storeIds = stores.stream().map(Store::getId).collect(Collectors.toSet());
+        Set<Long> productIds = products.stream().map(Product::getId).collect(Collectors.toSet());
+        Set<InventoryKey> existing = new HashSet<>();
+        inventoryRepository.findByStore_IdInAndProduct_IdIn(storeIds, productIds).forEach(inventory ->
+                existing.add(new InventoryKey(inventory.getProduct().getId(), inventory.getStore().getId())));
+
+        List<ProductInventory> missing = new ArrayList<>();
+        for (Store store : stores) {
+            for (Product product : products) {
+                if (existing.add(new InventoryKey(product.getId(), store.getId()))) {
+                    missing.add(ProductInventory.builder()
+                            .product(product)
+                            .store(store)
+                            .price(product.getPrice())
+                            .stockQuantity(INITIAL_DEMO_STOCK)
+                            .build());
+                }
             }
         }
+        if (!missing.isEmpty()) inventoryRepository.saveAll(missing);
     }
+
+    private record InventoryKey(Long productId, Long storeId) { }
 
     private String key(String name) {
         return name == null ? "" : name.trim().toLowerCase(Locale.ROOT);

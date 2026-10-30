@@ -108,4 +108,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByIsFlashSaleTrueAndIsActiveTrue();
 
     List<Product> findByIsFeaturedTrueAndIsActiveTrue();
+    List<Product> findBySkuStartingWith(String skuPrefix);
 }

@@ -4,6 +4,8 @@ import com.shopchain.entity.ProductInventory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface ProductInventoryRepository extends JpaRepository<ProductInventory, Long> {
@@ -16,4 +18,5 @@ public interface ProductInventoryRepository extends JpaRepository<ProductInvento
     java.util.List<ProductInventory> findByStoreId(Long storeId);
     java.util.List<ProductInventory> findByWarehouseId(Long warehouseId);
     java.util.List<ProductInventory> findByProductId(Long productId);
+    List<ProductInventory> findByStore_IdInAndProduct_IdIn(Collection<Long> storeIds, Collection<Long> productIds);
 }

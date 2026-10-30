@@ -14,8 +14,11 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Component
 public class AssistantKnowledgeInitializer implements CommandLineRunner {
@@ -66,32 +69,47 @@ public class AssistantKnowledgeInitializer implements CommandLineRunner {
     }
 
     private void seedKnowledge() throws Exception {
+        Set<String> roleKeys = new HashSet<>(SEED_FILES.keySet());
+        ROLE_GUIDES.forEach(seed -> roleKeys.add(seed.roleKey()));
+        Set<String> existingKeys = new HashSet<>();
+        Set<String> rolesWithSources = new HashSet<>();
+        for (Object[] row : repository.findRoleTitleKeysByRoleKeyIn(roleKeys)) {
+            String roleKey = (String) row[0];
+            String title = (String) row[1];
+            rolesWithSources.add(roleKey);
+            existingKeys.add(sourceKey(roleKey, title));
+        }
+
+        List<AssistantKnowledgeSource> missing = new ArrayList<>();
         for (var seed : SEED_FILES.entrySet()) {
-            if (repository.countByRoleKey(seed.getKey()) > 0) continue;
+            if (rolesWithSources.contains(seed.getKey())) continue;
             String content;
             try (var input = new ClassPathResource("assistant-knowledge/" + seed.getValue()).getInputStream()) {
                 content = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             }
-            repository.save(AssistantKnowledgeSource.builder()
+            missing.add(AssistantKnowledgeSource.builder()
                     .roleKey(seed.getKey())
                     .title("Hướng dẫn khởi đầu")
                     .content(content)
                     .active(true)
                     .build());
+            rolesWithSources.add(seed.getKey());
+            existingKeys.add(sourceKey(seed.getKey(), "Hướng dẫn khởi đầu"));
         }
         for (KnowledgeSeed seed : ROLE_GUIDES) {
-            if (repository.existsByRoleKeyAndTitle(seed.roleKey(), seed.title())) continue;
+            if (!existingKeys.add(sourceKey(seed.roleKey(), seed.title()))) continue;
             String content;
             try (var input = new ClassPathResource("assistant-knowledge/" + seed.fileName()).getInputStream()) {
                 content = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             }
-            repository.save(AssistantKnowledgeSource.builder()
+            missing.add(AssistantKnowledgeSource.builder()
                     .roleKey(seed.roleKey())
                     .title(seed.title())
                     .content(content)
                     .active(true)
                     .build());
         }
+        if (!missing.isEmpty()) repository.saveAll(missing);
     }
 
     /**

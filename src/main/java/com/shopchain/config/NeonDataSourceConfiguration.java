@@ -36,7 +36,6 @@ class NeonDataSourceConfiguration {
         dataSource.setIdleTimeout(environment.getProperty("spring.datasource.hikari.idle-timeout", Long.class, 60_000L));
         dataSource.setConnectionTimeout(environment.getProperty("spring.datasource.hikari.connection-timeout", Long.class, 20_000L));
         dataSource.setValidationTimeout(environment.getProperty("spring.datasource.hikari.validation-timeout", Long.class, 3_000L));
-        dataSource.setConnectionTestQuery("SELECT 1");
         Properties driverProperties = new Properties();
         driverProperties.setProperty("prepareThreshold", "0");
         driverProperties.setProperty("tcpKeepAlive", "true");

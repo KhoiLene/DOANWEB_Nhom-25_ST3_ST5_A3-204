@@ -16,6 +16,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -56,10 +57,12 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
     private void seedCatalog() {
         Map<String, Category> categories = new HashMap<>();
         Map<String, Category> existingCategories = new HashMap<>();
+        List<Category> changedCategories = new ArrayList<>();
         categoryRepository.findAll().forEach(category -> existingCategories.put(
                 category.getName().toLowerCase(Locale.ROOT), category));
         for (CategorySeed seed : categorySeeds()) {
             Category category = existingCategories.get(seed.name().toLowerCase(Locale.ROOT));
+            boolean changed = category == null;
             if (category == null) {
                 category = new Category();
             }
@@ -69,17 +72,22 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
                 category.setImageUrl(seed.imageUrl());
             } else if (category.getImageUrl() == null || category.getImageUrl().isBlank()) {
                 category.setImageUrl(seed.imageUrl());
+                changed = true;
             }
-            categories.put(seed.name(), categoryRepository.save(category));
+            if (changed) changedCategories.add(category);
+            categories.put(seed.name(), category);
         }
+        if (!changedCategories.isEmpty()) categoryRepository.saveAll(changedCategories);
 
         Map<String, Product> existingProducts = new HashMap<>();
         productRepository.findAll().forEach(product -> existingProducts.put(
                 product.getName().toLowerCase(Locale.ROOT), product));
+        List<Product> changedProducts = new ArrayList<>();
         int productIndex = 1;
         for (ProductSeed seed : productSeeds()) {
             String key = seed.name().toLowerCase(Locale.ROOT);
             Product product = existingProducts.get(key);
+            boolean changed = product == null;
             if (product == null) {
                 product = Product.builder()
                         .name(seed.name())
@@ -101,24 +109,39 @@ public class CosmeticsCatalogInitializer implements CommandLineRunner {
             // Keep legacy/demo catalog entries consistent with the Flash Sale flag while
             // preserving any campaign values that an administrator has already set.
             if (Boolean.TRUE.equals(product.getIsFlashSale())) {
-                if (product.getDiscountPercent() == null) product.setDiscountPercent(10d);
-                if (product.getCampaignName() == null || product.getCampaignName().isBlank())
+                if (product.getDiscountPercent() == null) {
+                    product.setDiscountPercent(10d);
+                    changed = true;
+                }
+                if (product.getCampaignName() == null || product.getCampaignName().isBlank()) {
                     product.setCampaignName("Flash Sale Techtra");
-                if (product.getCampaignAudience() == null || product.getCampaignAudience().isBlank())
+                    changed = true;
+                }
+                if (product.getCampaignAudience() == null || product.getCampaignAudience().isBlank()) {
                     product.setCampaignAudience("ALL");
+                    changed = true;
+                }
             }
             if (product.getSku() == null || product.getSku().isBlank()) {
                 product.setSku("TECH-" + String.format("%04d", productIndex));
+                changed = true;
             }
-            if (product.getBrandName() == null || product.getBrandName().isBlank())
+            if (product.getBrandName() == null || product.getBrandName().isBlank()) {
                 product.setBrandName("Techtra Beauty (sản phẩm minh họa)");
-            if (product.getSuitableFor() == null || product.getSuitableFor().isBlank())
+                changed = true;
+            }
+            if (product.getSuitableFor() == null || product.getSuitableFor().isBlank()) {
                 product.setSuitableFor(suitableFor(seed.category()));
-            if (product.getUsageInstructions() == null || product.getUsageInstructions().isBlank())
+                changed = true;
+            }
+            if (product.getUsageInstructions() == null || product.getUsageInstructions().isBlank()) {
                 product.setUsageInstructions(usageFor(seed.name(), seed.category()));
-            productRepository.save(product);
+                changed = true;
+            }
+            if (changed) changedProducts.add(product);
             productIndex++;
         }
+        if (!changedProducts.isEmpty()) productRepository.saveAll(changedProducts);
 
         if (homepageValueRepository.count() == 0) {
             homepageValueRepository.saveAll(List.of(

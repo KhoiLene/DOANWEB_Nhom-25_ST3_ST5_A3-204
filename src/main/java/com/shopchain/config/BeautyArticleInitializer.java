@@ -13,8 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Seeds original demo beauty guides and community-style stories without overwriting admin content. */
 @Component
@@ -54,14 +57,19 @@ public class BeautyArticleInitializer implements CommandLineRunner {
             }
         }
 
-        for (ArticleSeed seed : articleSeeds()) {
-            if (postRepository.findBySlug(seed.slug()).isPresent()) continue;
+        List<ArticleSeed> seeds = articleSeeds();
+        Set<String> existingSlugs = new HashSet<>(postRepository.findSlugsIn(
+                seeds.stream().map(ArticleSeed::slug).toList()));
+        List<Post> missingPosts = new ArrayList<>();
+        for (ArticleSeed seed : seeds) {
+            if (!existingSlugs.add(seed.slug())) continue;
             LocalDateTime now = LocalDateTime.now();
-            postRepository.save(Post.builder().title(seed.title()).slug(seed.slug()).summary(seed.summary())
+            missingPosts.add(Post.builder().title(seed.title()).slug(seed.slug()).summary(seed.summary())
                     .content(seed.content()).thumbnail(seed.thumbnail()).siteName("Góc làm đẹp Techtra")
                     .category(categories.get(seed.category())).status("published").postType("article")
                     .publishedAt(now.minusDays(seed.daysAgo())).createdAt(now).updatedAt(now).build());
         }
+        if (!missingPosts.isEmpty()) postRepository.saveAll(missingPosts);
     }
 
     private List<CategorySeed> categorySeeds() {
