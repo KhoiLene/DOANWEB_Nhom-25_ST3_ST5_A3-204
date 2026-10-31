@@ -2,6 +2,7 @@ package com.shopchain.config;
 
 import com.shopchain.security.JwtAuthenticationFilter;
 import com.shopchain.security.CookieCsrfProtectionFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,6 +17,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableWebSecurity
@@ -80,6 +84,25 @@ public class SecurityConfig {
                 .requestMatchers("/api/vendor/**").hasAnyRole("VENDOR", "ADMIN")
                 .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, exception) -> {
+                    String path = request.getRequestURI();
+                    if (path.startsWith(request.getContextPath() + "/api/")) {
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                        return;
+                    }
+
+                    String returnTo = request.getRequestURI();
+                    if (request.getQueryString() != null && !request.getQueryString().isBlank()) {
+                        returnTo += "?" + request.getQueryString();
+                    }
+                    String loginUrl = request.getContextPath() + "/login?returnTo="
+                            + URLEncoder.encode(returnTo, StandardCharsets.UTF_8);
+                    response.sendRedirect(loginUrl);
+                })
+                .accessDeniedHandler((request, response, exception) ->
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN))
             );
 
         http.addFilterBefore(cookieCsrfProtectionFilter, UsernamePasswordAuthenticationFilter.class);
