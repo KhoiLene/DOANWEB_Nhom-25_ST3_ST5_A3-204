@@ -37,5 +37,39 @@
 
     <section class="card"><div class="card__header"><div><h2>Tồn kho chi nhánh</h2><p class="workspace-muted">Tồn thực tế = có thể bán + đang giữ.</p></div></div><div class="card__body workspace-table-wrap"><table class="admin-table"><thead><tr><th>Sản phẩm</th><th>Mã SKU</th><th>Tồn thực tế</th><th>Đang giữ</th><th>Có thể bán</th></tr></thead><tbody>
     <tr th:each="row : ${inventory}"><td th:text="${row.product.name}">Sản phẩm</td><td th:text="${row.product.sku ?: '—'}">SKU</td><td th:text="${row.stockQuantity}">0</td><td th:text="${row.reservedQuantity ?: 0}">0</td><td th:text="${row.availableQuantity}">0</td></tr><tr th:if="${#lists.isEmpty(inventory)}"><td colspan="5" class="workspace-empty">Chi nhánh chưa có hàng. Kiểm tra các phiếu điều chuyển đang chờ nhận ở phía trên.</td></tr></tbody></table></div></section>
-    <section class="card"><div class="card__header"><h2>Lịch sử thay đổi tồn kho</h2><span class="workspace-muted">100 hoạt động gần nhất</span></div><div class="card__body workspace-table-wrap"><table class="admin-table"><thead><tr><th>Thời gian</th><th>Sản phẩm</th><th>Hoạt động</th><th>Số lượng</th><th>Ghi chú</th></tr></thead><tbody><tr th:each="movement : ${movements}"><td th:text="${#temporals.format(movement.createdAt, 'dd/MM/yyyy HH:mm')}">27/10/2026 10:00</td><td th:text="${movement.product.name}">Sản phẩm</td><td th:text="${movement.movementType == 'TRANSFER_IN' ? 'Nhận điều chuyển' : (movement.movementType == 'ONLINE_SALE' ? 'Đơn trực tuyến' : (movement.movementType == 'POS_SALE' ? 'Bán tại quầy' : (movement.movementType == 'PICKUP_SALE' ? 'Bán nhận tại cửa hàng' : (movement.movementType == 'RESERVE' ? 'Giữ hàng' : (movement.movementType == 'RESERVATION_RELEASE' ? 'Trả lại hàng giữ' : (movement.movementType == 'ORDER_CANCEL_RETURN' ? 'Hoàn tồn đơn hủy' : movement.movementType))))))}">Hoạt động</td><td th:text="${movement.quantity}">0</td><td th:text="${movement.note ?: '—'}">—</td></tr><tr th:if="${#lists.isEmpty(movements)}"><td colspan="5" class="workspace-empty">Chưa có lịch sử thay đổi tồn kho.</td></tr></tbody></table></div></section>
+    <section class="card">
+        <div class="card__header">
+            <h2>Lịch sử thay đổi tồn kho</h2>
+            <span class="workspace-muted">100 hoạt động gần nhất</span>
+        </div>
+        <div class="card__body workspace-table-wrap">
+            <table class="admin-table">
+                <thead><tr><th>Thời gian</th><th>Sản phẩm</th><th>Hoạt động</th><th>Số lượng</th><th>Ghi chú</th></tr></thead>
+                <tbody>
+                <tr th:each="movement : ${movements}">
+                    <td>
+                        <span th:if="${movement.createdAt != null}" th:text="${#temporals.format(movement.createdAt, 'dd/MM/yyyy HH:mm')}">27/10/2026 10:00</span>
+                        <span th:unless="${movement.createdAt != null}">—</span>
+                    </td>
+                    <td th:text="${movement.product != null ? movement.product.name : '—'}">Sản phẩm</td>
+                    <td>
+                        <span th:switch="${movement.movementType}">
+                            <span th:case="'TRANSFER_IN'">Nhận điều chuyển</span>
+                            <span th:case="'ONLINE_SALE'">Đơn trực tuyến</span>
+                            <span th:case="'POS_SALE'">Bán tại quầy</span>
+                            <span th:case="'PICKUP_SALE'">Bán nhận tại cửa hàng</span>
+                            <span th:case="'RESERVE'">Giữ hàng</span>
+                            <span th:case="'RESERVATION_RELEASE'">Trả lại hàng giữ</span>
+                            <span th:case="'ORDER_CANCEL_RETURN'">Hoàn tồn đơn hủy</span>
+                            <span th:case="*" th:text="${movement.movementType ?: 'Hoạt động khác'}">Hoạt động khác</span>
+                        </span>
+                    </td>
+                    <td th:text="${movement.quantity ?: 0}">0</td>
+                    <td th:text="${movement.note ?: '—'}">—</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(movements)}"><td colspan="5" class="workspace-empty">Chưa có lịch sử thay đổi tồn kho.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 </main><script>window.setInterval(() => window.location.reload(), 30000);</script></body></html>
